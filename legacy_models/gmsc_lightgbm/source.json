@@ -1,0 +1,12 @@
+{
+  "title": "Top 1 - Give Me Some Credit: LGBM model in R",
+  "author": "brynning",
+  "url": "https://www.kaggle.com/code/brynning/top-1-give-me-some-credit-lgbm-model-in-r",
+  "notebook_version": 1,
+  "license": "Apache-2.0",
+  "retrieved_on": "2026-11-12",
+  "changes": "Removed saved outputs and execution counts; retained code and markdown cells.",
+  "dataset": "Give Me Some Credit",
+  "dataset_url": "https://www.kaggle.com/competitions/GiveMeSomeCredit/data",
+  "note": "Author attribution is distinct from business model ownership. Target meaning must be checked against the official data dictionary."
+}
