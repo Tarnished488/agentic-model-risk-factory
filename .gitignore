@@ -9,3 +9,8 @@ mlruns/
 cs-training.csv
 cs-test.csv
 *.csv.gz
+# Generated runs, logs and reviews stay local; only the latest inventory is shared.
+artifacts/*
+!artifacts/discover/
+artifacts/discover/*
+!artifacts/discover/inventory.json
