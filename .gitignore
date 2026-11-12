@@ -9,3 +9,5 @@ mlruns/
 cs-training.csv
 cs-test.csv
 *.csv.gz
+
+artifacts/document/
