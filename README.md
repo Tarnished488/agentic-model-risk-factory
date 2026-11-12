@@ -68,6 +68,8 @@ Pydantic 检查字段和取值，代码核对证据来源、行号和逐字引�
 
 ## 人工审核和下一节点交接
 
+负责 Document 的同学请先阅读 [Discover 到 Document 的交接约定](docs/discover_to_document.md)，其中包含字段类型、证据引用、跨机器路径限制及建议输出。
+
 运行 `scan` 后，打开 `artifacts/discover/inventory.json`，检查来源、目标、原始字段与派生变量、文档状态和待确认事项。下面的编号对应当前样例，新增模型后使用命令输出的实际编号。
 
 ```bash
