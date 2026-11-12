@@ -4,7 +4,6 @@ __pycache__/
 .env
 .env.*
 !.env.example
-artifacts/
 mlruns/
 .DS_Store
 cs-training.csv

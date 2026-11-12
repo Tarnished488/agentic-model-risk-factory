@@ -1,5 +1,3 @@
-"""Discover legacy model files, extract evidence, and gate the Document handoff."""
-
 from __future__ import annotations
 
 import argparse
