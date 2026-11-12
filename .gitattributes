@@ -1,0 +1,2 @@
+# Source hashes in inventory.json must match byte-for-byte on every OS.
+legacy_models/** -text

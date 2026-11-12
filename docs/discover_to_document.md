@@ -21,7 +21,7 @@ Document 根据这些材料编写说明，遇到缺失信息继续列为待确�
 | legacy_models/<group>/ 下的原文件 | R、Notebook、数据字典、说明等 | loader 对照哈希和提取文本，确认资料未变 |
 | schemas/inventory.schema.json | JSON Schema | 扫描清单的机器校验定义，Record 与 Metadata 也在其中定义 |
 
-**接收方使用审核快照调用 loader。** inventory.json 本身没有审批状态，不能作为通过人工关卡的凭据。reviews 是本地运行生成目录，已被 .gitignore 排除，不会自动出现在 GitHub。
+**接收方使用审核快照调用 loader。** inventory.json 本身没有审批状态，不能作为通过人工关卡的凭据。reviews 是本地运行生成目录，已被 .gitignore 排除，不会自动出现在 GitHub；artifacts 下只有最新的 inventory.json 提交共享。
 
 ```python
 from pathlib import Path
@@ -44,7 +44,7 @@ sources = record["sources"]
 | --- | --- | --- |
 | model_id | str | 文档和报告沿用同一编号 |
 | inventory_record | dict | 模型记录，结构见下一节 |
-| input_root | str | 当前运行机器上输入根目录的绝对路径 |
+| input_root | str | 输入根目录；在仓库内扫描时为相对仓库根目录的路径（如 legacy_models），需在仓库根目录运行，否则为绝对路径 |
 | status | str，当前固定为 ready_for_document | 标识 loader 检查通过，可以开始编制 |
 | approvals | list[dict] | 原样保留人工审核信息 |
 
@@ -139,7 +139,7 @@ for item in record["source_files"]:
 
 ## 不同成员电脑之间怎样交接
 
-推荐 A、B、C、D 使用同一个 GitHub 分支版本。当前审核快照包含生成机器的绝对 input_root，并依赖本地原文件；复制一份 JSON 到另一台电脑通常还不能直接通过校验。
+推荐 A、B、C、D 使用同一个 GitHub 分支版本。在仓库根目录运行时 input_root 为相对路径，同一分支的成员可在各自电脑上校验；审核快照仍依赖本地原文件，原文件哈希须一致。
 
 第一轮联调建议由 D 在同一台机器运行 scan 和人工 review，然后把返回的审核文件路径交给 Document。其他成员可在自己的克隆目录重新运行并审阅本地结果，形成新的本地审批。
 

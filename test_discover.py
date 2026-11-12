@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -48,14 +49,14 @@ class DiscoverTests(unittest.TestCase):
         sources = read_sources(path, 'n.ipynb', 'abc')
         self.assertEqual(sources[1].source_id, 'n.ipynb#cell=2')
         self.assertNotIn('DO NOT READ', sources[1].text)
-        validate_evidence(offline_metadata(sources, 'loan'), sources)
+        validate_evidence(offline_metadata(sources), sources)
 
     def test_csv_extracts_header_without_rows(self):
         path = self.group / 'data.csv'
         path.write_text('age,income\n21,PRIVATE_VALUE\n')
         sources = read_sources(path, 'data.csv', 'abc')
         self.assertNotIn('PRIVATE_VALUE', sources[0].text)
-        self.assertEqual(offline_metadata(sources, 'loan').inputs, ['age', 'income'])
+        self.assertEqual(offline_metadata(sources).inputs, ['age', 'income'])
 
     def test_invalid_evidence_cannot_pass(self):
         source = Source(source_id='x.R', path='x.R', kind='code', sha256='abc', text='library(lightgbm)')
@@ -91,11 +92,20 @@ class DiscoverTests(unittest.TestCase):
 
     def test_approval_handoff_and_source_change(self):
         model = self.scan().models[0]
-        approved = review(self.output, model.model_id, 'Tester', 'approve', 'Verified sources and unknowns')
+        approved = review(self.output, model.model_id, 'Tester', 'approve', '已核对来源和未知项')  # non-ASCII: Windows cp936 regression
         self.assertEqual(load_document_input(approved)['status'], 'ready_for_document')
         self.code.write_text('changed\n')
         with self.assertRaisesRegex(ValueError, 'Source changed'):
             load_document_input(approved)
+
+    def test_input_root_is_relative_inside_working_directory(self):
+        cwd = os.getcwd()
+        os.chdir(self.temp.name)
+        self.addCleanup(os.chdir, cwd)
+        result = run_discovery(Path('models'), Path('artifacts'))
+        self.assertEqual(result.input_root, 'models')
+        approved = review(Path('artifacts'), result.models[0].model_id, 'Tester', 'approve', 'Checked')
+        self.assertEqual(load_document_input(approved)['input_root'], 'models')
 
     def test_modified_approved_record_and_rejection_are_blocked(self):
         model = self.scan().models[0]
@@ -103,7 +113,7 @@ class DiscoverTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'approval'):
             load_document_input(rejected)
         approved = review(self.output, model.model_id, 'Tester', 'approve', 'Checked')
-        payload = json.loads(approved.read_text())
+        payload = json.loads(approved.read_text(encoding='utf-8'))
         payload['inventory_record']['metadata']['name'] = 'tampered'
         approved.write_text(json.dumps(payload))
         with self.assertRaisesRegex(ValueError, 'changed after review'):

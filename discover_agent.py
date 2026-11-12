@@ -1,3 +1,5 @@
+"""Discover legacy model files, extract evidence, and gate the Document handoff."""
+
 from __future__ import annotations
 
 import argparse
@@ -34,6 +36,14 @@ def now() -> str:
 def digest(value: Any) -> str:
     data = json.dumps(value, ensure_ascii=False, sort_keys=True).encode()
     return hashlib.sha256(data).hexdigest()
+
+
+def file_sha256(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            hasher.update(block)
+    return hasher.hexdigest()
 
 
 class StrictModel(BaseModel):
@@ -158,7 +168,7 @@ def evidence_at(source: Source, index: int, quote: str | None = None) -> Evidenc
                     quote=quote or lines[index - 1])
 
 
-def offline_metadata(sources: list[Source], group: str) -> Metadata:
+def offline_metadata(sources: list[Source]) -> Metadata:
     """Conservative hints only; leave unresolved R expressions for the LLM/reviewer."""
     result = Metadata()
 
@@ -365,7 +375,9 @@ def run_discovery(input_root: Path, output: Path, use_llm: bool = False) -> Inve
         groups.setdefault(group, []).append(path)
     if not groups:
         raise ValueError("No supported files found")
-    inventory = Inventory(run_id=str(uuid.uuid4()), generated_at=now(), input_root=str(root), models=[])
+    # Relative to the repo working directory so a shared inventory.json works on every teammate's machine.
+    shown_root = root.relative_to(Path.cwd()).as_posix() if root.is_relative_to(Path.cwd()) else str(root)
+    inventory = Inventory(run_id=str(uuid.uuid4()), generated_at=now(), input_root=shown_root, models=[])
     with output_lock(output):
         for group, paths in groups.items():
             sources, manifest, warnings = [], [], []
@@ -378,11 +390,7 @@ def run_discovery(input_root: Path, output: Path, use_llm: bool = False) -> Inve
                     warnings.append(f"File exceeds size limit: {relative}")
                     continue
                 try:
-                    hasher = hashlib.sha256()
-                    with path.open("rb") as stream:
-                        for block in iter(lambda: stream.read(1024 * 1024), b""):
-                            hasher.update(block)
-                    fingerprint = hasher.hexdigest()
+                    fingerprint = file_sha256(path)
                     stat = path.stat()
                     manifest.append(FileRecord(path=relative, sha256=fingerprint, size_bytes=stat.st_size,
                                                modified_at=datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat()))
@@ -391,7 +399,7 @@ def run_discovery(input_root: Path, output: Path, use_llm: bool = False) -> Inve
                     # A malformed optional document must not erase other groups' results.
                     warnings.append(f"Cannot read {relative}: {type(error).__name__}")
             mode = "llm" if use_llm else "offline"
-            metadata = offline_metadata(sources, group)
+            metadata = offline_metadata(sources)
             status = "pending_review"
             if not any(source.kind == "code" for source in sources):
                 warnings.append("No readable model source code found")
@@ -439,11 +447,7 @@ def check_sources(record: Record, root: Path) -> None:
         path = (root / item.path).resolve()
         if not path.is_relative_to(root.resolve()) or not path.is_file():
             raise ValueError(f"Source missing or outside input tree: {item.path}")
-        hasher = hashlib.sha256()
-        with path.open("rb") as stream:
-            for block in iter(lambda: stream.read(1024 * 1024), b""):
-                hasher.update(block)
-        if hasher.hexdigest() != item.sha256:
+        if file_sha256(path) != item.sha256:
             raise ValueError(f"Source changed; rerun Discover: {item.path}")
         current_sources.extend(read_sources(path, item.path, item.sha256))
     if [s.model_dump() for s in current_sources] != [s.model_dump() for s in record.sources]:
@@ -465,7 +469,7 @@ def review(output: Path, model_id: str, reviewer: str, decision: str, notes: str
     if not reviewer.strip() or not notes.strip() or decision not in {"approve", "reject"}:
         raise ValueError("Review requires a reviewer, notes and approve/reject decision")
     with output_lock(output):
-        inventory = Inventory.model_validate_json((output / "inventory.json").read_text())
+        inventory = Inventory.model_validate_json((output / "inventory.json").read_text(encoding="utf-8"))
         record = next((r for r in inventory.models if r.model_id == model_id), None)
         if record is None:
             raise ValueError("Unknown model_id")
@@ -486,7 +490,7 @@ def review(output: Path, model_id: str, reviewer: str, decision: str, notes: str
 
 def load_document_input(path: Path) -> dict:
     """Normal entry point for Document Agent; re-check approval and live source hashes."""
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     if payload.get("status") != "approved_for_document" or payload["approval"]["decision"] != "approve":
         raise ValueError("Human approval is required")
     record = Record.model_validate(payload["inventory_record"])

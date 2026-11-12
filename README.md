@@ -26,7 +26,7 @@ legacy_models/
     original.ipynb
     source.json
     DATA_README.md
-artifacts/discover/           # 运行生成，已忽略
+artifacts/discover/           # 运行生成，仅 inventory.json 提交共享，其余已忽略
   inventory.json             # 最新结果
   runs/<run_id>/inventory.json
   audit_log.jsonl

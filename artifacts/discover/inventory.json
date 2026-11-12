@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "run_id": "bd8c9bde-e857-4b17-8ddc-5f614a1d1401",
-  "generated_at": "2026-11-12T17:37:33.072599+00:00",
+  "run_id": "61a4224c-909b-489d-8a89-a231079599bd",
+  "generated_at": "2026-11-12T17:45:26.803000+00:00",
   "input_root": "legacy_models",
   "models": [
     {
