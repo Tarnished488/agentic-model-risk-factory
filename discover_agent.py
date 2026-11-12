@@ -17,7 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from workflow_state import shared_state
 
 TEXT_EXTENSIONS = {".r", ".py", ".sas", ".md", ".txt", ".json", ".rmd"}
 SUPPORTED = TEXT_EXTENSIONS | {".ipynb", ".csv", ".pdf", ".docx"}
@@ -255,6 +256,41 @@ def validate_evidence(metadata: Metadata, sources: list[Source]) -> None:
         raise ValueError("Document assessment requires source evidence")
 
 
+def llm_error_summary(error: Exception) -> str:
+    """Diagnostics without response bodies, request headers or raw validation inputs."""
+    if isinstance(error, ValidationError):
+        details = error.errors(include_input=False, include_url=False, include_context=False)
+        return "Schema validation: " + json.dumps(details[:5], ensure_ascii=False)[:1800]
+    if isinstance(error, urllib.error.HTTPError):
+        return f"LLM HTTP {error.code}"
+    if isinstance(error, TimeoutError):
+        return "LLM request timed out"
+    if isinstance(error, urllib.error.URLError):
+        return "LLM network/TLS error (" + type(error.reason).__name__ + ")"
+    if isinstance(error, ValueError):
+        message = str(error)
+        if re.fullmatch(r"LLM HTTP \d{3}", message):
+            return message
+        if message == "--llm requires LLM_BASE_URL, LLM_MODEL and LLM_API_KEY":
+            return message
+        prefixes = ("Missing evidence for ", "Unknown evidence field: ", "Unknown source: ",
+                    "Evidence outside source: ", "Evidence quote mismatch: ",
+                    "Document assessment requires source evidence", "Evidence line_end precedes line_start")
+        if message.startswith(prefixes):
+            return message[:500]
+    if isinstance(error, (KeyError, IndexError, TypeError)):
+        return "Unexpected LLM response structure (" + type(error).__name__ + ")"
+    return "LLM processing error (" + type(error).__name__ + ")"
+
+
+class LLMResponse(str):
+    """Keep the caller's string contract while carrying provider token usage."""
+    def __new__(cls, value, usage=None):
+        instance = super().__new__(cls, value)
+        instance.usage = usage
+        return instance
+
+
 def call_llm(messages: list[dict[str, str]], schema: dict) -> str:
     """Use a configured Chat Completions compatible provider, with TLS verification."""
     required = ["LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY"]
@@ -272,10 +308,10 @@ def call_llm(messages: list[dict[str, str]], schema: dict) -> str:
             body = json.load(response)
     except urllib.error.HTTPError as error:
         raise ValueError(f"LLM HTTP {error.code}") from None
-    return body["choices"][0]["message"]["content"]
+    return LLMResponse(body["choices"][0]["message"]["content"], body.get("usage"))
 
 
-def extract_with_llm(sources: list[Source], caller=call_llm, on_attempt=None) -> Metadata:
+def extract_with_llm(sources: list[Source], caller=call_llm, on_attempt=None, on_call=None) -> Metadata:
     material = [{"source_id": s.source_id, "kind": s.kind, "language_hint": s.language_hint,
                  "lines": [f"{i}: {line}" for i, line in enumerate(s.text.splitlines(), 1)]}
                 for s in sources]
@@ -298,22 +334,28 @@ def extract_with_llm(sources: list[Source], caller=call_llm, on_attempt=None) ->
         {"role": "user", "content": encoded},
     ]
     for attempt in range(1, 4):
+        call_info = {"input_hash": digest(messages), "tokens": None}
         try:
             raw = caller(messages, schema)
+            call_info["tokens"] = getattr(raw, "usage", None)
             result = Metadata.model_validate_json(raw)
             validate_evidence(result, sources)
             if on_attempt:
                 on_attempt(attempt, "success")
             return result
-        except (ValueError, KeyError, TypeError, urllib.error.URLError, TimeoutError) as error:
+        except (ValueError, KeyError, TypeError, IndexError, urllib.error.URLError, TimeoutError) as error:
+            feedback = llm_error_summary(error)
+            call_info["error_type"] = type(error).__name__
+            call_info["error_summary"] = feedback
             if on_attempt:
                 on_attempt(attempt, type(error).__name__)
             if attempt == 3:
-                raise ValueError("LLM extraction failed after initial attempt and two retries") from error
-            # Never log provider payloads, credentials or HTTP response bodies.
-            feedback = str(error) if isinstance(error, ValueError) else type(error).__name__
+                raise ValueError("LLM extraction failed after initial attempt and two retries: " + feedback) from None
             messages.append({"role": "user", "content": "Retry with corrected JSON and evidence. Error: " + feedback[:2000]})
             time.sleep(0.2 * 2 ** (attempt - 1))
+        finally:
+            if on_call:
+                on_call(attempt, call_info)
     raise AssertionError("Unreachable")
 
 
@@ -398,7 +440,12 @@ def run_discovery(input_root: Path, output: Path, use_llm: bool = False) -> Inve
                 status = "needs_attention"
             if use_llm:
                 try:
-                    metadata = extract_with_llm(sources, on_attempt=lambda attempt, outcome: audit(
+                    metadata = extract_with_llm(sources, on_call=lambda attempt, info: audit(
+                        output, {"run_id": inventory.run_id, "group": group, "event": "llm_call",
+                                 "agent": "metadata", "attempt": attempt, "prompt_version": "discover-v1",
+                                 "provider_model": os.environ.get("LLM_MODEL"),
+                                 "output_path": str(output / "runs" / inventory.run_id / "inventory.json"), **info}),
+                        on_attempt=lambda attempt, outcome: audit(
                         output, {"run_id": inventory.run_id, "group": group, "event": "llm_attempt",
                                  "attempt": attempt, "outcome": outcome, "prompt_version": "discover-v1",
                                  "provider_model": os.environ.get("LLM_MODEL"),
@@ -494,9 +541,9 @@ def load_document_input(path: Path) -> dict:
         raise ValueError("Record changed after review")
     check_sources(record, Path(payload["input_root"]))
     validate_evidence(record.metadata, record.sources)
-    return {"model_id": record.model_id, "inventory_record": record.model_dump(),
+    return shared_state({"model_id": record.model_id, "inventory_record": record.model_dump(),
             "input_root": payload["input_root"], "status": "ready_for_document",
-            "approvals": [payload["approval"]]}
+            "approvals": [payload["approval"]]})
 
 
 def main() -> int:
@@ -528,6 +575,8 @@ def main() -> int:
                     return 1
             for item in result.models:
                 print(f"{item.model_id}  {item.group}  {item.status}  {item.extraction_mode}")
+                for warning in item.warnings:
+                    print(f"  Warning: {warning}", file=sys.stderr)
             print(f"Inventory: {args.output / 'inventory.json'}")
             return 1 if any(r.status == "needs_attention" for r in result.models) else 0
         if args.command == "review":
