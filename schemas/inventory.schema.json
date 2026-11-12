@@ -1,0 +1,451 @@
+{
+  "$defs": {
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "line_start": {
+          "minimum": 1,
+          "title": "Line Start",
+          "type": "integer"
+        },
+        "line_end": {
+          "minimum": 1,
+          "title": "Line End",
+          "type": "integer"
+        },
+        "quote": {
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "line_start",
+        "line_end",
+        "quote"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "FileRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "modified_at": {
+          "title": "Modified At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "modified_at"
+      ],
+      "title": "FileRecord",
+      "type": "object"
+    },
+    "Metadata": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "business_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "credit",
+                "fraud",
+                "pricing",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Business Type"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "enum": [
+                "R",
+                "Python",
+                "SAS",
+                "mixed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "algorithm": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Algorithm"
+        },
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset"
+        },
+        "data_references": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Data References",
+          "type": "array"
+        },
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "derived_features": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Derived Features",
+          "type": "array"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "training_stages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Training Stages",
+          "type": "array"
+        },
+        "packages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Packages",
+          "type": "array"
+        },
+        "business_owner": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Business Owner"
+        },
+        "declared_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Declared Version"
+        },
+        "use_in_decisions": {
+          "anyOf": [
+            {
+              "enum": [
+                "direct_credit_decision",
+                "reporting",
+                "research"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Use In Decisions"
+        },
+        "doc_status": {
+          "default": "needs_review",
+          "enum": [
+            "current",
+            "outdated",
+            "missing",
+            "needs_review"
+          ],
+          "title": "Doc Status",
+          "type": "string"
+        },
+        "doc_reason": {
+          "default": "Content consistency requires human review.",
+          "title": "Doc Reason",
+          "type": "string"
+        },
+        "evidence": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/$defs/Evidence"
+            },
+            "type": "array"
+          },
+          "title": "Evidence",
+          "type": "object"
+        },
+        "unknowns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unknowns",
+          "type": "array"
+        }
+      },
+      "title": "Metadata",
+      "type": "object"
+    },
+    "Record": {
+      "additionalProperties": false,
+      "properties": {
+        "model_id": {
+          "title": "Model Id",
+          "type": "string"
+        },
+        "group": {
+          "title": "Group",
+          "type": "string"
+        },
+        "source_files": {
+          "items": {
+            "$ref": "#/$defs/FileRecord"
+          },
+          "title": "Source Files",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "metadata": {
+          "$ref": "#/$defs/Metadata"
+        },
+        "risk_tier": {
+          "anyOf": [
+            {
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Risk Tier"
+        },
+        "risk_reason": {
+          "title": "Risk Reason",
+          "type": "string"
+        },
+        "risk_provisional": {
+          "const": true,
+          "default": true,
+          "title": "Risk Provisional",
+          "type": "boolean"
+        },
+        "extraction_mode": {
+          "enum": [
+            "offline",
+            "llm"
+          ],
+          "title": "Extraction Mode",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pending_review",
+            "needs_attention"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model_id",
+        "group",
+        "source_files",
+        "sources",
+        "metadata",
+        "risk_reason",
+        "extraction_mode",
+        "status"
+      ],
+      "title": "Record",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "language_hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language Hint"
+        }
+      },
+      "required": [
+        "source_id",
+        "path",
+        "kind",
+        "sha256",
+        "text"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "generated_at": {
+      "title": "Generated At",
+      "type": "string"
+    },
+    "input_root": {
+      "title": "Input Root",
+      "type": "string"
+    },
+    "models": {
+      "items": {
+        "$ref": "#/$defs/Record"
+      },
+      "title": "Models",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "generated_at",
+    "input_root",
+    "models"
+  ],
+  "title": "Inventory",
+  "type": "object"
+}
