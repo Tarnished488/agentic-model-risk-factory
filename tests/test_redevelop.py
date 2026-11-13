@@ -224,6 +224,17 @@ class RedevelopTests(unittest.TestCase):
         self.assertEqual(result['registry_stage'], 'Staging')
         self.assertEqual([a.get('gate', 'discover') for a in result['approvals']][-2:], ['document', 'redevelop'])
         self.assertEqual(len(result['approvals']), 3)
+        from src.validate.validate_agent import run_validation
+        from scripts.evidence_pack import collect
+        validation = run_validation(gate3, output / 'validate')
+        validation_state = json.loads(validation.read_text(encoding='utf-8'))
+        self.assertIn(validation_state['status'], ('pending_validation_review', 'needs_attention'))
+        page = collect(validation, output / 'public_evidence')
+        self.assertTrue(page.is_file())
+        exported = (page.parent / 'summary.json').read_text(encoding='utf-8')
+        self.assertNotIn('worst_rows', exported)
+        self.assertNotIn(str(self.base), exported)
+        self.assertNotIn('"reviewer"', exported)
         # Validate gets everything it needs to recompute metrics, all hash-locked.
         self.assertEqual(Path(result['data_path']), (self.data / 'cs-training.csv').resolve())
         self.assertEqual(Path(result['train_ids_path']), (self.reference / 'train_ids.csv').resolve())
