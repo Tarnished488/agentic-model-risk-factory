@@ -27,7 +27,7 @@ from src.discover.discover_agent import (
 )
 from src.redevelop.parity import compare, load_coefficients, load_predictions, record_round
 
-PROMPT_VERSION = "redevelop-v2"
+PROMPT_VERSION = "redevelop-v5"
 BASELINES = Path(__file__).parent / "baselines"
 MODEL_METHODS = {"fit", "predict_proba", "get_coefficients"}
 
@@ -201,13 +201,21 @@ def run_tests(code: str, tests: str, workdir: Path, timeout: int = 300) -> None:
     (workdir / "new_model.py").write_text(code, encoding="utf-8")
     (workdir / "test_new_model.py").write_text(tests, encoding="utf-8")
     try:
-        result = subprocess.run([sys.executable, "-I", "-m", "pytest", "-q", "-p", "no:cacheprovider",
+        result = subprocess.run([sys.executable, "-I", "-m", "pytest", "-q", "--tb=short", "-rf",
+                                 "-p", "no:cacheprovider",
                                  "test_new_model.py"], capture_output=True, text=True, timeout=timeout,
                                 cwd=workdir, env=_sandbox_env())
     except subprocess.TimeoutExpired:
         raise CheckError(f"Generated tests exceeded {timeout}s") from None
     if result.returncode:
-        raise CheckError("Generated tests failed:\n" + _tail(result.stdout, 25))
+        raise CheckError("Generated tests failed:\n" + pytest_failures(result.stdout))
+
+
+def pytest_failures(output: str) -> str:
+    """The error lines and failure summary, which tell the LLM what to fix; code echoes do not."""
+    lines = output.splitlines()
+    picked = [line for line in lines if line.startswith(("E ", "FAILED ", "ERROR "))]
+    return "\n".join(picked)[:2500] if picked else _tail(output, 25)
 
 
 # ---- LLM steps ----
@@ -258,14 +266,17 @@ INTERFACE = (
     "training rows whose row id is in reference_dir / 'train_ids.csv' (column row_id) and treats the remaining "
     "filtered rows as holdout; fits Model; creates output if needed and writes output / 'holdout_predictions.csv' "
     "with columns row_id, probability, label (probability unrounded) and output / 'coefficients.csv' with columns "
-    "term, Estimate using exactly reference_coefficient_terms in that order; returns row counts. ")
+    "term, Estimate using exactly reference_coefficient_terms in that order; returns row counts. "
+    "train_ids.csv only ever lists rows that survive the filters, because the legacy split was drawn after "
+    "filtering; run() raises ValueError if a listed training row was filtered out. ")
 
 CODE_INSTRUCTION = (
     "Write one self-contained Python module that rebuilds the legacy model described by the IR. "
     "Allowed imports only: numpy, pandas, scipy, math, pathlib, typing, argparse, __future__. "
     "No file access except pandas read_csv/to_csv on the given paths. " + INTERFACE +
     "Reproduce the legacy software's numerical algorithm (starting values, iteration and convergence rule), "
-    "not just the statistical model: parity is checked to 1e-6. If feedback is given, fix the cause it points to.")
+    "not just the statistical model: parity is checked to 1e-6. Follow legacy_runtime_notes exactly when given. "
+    "Use scipy.stats for distribution functions. If feedback is given, fix the cause it points to.")
 
 TESTS_INSTRUCTION = (
     "Write a pytest module that tests a rebuild of the model described by the IR, without seeing its code. "
@@ -275,7 +286,42 @@ TESTS_INSTRUCTION = (
     "Cover: each IR filter (a row just outside is dropped, a boundary row is kept, string comparisons as text), "
     "imputation of missing values, output columns, probabilities in [0, 1], coefficient terms equal "
     "reference_coefficient_terms, and Model.predict_proba output shape. Check row ids by reading the output CSVs, "
-    "not run()'s return value. Keep tests deterministic and under 10 seconds.")
+    "not run()'s return value. Put rows meant to be filtered out only in the holdout part, never in train_ids.csv. "
+    "Copy reference_coefficient_terms into the test as a literal list; new_model does not expose it. "
+    "Any test that fits the model (run or Model.fit) needs at least 200 training rows "
+    "with both target classes and varied feature values, generated with numpy.random.default_rng(seed); tiny frames "
+    "make the legacy fitting algorithm fail to converge. Keep tests deterministic and under 10 seconds.")
+
+
+def check_ir_columns(ir: IR, columns: list[str]) -> None:
+    """Steps must name raw data columns, not legacy aliases: the rebuild reads the raw file."""
+    used = [f.column for f in ir.filters] + [i.column for i in ir.imputation] + ir.model.features + [ir.model.target]
+    unknown = sorted({name for name in used if name not in columns})
+    if unknown:
+        aliases = {alias: raw for raw, alias in ir.rename.mapping.items()}
+        hints = [f"{name} -> {aliases[name]}" for name in unknown if name in aliases]
+        raise CheckError(f"IR uses columns not in the data file header: {unknown}. Use raw names"
+                         + (f" (renames: {hints})" if hints else ""))
+
+
+# Knowledge base of how legacy runtimes compute, given to code generation when the IR matches.
+# The LLM reliably writes the right statistical model but not the legacy numerical algorithm.
+RUNTIME_NOTES = {
+    "r_glm": (
+        "R stats::glm.fit IRLS, to be reproduced exactly: binomial initialize mustart = (y + 0.5) / 2 (unit weights); "
+        "eta = linkfun(mustart); mu = linkinv(eta); devold = binomial deviance(y, mu). Each iteration: "
+        "mu_eta = linkinv derivative at eta (probit: max(dnorm(eta), machine eps)); z = eta + (y - mu) / mu_eta; "
+        "w = sqrt(mu_eta^2 / (mu * (1 - mu))); coef = least squares of (X * w) on (z * w) (numpy.linalg.lstsq); "
+        "eta = X @ coef; mu = linkinv(eta); dev = binomial deviance; stop when |dev - devold| / (|dev| + 0.1) < 1e-8 "
+        "(control epsilon) and keep that coef, else devold = dev; at most 25 iterations. Probit linkinv clamps eta to "
+        "+/- (-qnorm(machine eps)) before pnorm. Use scipy.stats.norm cdf/pdf/ppf; never hand-write normal "
+        "approximations or clip probabilities, both change results beyond 1e-6."),
+}
+
+
+def runtime_notes(ir: IR) -> list[str]:
+    text = f"{ir.model.type} {ir.model.fitting}".lower()
+    return [RUNTIME_NOTES["r_glm"]] if "glm" in text else []
 
 
 def csv_headers(data_dir: Path) -> dict[str, list[str]]:
@@ -294,6 +340,7 @@ def generate_ir(record: Record, document_text: str, headers: dict[str, list[str]
         check_ir(ir, code_sources, record.model_id)
         if ir.data.file not in headers:
             raise CheckError(f"data.file must be one of {sorted(headers)}")
+        check_ir_columns(ir, headers[ir.data.file])
     payload = {"model_id": record.model_id, "approved_document": document_text, "data_files": headers,
                "reference_documents": [{"source_id": s.source_id, "text": s.text}
                                        for s in record.sources if s.kind == "document"],
@@ -319,7 +366,7 @@ def generate_tests(ir: IR, terms: list[str], columns: list[str], baseline_code: 
 def generate_code(ir: IR, terms: list[str], columns: list[str], previous: str | None, feedback: str | None,
                   caller, log) -> str:
     payload = {"ir": ir.model_dump(), "reference_coefficient_terms": terms, "data_columns": columns,
-               "previous_code": previous, "feedback": feedback}
+               "legacy_runtime_notes": runtime_notes(ir), "previous_code": previous, "feedback": feedback}
     return ask_json(CodeDraft, CODE_INSTRUCTION, payload, caller, log, check=lambda d: check_code(d.code)).code
 
 
