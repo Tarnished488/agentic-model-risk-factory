@@ -206,6 +206,18 @@ class RedevelopTests(unittest.TestCase):
         self.assertEqual(result['registry_stage'], 'Staging')
         self.assertEqual([a.get('gate', 'discover') for a in result['approvals']][-2:], ['document', 'redevelop'])
         self.assertEqual(len(result['approvals']), 3)
+        # Validate gets everything it needs to recompute metrics, all hash-locked.
+        self.assertEqual(Path(result['data_path']), (self.data / 'cs-training.csv').resolve())
+        self.assertEqual(Path(result['train_ids_path']), (self.reference / 'train_ids.csv').resolve())
+        predictions = Path(result['holdout_predictions_path'])
+        self.assertEqual(list(pd.read_csv(predictions).columns), ['row_id', 'probability', 'label'])
+        self.assertTrue(Path(result['coefficients_path']).exists())
+        original = predictions.read_text(encoding='utf-8')
+        predictions.write_text(original.replace('0.', '0.9', 1), encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, 'holdout_predictions_path changed'):
+            load_validate_input(gate3)
+        predictions.write_text(original, encoding='utf-8')
+        load_validate_input(gate3)
         Path(result['generated_code_path']).write_text('tampered', encoding='utf-8')
         with self.assertRaisesRegex(ValueError, 'changed'):
             load_validate_input(gate3)

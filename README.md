@@ -93,7 +93,7 @@ python -m src.redevelop.redevelop_review review artifacts/redevelop/runs/RUN_ID/
 python -m src.redevelop.redevelop_review handoff artifacts/redevelop/runs/RUN_ID/reviews/REVIEW_ID/review.json
 ```
 
-`handoff` 重新校验快照、三份文件哈希和关卡 2 的上游批准链，输出 Validate 的输入（`ready_for_validate`）。
+`handoff` 重新校验快照、三份文件哈希和关卡 2 的上游批准链，输出 Validate 的输入（`ready_for_validate`）。其中供 Validate 重算指标的路径：`data_path`（原始数据）、`train_ids_path`（训练/留出切分）、`holdout_predictions_path`（重建模型留出集预测，`row_id,probability,label`）、`coefficients_path`；这些文件的 SHA-256 记录在 `handoff_sha256`，任一被替换都会拒绝交接。
 
 ### Parity 检查
 

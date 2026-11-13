@@ -22,7 +22,7 @@ from typing import Literal
 from pydantic import Field
 
 from src.discover.discover_agent import (
-    MAX_LLM_CHARACTERS, Evidence, Record, StrictModel, atomic_json, audit, call_llm, digest,
+    MAX_LLM_CHARACTERS, Evidence, Record, StrictModel, atomic_json, audit, call_llm, digest, file_sha256,
     llm_error_summary, now,
 )
 from src.redevelop.parity import compare, load_coefficients, load_predictions, record_round
@@ -323,6 +323,16 @@ def generate_code(ir: IR, terms: list[str], columns: list[str], previous: str | 
     return ask_json(CodeDraft, CODE_INSTRUCTION, payload, caller, log, check=lambda d: check_code(d.code)).code
 
 
+def handoff_paths(data_dir: Path, reference_dir: Path, data_file: str, candidate_dir: Path) -> dict:
+    """What Validate needs to recompute metrics, with hashes so a later swap of any file is detected."""
+    files = {"data_path": data_dir / data_file, "train_ids_path": reference_dir / "train_ids.csv",
+             "holdout_predictions_path": candidate_dir / "holdout_predictions.csv",
+             "coefficients_path": candidate_dir / "coefficients.csv"}
+    present = {key: path.resolve() for key, path in files.items() if path.exists()}
+    return {**{key: str(path) for key, path in present.items()},
+            "handoff_sha256": {key: file_sha256(path) for key, path in present.items()}}
+
+
 # ---- reporting ----
 def difference_report(model_id: str, history: list[dict]) -> str:
     """3.6: deterministic analysis handed to a human when retries are exhausted."""
@@ -453,6 +463,7 @@ def run_redevelop(state: dict, data_dir: Path, reference_dir: Path, output: Path
              "tests_path": str((run_dir / "tests" / "test_new_model.py").resolve()), "tests_sha256": digest(tests),
              "generated_code_path": str(final_code.resolve()) if final_code.exists() else None,
              "code_sha256": payload["history"][-1]["code_sha256"],
+             **handoff_paths(data_dir, reference_dir, ir.data.file, round_dir / "candidate"),
              "parity_result_path": str((run_dir / record.model_id / "parity_result.json").resolve()),
              "parity_result": payload["history"][-1], "parity_sha256": digest(payload),
              "retry_count": payload["retry_count"], "status": payload["status"],
