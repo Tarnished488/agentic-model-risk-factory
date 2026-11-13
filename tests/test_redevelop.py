@@ -152,10 +152,14 @@ class RedevelopTests(unittest.TestCase):
         audit = (Path(final['run_dir']) / 'audit_log.jsonl').read_text(encoding='utf-8')
         self.assertIn('"provider_model": "test-model"', audit)
 
-    def test_ir_aliases_are_sent_back_and_runtime_notes_reach_codegen(self, _):
-        aliased = json.loads(BASELINE_IR)
-        aliased['filters'][1]['column'] = '3MonthsDefault'  # the R alias, as DeepSeek wrote it
-        answers = iter([json.dumps(aliased), BASELINE_IR, code(BASELINE_TESTS), code(BASELINE_CODE)])
+    def test_ir_aliases_are_mapped_to_raw_columns_and_runtime_notes_reach_codegen(self, _):
+        aliased = json.loads(BASELINE_IR)  # R aliases everywhere, as DeepSeek wrote them from the document
+        aliases = {raw: alias for raw, alias in aliased['rename']['mapping'].items()}
+        aliased['filters'][1]['column'] = aliases['NumberOfTimes90DaysLate']
+        aliased['imputation'][0]['column'] = aliases['NumberOfDependents']
+        aliased['model']['target'] = aliases['SeriousDlqin2yrs']
+        aliased['model']['features'] = [aliases.get(n, n) for n in aliased['model']['features']]
+        answers = iter([json.dumps(aliased), code(BASELINE_TESTS), code(BASELINE_CODE)])
         seen = []
 
         def caller(messages, schema):
@@ -164,11 +168,24 @@ class RedevelopTests(unittest.TestCase):
 
         final = self.run_agent('aliases', caller=caller)
         self.assertEqual(final['status'], 'pending_redevelop_review')
-        retry = seen[1][-1]['content']
-        self.assertIn("'3MonthsDefault'", retry)
-        self.assertIn('3MonthsDefault -> NumberOfTimes90DaysLate', retry)
+        self.assertEqual(final['ir_differences_from_baseline'], [])  # mapped without spending an LLM retry
+        self.assertEqual(len(seen), 3)
         notes = json.loads(seen[-1][1]['content'])['legacy_runtime_notes']
         self.assertTrue(notes and 'glm.fit' in notes[0])
+
+    def test_ir_column_that_is_neither_raw_nor_alias_is_sent_back(self, _):
+        invented = json.loads(BASELINE_IR)
+        invented['model']['features'][0] = 'credit_score'
+        answers = iter([json.dumps(invented), BASELINE_IR, code(BASELINE_TESTS), code(BASELINE_CODE)])
+        seen = []
+
+        def caller(messages, schema):
+            seen.append(messages)
+            return next(answers)
+
+        final = self.run_agent('invented', caller=caller)
+        self.assertEqual(final['status'], 'pending_redevelop_review')
+        self.assertIn("not in the data file header: ['credit_score']", seen[1][-1]['content'])
 
     def test_wrong_model_escalates_with_difference_report(self, _):
         wrong = BASELINE_CODE.replace('epsilon: float = 1e-8', 'epsilon: float = 1e-2')

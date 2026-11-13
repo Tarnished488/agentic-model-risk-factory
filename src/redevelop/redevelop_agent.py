@@ -233,7 +233,7 @@ def ask_json(model, system: str, payload: dict, caller, log, check=None, attempt
             details["tokens"] = getattr(raw, "usage", None)
             value = model.model_validate_json(raw)
             if check:
-                check(value)
+                value = check(value) or value  # a check may return a normalised value
             log(attempt, "success", details)
             return value
         except ValueError as error:
@@ -293,6 +293,24 @@ TESTS_INSTRUCTION = (
     "make the legacy fitting algorithm fail to converge. Keep tests deterministic and under 10 seconds.")
 
 
+def resolve_aliases(ir: IR, columns: list[str]) -> IR:
+    """Map legacy aliases back to raw columns through the IR's own evidenced rename mapping.
+
+    Approved documents use the legacy aliases throughout, so the LLM keeps drifting to them; the mapping
+    is deterministic and already source-checked, so spending LLM retries on it adds nothing.
+    """
+    raw = {alias: name for name, alias in ir.rename.mapping.items() if name in columns}
+
+    def fix(name: str) -> str:
+        return name if name in columns else raw.get(name, name)
+    return ir.model_copy(update={
+        "filters": [f.model_copy(update={"column": fix(f.column)}) for f in ir.filters],
+        "imputation": [i.model_copy(update={"column": fix(i.column)}) for i in ir.imputation],
+        "model": ir.model.model_copy(update={"features": [fix(n) for n in ir.model.features],
+                                             "target": fix(ir.model.target)}),
+    })
+
+
 def check_ir_columns(ir: IR, columns: list[str]) -> None:
     """Steps must name raw data columns, not legacy aliases: the rebuild reads the raw file."""
     used = [f.column for f in ir.filters] + [i.column for i in ir.imputation] + ir.model.features + [ir.model.target]
@@ -340,7 +358,9 @@ def generate_ir(record: Record, document_text: str, headers: dict[str, list[str]
         check_ir(ir, code_sources, record.model_id)
         if ir.data.file not in headers:
             raise CheckError(f"data.file must be one of {sorted(headers)}")
+        ir = resolve_aliases(ir, headers[ir.data.file])
         check_ir_columns(ir, headers[ir.data.file])
+        return ir
     payload = {"model_id": record.model_id, "approved_document": document_text, "data_files": headers,
                "reference_documents": [{"source_id": s.source_id, "text": s.text}
                                        for s in record.sources if s.kind == "document"],
