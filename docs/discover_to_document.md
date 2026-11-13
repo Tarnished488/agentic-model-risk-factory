@@ -25,7 +25,7 @@ Document 根据这些材料编写说明，遇到缺失信息继续列为待确�
 
 ```python
 from pathlib import Path
-from discover_review import load_document_input
+from src.discover.discover_review import load_document_input
 
 review_file = Path(
     "artifacts/discover/reviews/实际运行号/实际模型号/实际审核号.json"

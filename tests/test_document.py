@@ -6,12 +6,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from discover_agent import run_discovery
-from discover_review import review
-from document_agent import run_document
-from document_review import review_document, load_redevelop_input
-from document_sources import chunk_sources
-from discover_agent import Record, LLMResponse
+from src.discover.discover_agent import run_discovery
+from src.discover.discover_review import review
+from src.document.document_agent import run_document
+from src.document.document_review import review_document, load_redevelop_input
+from src.document.document_sources import chunk_sources
+from src.discover.discover_agent import Record, LLMResponse
 
 
 class DocumentTests(unittest.TestCase):
@@ -27,7 +27,7 @@ class DocumentTests(unittest.TestCase):
         model = run_discovery(self.root, self.discover).models[0]
         self.approved = review(self.discover, model.model_id, 'Test reviewer', 'approve', 'Test fixture')
         self.output = self.base / 'document'
-        self.sleep = patch("document_agent.time.sleep")
+        self.sleep = patch("src.document.document_agent.time.sleep")
         self.sleep_mock = self.sleep.start()
         self.addCleanup(self.sleep.stop)
 
@@ -204,7 +204,7 @@ class DocumentTests(unittest.TestCase):
             load_redevelop_input(approved)
 
     def test_mlflow_failure_keeps_local_results(self):
-        with patch('document_agent.log_document_mlflow', side_effect=RuntimeError('offline')):
+        with patch('src.document.document_agent.log_document_mlflow', side_effect=RuntimeError('offline')):
             with self.assertRaisesRegex(ValueError, 'local output saved'):
                 self.run_agent(use_mlflow=True)
         self.assertEqual(len(list(self.output.rglob('state.json'))), 1)
@@ -247,7 +247,7 @@ class DocumentTests(unittest.TestCase):
         self.assertTrue(all(i['evidence'][0]['line_start'] == 2 for i in report['items']))
 
     def test_actual_notebook_discover_to_offline_document(self):
-        inventory = run_discovery(Path(__file__).parent / 'legacy_models', self.discover)
+        inventory = run_discovery(Path(__file__).parents[1] / 'legacy_models', self.discover)
         self.approved = review(self.discover, inventory.models[0].model_id,
                                'Test fixture reviewer', 'approve', 'Integration test only')
         state, report = self.run_agent()
@@ -258,9 +258,10 @@ class DocumentTests(unittest.TestCase):
                          sum(len(s.text.splitlines()) for s in inventory.models[0].sources))
 
     def test_cli_generate_review_handoff_round_trip(self):
-        script = str(Path(__file__).parent / 'document_agent.py')
+        root = Path(__file__).parents[1]
         def invoke(*arguments):
-            result = subprocess.run([sys.executable, script, *arguments], capture_output=True, text=True)
+            result = subprocess.run([sys.executable, '-m', 'src.document.document_agent', *arguments],
+                                    capture_output=True, text=True, cwd=root)
             self.assertEqual(result.returncode, 0, result.stderr)
             return result.stdout.strip()
         # Original CLI form remains supported.
@@ -272,7 +273,7 @@ class DocumentTests(unittest.TestCase):
         self.assertEqual(result['status'], 'ready_for_redevelop')
 
     def test_real_notebook_uses_seven_calls_instead_of_window_cross_product(self):
-        inventory = run_discovery(Path(__file__).parent / 'legacy_models', self.discover)
+        inventory = run_discovery(Path(__file__).parents[1] / 'legacy_models', self.discover)
         self.approved = review(self.discover, inventory.models[0].model_id,
                                'Test fixture', 'approve', 'Performance regression fixture')
         calls, messages = [], []

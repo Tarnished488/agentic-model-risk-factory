@@ -499,7 +499,7 @@ def log_mlflow(inventory: Inventory, output: Path) -> None:
 
 
 def main() -> int:
-    from discover_review import load_document_input, review
+    from src.discover.discover_review import load_document_input, review
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     scan = sub.add_parser("scan")

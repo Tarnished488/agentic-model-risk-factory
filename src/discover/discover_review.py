@@ -5,11 +5,11 @@ import json
 import uuid
 from pathlib import Path
 
-from discover_agent import (
+from src.discover.discover_agent import (
     Inventory, Record, atomic_json, audit, digest, file_sha256, now, output_lock,
     read_sources, validate_evidence,
 )
-from workflow_state import shared_state
+from src.workflow_state import shared_state
 
 
 def check_sources(record: Record, root: Path) -> None:

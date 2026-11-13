@@ -5,11 +5,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from discover_agent import (
+from src.discover.discover_agent import (
     Evidence, Metadata, Source, extract_with_llm,
     offline_metadata, read_sources, run_discovery, validate_evidence, LLMResponse, llm_error_summary,
 )
-from discover_review import load_document_input, review
+from src.discover.discover_review import load_document_input, review
 
 
 class DiscoverTests(unittest.TestCase):
@@ -77,15 +77,15 @@ class DiscoverTests(unittest.TestCase):
         def caller(messages, schema):
             calls.append(len(messages))
             return next(answers)
-        with patch('discover_agent.time.sleep'):
+        with patch('src.discover.discover_agent.time.sleep'):
             result = extract_with_llm([source], caller)
         self.assertEqual(result.algorithm, 'LightGBM')
         self.assertEqual(len(calls), 3)
 
     def test_llm_failure_is_explicit_and_cannot_be_approved(self):
-        with patch('discover_agent.call_llm', return_value='no'):
+        with patch('src.discover.discover_agent.call_llm', return_value='no'):
             # extract_with_llm is independently covered; exercise the run's fallback.
-            with patch('discover_agent.extract_with_llm', side_effect=ValueError('failed')):
+            with patch('src.discover.discover_agent.extract_with_llm', side_effect=ValueError('failed')):
                 result = run_discovery(self.root, self.output, use_llm=True)
         self.assertEqual(result.models[0].status, 'needs_attention')
         with self.assertRaisesRegex(ValueError, 'Resolve'):
@@ -139,7 +139,7 @@ class DiscoverTests(unittest.TestCase):
             run_discovery(self.root, self.group / 'results')
 
     def test_actual_kaggle_notebook(self):
-        result = run_discovery(Path(__file__).parent / 'legacy_models', self.output)
+        result = run_discovery(Path(__file__).parents[1] / 'legacy_models', self.output)
         record = result.models[0]
         self.assertEqual(record.metadata.language, 'R')
         self.assertEqual(record.metadata.algorithm, 'LightGBM')
@@ -161,7 +161,7 @@ class DiscoverTests(unittest.TestCase):
     def test_final_failure_and_call_log_explain_http_error(self):
         source = Source(source_id='x.R', path='x.R', kind='code', sha256='abc', text='library(lightgbm)')
         events = []
-        with patch('discover_agent.time.sleep'):
+        with patch('src.discover.discover_agent.time.sleep'):
             with self.assertRaisesRegex(ValueError, 'LLM HTTP 400'):
                 extract_with_llm([source], caller=lambda m, s: (_ for _ in ()).throw(ValueError('LLM HTTP 400')),
                                  on_call=lambda attempt, info: events.append(info))

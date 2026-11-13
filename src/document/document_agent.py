@@ -12,13 +12,13 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, ValidationError
-from document_sources import chunk_sources, group_chunks, refs_within_group
-from discover_agent import (
+from src.document.document_sources import chunk_sources, group_chunks, refs_within_group
+from src.discover.discover_agent import (
     Evidence, StrictModel, Metadata, Record, MAX_LLM_CHARACTERS,
     atomic_json, audit, call_llm, digest, now,
     output_lock, validate_evidence,
 )
-from discover_review import load_document_input
+from src.discover.discover_review import load_document_input
 
 SECTIONS = {
     "purpose": "Model Purpose and Scope",
@@ -177,7 +177,7 @@ def run_document(review_file: Path, output: Path, use_llm=False, caller=None,
     record = Record.model_validate(state["inventory_record"])
     feedback = None
     if feedback_review:
-        from document_review import load_rejection_feedback
+        from src.document.document_review import load_rejection_feedback
         feedback = load_rejection_feedback(Path(feedback_review), state)
     output = output.resolve()
     root = Path(state["input_root"]).resolve()
@@ -382,7 +382,7 @@ def log_document_mlflow(run_dir, report):
 
 
 def main():
-    from document_review import review_document, load_redevelop_input
+    from src.document.document_review import review_document, load_redevelop_input
     parser = argparse.ArgumentParser(description=__doc__)
     # Keep the original `document_agent.py REVIEW.json --llm` command working.
     arguments = sys.argv[1:]

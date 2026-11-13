@@ -6,7 +6,7 @@
 
 | 原流程要求 | 修改前 | 修改后 |
 | --- | --- | --- |
-| Document 按数据、变量、拟合、评分切块 | 每章重复发送全部材料，超限即失败 | document_sources.py 按阶段启发式及字符预算切窗，说明/字典/未分类代码完整保留，沿用原 source_id 和行号 |
+| Document 按数据、变量、拟合、评分切块 | 每章重复发送全部材料，超限即失败 | src/document/document_sources.py 按阶段启发式及字符预算切窗，说明/字典/未分类代码完整保留，沿用原 source_id 和行号 |
 | 每章单独生成 | 已有六章，但没有长文件处理 | 小模型全材料逐章生成；大模型把窗口完整打包为材料组，每章每组提炼最多 12 条事实后合并；跨组依赖明示未知 |
 | 文档与原代码逐条自检 | 单次发送所有陈述和材料，容易超预算 | 陈述分批与所有材料组核对，避免与大量小窗口构成乘法调用；矛盾优先，逐批保存结果；代码检查覆盖率和引文 |
 | consistency_report 每条包含陈述、结论、理由、证据 | 没有 statement 字段 | 报告直接包含 statement，文档中也显示逐条自检结果 |
@@ -14,10 +14,10 @@
 | 格式错误携带错误信息重试 ≤2 次 | 仅笼统提示重试 | 反馈结构/证据/覆盖错误，初次调用加两次重试；Pydantic 错误不回显原始输入 |
 | 超时指数退避与缓存 | Document 无退避与缓存 | 指数退避，经校验缓存按完整请求、Schema、服务和模型区分；可禁用缓存 |
 | 失败后可审查结果 | Document 自检失败会丢弃生成内容 | 逐步保存章节，标记 partial_llm / needs_attention，技术失败不允许批准 |
-| 人工关卡 2 可编辑、批准并锁定 | 完全缺失 | document_review.py 保存编辑后文档和报告快照，要求人工记录修改/未确认项处置 |
+| 人工关卡 2 可编辑、批准并锁定 | 完全缺失 | src/document/document_review.py 保存编辑后文档和报告快照，要求人工记录修改/未确认项处置 |
 | 驳回携带意见回到 Document | 完全缺失 | 驳回快照保存意见，generate --feedback-review 校验同模型同 Discover 版本后将意见传入生成 |
 | 批准文档成为 Redevelop 输入 | 无 loader | load_redevelop_input 校验批准、快照、文档、模型记录及原始源码，返回 ready_for_redevelop |
-| 各节点共享状态 | 缺少下游字段及重试计数 | workflow_state.py 定义共享键，Document 保留上下游字段及实际重试次数 |
+| 各节点共享状态 | 缺少下游字段及重试计数 | src/workflow_state.py 定义共享键，Document 保留上下游字段及实际重试次数 |
 | 每次调用可追溯 | Document 缺输入摘要、用量、模型等 | Discover / Document 补调用摘要、模型、提示词版本、路径和服务用量；未知用量为 null |
 | 每节点 MLflow run | 仅 Discover 支持 | Document 增加 --mlflow，记录节点 run、版本、模式、陈述/矛盾数量及运行产物 |
 

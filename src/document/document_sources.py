@@ -5,7 +5,7 @@ Stage labels are routing hints, not a SAS/R parser or a proof of semantics.
 from __future__ import annotations
 
 import re
-from discover_agent import Record
+from src.discover.discover_agent import Record
 
 STAGES = {
     "data": r"\b(?:read[._]csv|read_csv|read_table|read\.table|read_excel|read_sas|fread|load|proc\s+import|infile|input|data)\b",

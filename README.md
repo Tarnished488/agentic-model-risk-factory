@@ -10,13 +10,30 @@
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python discover_agent.py scan
+python -m src.discover.discover_agent scan
 python -m unittest -v
 ```
 
 Windows 激活命令为 `.venv\Scripts\activate`。离线模式无需 API 密钥，不执行 R、不训练模型。示例已包含下载的完整 Notebook 代码和来源记录，移除了历史输出和执行计数。它是 Apache 2.0 授权的第三方示例，归原作者 brynning 所有，详见 `THIRD_PARTY_NOTICES.md`。
 
 预期识别一个业务模型工作流、R、LightGBM、`SeriousDlqin2yrs` 和两次训练调用。原始数据尚未加入，离线扫描的 `inputs` 保持空列表并列为待确认事项。算法识别等静态规则主要针对本次 R 样例，语义更复杂的源码使用 LLM 模式并人工核对。
+
+## 代码结构
+
+所有命令都在仓库根目录用 `python -m src.<agent>.<module>` 运行。
+
+```text
+src/
+  workflow_state.py            # 各节点共享状态键
+  discover/
+    discover_agent.py          # 扫描与证据抽取（scan / review / handoff / schema CLI）
+    discover_review.py         # 人工关卡 1
+  document/
+    document_agent.py          # 逆向文档生成与自检（generate / review / handoff CLI）
+    document_review.py         # 人工关卡 2
+    document_sources.py        # 源码分块
+tests/                         # python -m unittest
+```
 
 ## 输入和分组约定
 
@@ -47,7 +64,7 @@ artifacts/discover/           # 运行生成，仅 inventory.json 提交共享�
 export LLM_BASE_URL="https://your-provider.example/v1"
 export LLM_MODEL="your-model-name"
 export LLM_API_KEY="your-api-key"
-python discover_agent.py scan --llm
+python -m src.discover.discover_agent scan --llm
 ```
 
 显式使用 `--llm` 后，提取的源码、文档文字和 CSV 表头会发送至配置的服务。Notebook 历史输出和 CSV 数据行不会发出。依赖用 urllib，校验 TLS 证书，HTTP 错误不输出响应正文或密钥。
@@ -73,7 +90,7 @@ Pydantic 检查字段和取值，代码核对证据来源、行号和逐字引�
 运行 `scan` 后，打开 `artifacts/discover/inventory.json`，检查来源、目标、原始字段与派生变量、文档状态和待确认事项。下面的编号对应当前样例，新增模型后使用命令输出的实际编号。
 
 ```bash
-python discover_agent.py review \
+python -m src.discover.discover_agent review \
   --model-id MODEL-D05BB473A58E \
   --reviewer "Your name" \
   --decision approve \
@@ -85,14 +102,14 @@ python discover_agent.py review \
 每次审核生成独立的 review 文件，保存审核人、意见、时间、记录摘要和完整模型记录。复制该命令返回的文件路径完成交接。
 
 ```bash
-python discover_agent.py handoff artifacts/discover/reviews/RUN_ID/MODEL_ID/REVIEW_ID.json
+python -m src.discover.discover_agent handoff artifacts/discover/reviews/RUN_ID/MODEL_ID/REVIEW_ID.json
 ```
 
 Document Agent 可以直接调用。
 
 ```python
 from pathlib import Path
-from discover_review import load_document_input
+from src.discover.discover_review import load_document_input
 
 state = load_document_input(Path("实际审核文件路径.json"))
 # state 包含 model_id、inventory_record、input_root、approvals 和 status
@@ -111,7 +128,7 @@ state = load_document_input(Path("实际审核文件路径.json"))
 ```bash
 python -m pip install mlflow-skinny
 export MLFLOW_TRACKING_URI="file:./mlruns"
-python discover_agent.py scan --mlflow
+python -m src.discover.discover_agent scan --mlflow
 ```
 
 ## 当前完成范围
@@ -124,26 +141,26 @@ Document 及 CLI 人工关卡 2 见下文。LangGraph、Streamlit 和后续 Rede
 
 ```bash
 python -m unittest -v
-python discover_agent.py schema
+python -m src.discover.discover_agent schema
 ```
 
 测试覆盖真实 Notebook、稳定编号、目录分组、Notebook 单元引用、CSV 表头、伪造证据、LLM 重试与失败回退、审批与源文件变动、记录篡改、坏文件、外部符号链接以及输出目录约束。
 
 ## Document Agent：源码逆向文档
 
-`document_agent.py` 接收 Discover `review` 命令返回的批准快照路径。
+`src/document/document_agent.py` 接收 Discover `review` 命令返回的批准快照路径。
 
 ```bash
 source .venv/bin/activate
 # 离线草稿，转录已有清单，不执行语义自检
-python document_agent.py generate DISCOVER_REVIEW.json
+python -m src.document.document_agent generate DISCOVER_REVIEW.json
 # 在线生成，使用 LLM_BASE_URL / LLM_MODEL / LLM_API_KEY
-python document_agent.py generate DISCOVER_REVIEW.json --llm
+python -m src.document.document_agent generate DISCOVER_REVIEW.json --llm
 # 可选：每个 Document 节点一次 MLflow run（先安装 mlflow-skinny）
-python document_agent.py generate DISCOVER_REVIEW.json --llm --mlflow
+python -m src.document.document_agent generate DISCOVER_REVIEW.json --llm --mlflow
 ```
 
-旧形式 `python document_agent.py DISCOVER_REVIEW.json --llm` 保持兼容。
+旧形式 `python -m src.document.document_agent DISCOVER_REVIEW.json --llm` 保持兼容。
 
 源码按数据、变量变换、拟合、评分阶段启发式切块，并受字符预算约束；说明、字典及未分类代码也完整保留。切块是上下文窗口，不是完整的 SAS/R 语法解析器，跨块依赖必须保留为未知项。引用始终使用原 source_id 和原局部行号。单行过长或完整请求超限会显式失败，不截断。
 
@@ -170,32 +187,32 @@ python document_agent.py generate DISCOVER_REVIEW.json --llm --mlflow
 打开 `state.json` 中的 doc_path 和 consistency_report_path 进行审核。可直接编辑草稿 Markdown；编辑稿、自检未确认项或离线稿的批准必须填写 resolution-notes，记录人工核对及处理结果。技术失败的运行必须重跑，不能直接批准。
 
 ```bash
-python document_agent.py review DOCUMENT_STATE.json \
+python -m src.document.document_agent review DOCUMENT_STATE.json \
   --reviewer "Your name" --decision approve --notes "已核对文档与源码"
 # 修改稿或存在待确认项时
-python document_agent.py review DOCUMENT_STATE.json \
+python -m src.document.document_agent review DOCUMENT_STATE.json \
   --reviewer "Your name" --decision approve --notes "完成审核" \
   --resolution-notes "说明具体修改，以及矛盾和未知项的人工处置"
 # 驳回，随后将意见传入新一轮生成
-python document_agent.py review DOCUMENT_STATE.json \
+python -m src.document.document_agent review DOCUMENT_STATE.json \
   --reviewer "Your name" --decision reject --notes "请修正缺失值处理描述"
-python document_agent.py generate DISCOVER_REVIEW.json --llm --feedback-review REJECTED_REVIEW.json
+python -m src.document.document_agent generate DISCOVER_REVIEW.json --llm --feedback-review REJECTED_REVIEW.json
 # 使用 review 命令输出的快照路径交接
-python document_agent.py handoff DOCUMENT_REVIEW.json
+python -m src.document.document_agent handoff DOCUMENT_REVIEW.json
 ```
 
 审核生成独立快照，保存当时的文档全文、报告、审批、原始摘要和编辑后摘要。后续修改草稿不影响已批准版本；修改批准副本或原始源码会阻止交接。摘要锁定属于本地完整性检查，不是数字签名或操作系统不可变存储。CLI 审核人由操作者填写，尚无身份认证。
 
 ```python
 from pathlib import Path
-from document_review import load_redevelop_input
+from src.document.document_review import load_redevelop_input
 state = load_redevelop_input(Path("DOCUMENT_REVIEW.json"))
 # status == ready_for_redevelop；含源码记录、批准文档和两个人工关卡的审批
 ```
 
 调用审计记录阶段、提示词版本、模型、输入摘要、结果路径、尝试次数及服务返回的 token 用量；未返回用量或缓存命中时记录 null，不估算。MLflow 失败保留本地输出，并返回非零。
 
-共享键在 `workflow_state.py` 定义，后续 ir_path、generated_code_path、parity_result、metrics_path、report_path 初始为空。本版本没有执行模型训练或生成 Parity/Validate 的成功状态。
+共享键在 `src/workflow_state.py` 定义，后续 ir_path、generated_code_path、parity_result、metrics_path、report_path 初始为空。本版本没有执行模型训练或生成 Parity/Validate 的成功状态。
 
 ### 流程对照和验证
 
