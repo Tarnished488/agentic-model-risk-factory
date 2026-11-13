@@ -1,0 +1,12 @@
+{
+  "title": "Credit Risk Prediction with XGBoost + SHAP in R",
+  "author": "Hafsa Rouchdi",
+  "url": "https://www.kaggle.com/code/hafsarouchdi/credit-risk-prediction-with-xgboost-shap-in-r",
+  "notebook_version": 2,
+  "license": "Apache-2.0",
+  "retrieved_on": "2026-11-13",
+  "changes": "Removed saved outputs and execution counts; retained code and markdown cells.",
+  "dataset": "German Credit Risk (kabure/german-credit-data-with-risk)",
+  "dataset_url": "https://www.kaggle.com/datasets/kabure/german-credit-data-with-risk",
+  "note": "Author attribution is distinct from business model ownership. Target meaning must be checked against the official data dictionary."
+}

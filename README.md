@@ -32,8 +32,83 @@ src/
     document_agent.py          # 逆向文档生成与自检（generate / review / handoff CLI）
     document_review.py         # 人工关卡 2
     document_sources.py        # 源码分块
+  redevelop/
+    redevelop_agent.py         # IR → 测试生成 → 代码生成 → 静态检查 + pytest + 运行 → parity → 反馈重试
+    redevelop_review.py        # 人工关卡 3（review / handoff CLI）
+    parity.py                  # Parity 检查（纯代码，无 LLM）与重试路由
+    baselines/
+      gmsc_probit_ir.json      # 手写 IR（带源码证据），LLM 生成的 IR 需与之对齐
+      gmsc_probit.py           # 手写 Python 重建，代码生成的对照与演示兜底
+      gmsc_probit_test.py      # 手写 pytest，生成测试先在此实现上验证（test the tests）
+scripts/
+  gmsc_probit_export.R         # 本地运行 R 原模型，导出 parity 参考
+  gmsc_lightgbm_export.R
 tests/                         # python -m unittest
 ```
+
+### R 参考导出与 Probit 重建
+
+Kaggle 已不能复制 R notebook，参考结果在本地用 R（4.4 以上）生成。先把比赛数据放到 `data/GiveMeSomeCredit/`（`data/` 不进 git，借款人级数据只留本地）。
+
+```bash
+Rscript scripts/gmsc_probit_export.R       # -> data/reference/gmsc_probit/
+Rscript scripts/gmsc_lightgbm_export.R     # -> data/reference/gmsc_lightgbm/
+python -m src.redevelop.baselines.gmsc_probit
+python -m src.redevelop.parity data/reference/gmsc_probit/holdout_predictions.csv \
+  artifacts/redevelop/MODEL-9239165C4AE5/candidate/holdout_predictions.csv \
+  --model-id MODEL-9239165C4AE5 --tier reestimation \
+  --coefficients data/reference/gmsc_probit/coefficients.csv \
+  artifacts/redevelop/MODEL-9239165C4AE5/candidate/coefficients.csv
+```
+
+当前结果（R 4.6.2）：过滤后 112,021 行、留出 33,607 行与 R 一致；预测最大差 3.45e-14，系数最大差 3.69e-14。通用优化器（statsmodels）收敛得比 R 更深，系数差约 1e-5，因此重建按 R `glm.fit` 的 IRLS 起点与停止规则实现。
+
+### Redevelop Agent
+
+输入为关卡 2 批准的文档快照。按流程文档的 3.1–3.6 步：
+
+1. **IR**：LLM 读源码、批准文档、数据文件列名（仅表头）和数据说明，生成带证据的 IR，逐条校验引用行。
+2. **测试生成**：LLM 只看 IR 写 pytest（合成数据、`tmp_path`）。给出 `--baseline` 时先在手写实现上运行，失败说明测试本身错误，打回重写。
+3. **代码生成**：按 IR 写模块，必须实现 `class Model`（`fit / predict_proba / get_coefficients`）和 `run(data_dir, reference_dir, output)`。
+4. **沙箱**：AST 白名单（仅 numpy/pandas/scipy 等，禁止 os/subprocess/eval/open/双下划线属性）→ 在去掉 `LLM_*` 环境变量的独立子进程中跑 pytest → 再在真实数据上运行。
+5. **Parity** 与 **路由**：测试失败、运行报错或 parity 失败都把原因反馈给代码生成，最多重试 3 次；仍失败转人工并生成 `difference_report.md`。
+
+数据行不会发给 LLM。若给出 `--baseline`，生成的 IR 会与手写 IR 比对，差异写入状态，关卡 3 批准时必须写处置说明。LLM 调用的模型名、提示版本、输入哈希和 token 写入审计日志；`--mlflow` 时每次运行一个父 run、每轮一个嵌套 run（MLflow 3 的本地文件存储需设 `MLFLOW_ALLOW_FILE_STORE=true` 或改用数据库后端），记录失败不影响本地结果。
+
+```bash
+python -m src.redevelop.redevelop_agent DOCUMENT_REVIEW.json --data data/GiveMeSomeCredit \
+  --reference data/reference/gmsc_probit --tier reestimation --baseline gmsc_probit
+# 无 LLM 密钥时的兜底：用手写 IR 和代码跑同一条流水线
+python -m src.redevelop.redevelop_agent DOCUMENT_REVIEW.json --data data/GiveMeSomeCredit \
+  --reference data/reference/gmsc_probit --baseline gmsc_probit --offline
+```
+
+每次运行写入 `artifacts/redevelop/runs/<run_id>/`：`ir.json`、`tests/test_new_model.py`、`round_N/new_model.py`、`<model_id>/parity_result.json`、`state.json`、`audit_log.jsonl`，转人工时另有 `difference_report.md`。通过时状态为 `pending_redevelop_review`。
+
+**人工关卡 3**：审阅 IR、代码、测试和 parity。只有 parity 通过的运行可批准；IR 与手写基线不同时必须填 `--resolution-notes`。批准后锁定三份文件的快照，状态 `approved_for_validate`，`registry_stage` 记为 `Staging`（模型注册表的占位）。
+
+```bash
+python -m src.redevelop.redevelop_review review artifacts/redevelop/runs/RUN_ID/state.json \
+  --reviewer "Name" --decision approve --notes "Compared IR, code and parity table"
+python -m src.redevelop.redevelop_review handoff artifacts/redevelop/runs/RUN_ID/reviews/REVIEW_ID/review.json
+```
+
+`handoff` 重新校验快照、三份文件哈希和关卡 2 的上游批准链，输出 Validate 的输入（`ready_for_validate`）。
+
+### Parity 检查
+
+两份 CSV 列为 `row_id,probability[,label]`，参考文件来自 R 导出，行号必须完全一致。
+
+```bash
+python -m src.redevelop.parity REF.csv NEW.csv --model-id MODEL_ID --tier inference
+python -m src.redevelop.parity REF.csv NEW.csv --model-id MODEL_ID --tier reestimation
+```
+
+- `inference`（L1）：用 Python 加载 R 模型文件打分，最大绝对差 ≤ 1e-6。
+- `reestimation`（L2）：Python 在同一切分重训，AUC 差 ≤ 0.005、KS 差 ≤ 0.01、Spearman ≥ 0.99，需要 label 列。
+- `--coefficients REF NEW`（可选，GLM 用）：两份 `term,Estimate` CSV，任一档位上追加系数最大差 ≤ 1e-6。
+
+每轮追加到 `artifacts/redevelop/<model_id>/parity_result.json`。通过为 `pending_redevelop_review`（进入关卡 3），失败且重试少于 3 次为 `retry`（`worst_rows` 作为代码生成的反馈），否则为 `needs_attention`。阈值在 `parity.py` 的 `THRESHOLDS` 中，需团队事先确认。
 
 ## 输入和分组约定
 

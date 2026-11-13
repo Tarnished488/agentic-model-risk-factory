@@ -8,6 +8,8 @@ mlruns/
 .DS_Store
 cs-training.csv
 cs-test.csv
+# Raw data and R reference exports (row-level) stay local.
+data/
 *.csv.gz
 # Generated runs, logs and reviews stay local; only the latest inventory is shared.
 artifacts/*

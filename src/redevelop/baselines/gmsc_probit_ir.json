@@ -1,0 +1,58 @@
+{
+  "ir_version": "1",
+  "model_id": "MODEL-9239165C4AE5",
+  "source_id": "gmsc_probit/original.Rmd",
+  "data": {
+    "file": "cs-training.csv",
+    "row_id": "first unnamed column (readr names it ...1, renamed to Applicant)",
+    "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 62, "line_end": 62, "quote": "df_train<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-training.csv\")"}]
+  },
+  "rename": {
+    "mapping": {
+      "SeriousDlqin2yrs": "defaulted",
+      "RevolvingUtilizationOfUnsecuredLines": "unsecured.credit",
+      "NumberOfTime30-59DaysPastDueNotWorse": "<2months Deliquency",
+      "NumberOfTime60-89DaysPastDueNotWorse": "<3months Deliquency",
+      "NumberOfTimes90DaysLate": "3MonthsDefault",
+      "NumberOfOpenCreditLinesAndLoans": "openCredit",
+      "NumberRealEstateLoansOrLines": "RealEstateLoans",
+      "NumberOfDependents": "Dependents"
+    },
+    "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 85, "line_end": 85, "quote": "df_train<-rename(df_train,c(Applicant=\"...1\",defaulted=\"SeriousDlqin2yrs\""}]
+  },
+  "filters": [
+    {"column": "age", "op": ">", "value": 0, "compare_as": "number",
+     "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 123, "line_end": 123, "quote": "filter(age>0)"}]},
+    {"column": "NumberOfTimes90DaysLate", "op": "<", "value": "96", "compare_as": "string",
+     "note": "R compares the number with the string '96' as text; equivalent to < 96 for the observed values 0-17, 96, 98",
+     "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 146, "line_end": 146, "quote": "filter(`3MonthsDefault`<'96',DebtRatio<=1,unsecured.credit<=1)"}]},
+    {"column": "DebtRatio", "op": "<=", "value": 1, "compare_as": "number",
+     "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 146, "line_end": 146, "quote": "DebtRatio<=1"}]},
+    {"column": "RevolvingUtilizationOfUnsecuredLines", "op": "<=", "value": 1, "compare_as": "number",
+     "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 146, "line_end": 146, "quote": "unsecured.credit<=1"}]}
+  ],
+  "imputation": [
+    {"column": "NumberOfDependents", "method": "constant", "value": 0,
+     "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 279, "line_end": 279, "quote": "mutate(Dependents=replace_na(Dependents,0))"}]},
+    {"column": "MonthlyIncome", "method": "median", "computed_on": "all filtered training rows, before the split",
+     "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 280, "line_end": 280, "quote": "replace_na(MonthlyIncome,median(MonthlyIncome,na.rm=TRUE))"}]}
+  ],
+  "split": {
+    "method": "random 70/30 with set.seed(123)",
+    "reproduce_with": "train_ids.csv exported from R; Python must not re-draw the split",
+    "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 289, "line_end": 295, "quote": "split<-sample(1:nrow(df_train),0.7*nrow(df_train))"}]
+  },
+  "model": {
+    "type": "glm", "family": "binomial", "link": "probit", "intercept": true,
+    "target": "SeriousDlqin2yrs",
+    "features": ["RevolvingUtilizationOfUnsecuredLines", "NumberOfTime30-59DaysPastDueNotWorse",
+                 "NumberOfTime60-89DaysPastDueNotWorse", "NumberOfTimes90DaysLate", "age"],
+    "fitting": "IRLS, R glm defaults (epsilon 1e-8 on relative deviance change)",
+    "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 303, "line_end": 303, "quote": "family=binomial (link=probit)"}]
+  },
+  "scoring": {
+    "output": "probability of SeriousDlqin2yrs = 1",
+    "rounding": "none for parity; the notebook rounds to 5 dp only for display",
+    "evidence": [{"source_id": "gmsc_probit/original.Rmd", "line_start": 305, "line_end": 305, "quote": "pred<-predict(logmod,newdata=TestData,type=\"response\")"}]
+  }
+}

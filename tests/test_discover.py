@@ -140,14 +140,16 @@ class DiscoverTests(unittest.TestCase):
 
     def test_actual_kaggle_notebook(self):
         result = run_discovery(Path(__file__).parents[1] / 'legacy_models', self.output)
-        record = result.models[0]
+        record = next(m for m in result.models if m.group == 'gmsc_lightgbm')
         self.assertEqual(record.metadata.language, 'R')
         self.assertEqual(record.metadata.algorithm, 'LightGBM')
         self.assertEqual(record.metadata.target, 'SeriousDlqin2yrs')
         self.assertEqual(len(record.metadata.training_stages), 2)
         self.assertEqual(record.metadata.inputs, [])  # No raw dataset header supplied.
         self.assertEqual(record.status, 'pending_review')
-        self.assertEqual(len(result.models), 1)
+        self.assertEqual([m.group for m in result.models], ['german_xgboost', 'gmsc_lightgbm', 'gmsc_probit'])
+        self.assertTrue(all(m.status == 'pending_review' for m in result.models))
+        self.assertEqual([m.metadata.algorithm for m in result.models], ['XGBoost', 'LightGBM', 'Probit GLM'])
 
     def test_call_audit_includes_usage_and_request_hash(self):
         source = Source(source_id='x.R', path='x.R', kind='code', sha256='abc', text='library(lightgbm)')

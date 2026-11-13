@@ -14,6 +14,10 @@ from src.document.document_sources import chunk_sources
 from src.discover.discover_agent import Record, LLMResponse
 
 
+def lightgbm(inventory):
+    return next(m for m in inventory.models if m.group == 'gmsc_lightgbm')
+
+
 class DocumentTests(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
@@ -248,14 +252,14 @@ class DocumentTests(unittest.TestCase):
 
     def test_actual_notebook_discover_to_offline_document(self):
         inventory = run_discovery(Path(__file__).parents[1] / 'legacy_models', self.discover)
-        self.approved = review(self.discover, inventory.models[0].model_id,
+        self.approved = review(self.discover, lightgbm(inventory).model_id,
                                'Test fixture reviewer', 'approve', 'Integration test only')
         state, report = self.run_agent()
         self.assertEqual(state['inventory_record']['metadata']['algorithm'], 'LightGBM')
         self.assertTrue(any('cell=' in e['source_id'] for item in report['items'] for e in item['evidence']))
-        chunks = chunk_sources(inventory.models[0])
+        chunks = chunk_sources(lightgbm(inventory))
         self.assertEqual(sum(len(c['lines']) for c in chunks),
-                         sum(len(s.text.splitlines()) for s in inventory.models[0].sources))
+                         sum(len(s.text.splitlines()) for s in lightgbm(inventory).sources))
 
     def test_cli_generate_review_handoff_round_trip(self):
         root = Path(__file__).parents[1]
@@ -274,7 +278,7 @@ class DocumentTests(unittest.TestCase):
 
     def test_real_notebook_uses_seven_calls_instead_of_window_cross_product(self):
         inventory = run_discovery(Path(__file__).parents[1] / 'legacy_models', self.discover)
-        self.approved = review(self.discover, inventory.models[0].model_id,
+        self.approved = review(self.discover, lightgbm(inventory).model_id,
                                'Test fixture', 'approve', 'Performance regression fixture')
         calls, messages = [], []
         def caller(history, schema):
@@ -293,7 +297,7 @@ class DocumentTests(unittest.TestCase):
         self.assertEqual(report['source_groups'], 1)
         self.assertEqual(state['api_calls'], 7)
         self.assertTrue(any('Self-check:' in message for message in messages))
-        self.assertGreater(len(chunk_sources(inventory.models[0])), 10)
+        self.assertGreater(len(chunk_sources(lightgbm(inventory))), 10)
 
     def test_call_budget_stops_before_extra_api_attempt(self):
         calls = []

@@ -1,0 +1,12 @@
+{
+  "title": "CRM :Credit Risk Modelling and Analysis",
+  "author": "Sunnyboy Ngobeni",
+  "url": "https://www.kaggle.com/code/sunnyboyngobeni/crm-credit-risk-modelling-and-analysis",
+  "notebook_version": 4,
+  "license": "Apache-2.0",
+  "retrieved_on": "2026-11-13",
+  "changes": "None; R Markdown script stored as published (it holds no saved outputs).",
+  "dataset": "Give Me Some Credit",
+  "dataset_url": "https://www.kaggle.com/competitions/GiveMeSomeCredit/data",
+  "note": "Author attribution is distinct from business model ownership. Target meaning must be checked against the official data dictionary."
+}

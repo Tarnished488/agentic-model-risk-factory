@@ -197,8 +197,11 @@ def offline_metadata(sources: list[Source]) -> Metadata:
                 if re.search(r"\b(?:lightgbm|lgb.train)\s*\(", line):
                     assign("algorithm", "LightGBM", evidence)
                     assign("training_stages", f"Training call at {source.source_id}:L{index}", evidence)
-                if re.search(r"\b(?:xgboost|xgb.train)\s*\(", line):
+                if re.search(r"\b(?:xgboost|xgb.train)\s*\(|set_engine\s*\(\s*['\"]xgboost", line):
                     assign("algorithm", "XGBoost", evidence)
+                if re.search(r"\bglm\s*\(.*link\s*=\s*['\"]?probit", line):
+                    assign("algorithm", "Probit GLM", evidence)
+                    assign("training_stages", f"Training call at {source.source_id}:L{index}", evidence)
                 match = re.search(r"([\w.]+)\s*~\s*\.", line)
                 if match:
                     assign("target", match.group(1), evidence)

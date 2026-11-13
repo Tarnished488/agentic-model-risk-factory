@@ -1,9 +1,1134 @@
 {
   "schema_version": "1.0",
-  "run_id": "20ca726f-60fe-426f-a4e8-95ff8d4a5448",
-  "generated_at": "2026-11-13T11:01:33.409602+00:00",
+  "run_id": "82827594-a44c-4192-940c-0101bc00da3c",
+  "generated_at": "2026-11-13T13:45:51.426240+00:00",
   "input_root": "legacy_models",
   "models": [
+    {
+      "model_id": "MODEL-F2425A9248B3",
+      "group": "german_xgboost",
+      "source_files": [
+        {
+          "path": "german_xgboost/DATA_README.md",
+          "sha256": "e743a4143981522722102adabaa4b125574af4aa6dd41d0fb8ee11655fb98f6e",
+          "size_bytes": 825,
+          "modified_at": "2026-11-13T13:44:15.054646+00:00"
+        },
+        {
+          "path": "german_xgboost/original.ipynb",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "size_bytes": 67723,
+          "modified_at": "2026-11-13T13:44:03.101762+00:00"
+        },
+        {
+          "path": "german_xgboost/source.json",
+          "sha256": "4ea51cbdd1df2e3d8f4191a19d2f5135266047d1a0d4659cc089fc7bc532bc04",
+          "size_bytes": 676,
+          "modified_at": "2026-11-13T13:44:15.044684+00:00"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "german_xgboost/DATA_README.md",
+          "path": "german_xgboost/DATA_README.md",
+          "kind": "document",
+          "sha256": "e743a4143981522722102adabaa4b125574af4aa6dd41d0fb8ee11655fb98f6e",
+          "text": "# German Credit Risk input (XGBoost + SHAP)\n\nThis example contains the original R Notebook and its provenance. Download german_credit_data.csv from the dataset page under its applicable terms. Keep borrower-level data local. Discover reads CSV headers only and does not run R or train models. The Notebook refers to /kaggle/input/datasets/kabure/german-credit-data-with-risk paths, which must be adapted when later running it locally.\n\nThe notebook tunes logistic regression, random forest and XGBoost workflows with tidymodels on a stratified 80/20 split (set.seed(42)) and explains XGBoost with SHAP. It also tabulates sex and age groups, which makes it the fairness case. No trained model file or reference predictions have been supplied. Business owner, operational scope and approved model risk tier remain unconfirmed.\n",
+          "language_hint": null
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=1",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "<div style=\"text-align: center; font-family: 'Trebuchet MS', serif; font-size: 50px;font-weight: bold;\">\n    Credit Risk Modeling with Explainable AI: XGBoost + SHAP in R\n</div>\n<div style=\"text-align: center; font-family: 'Trebuchet MS', serif; font-size: 24px; font-weight: normal; margin-top: 10px;\">\n    Author: HAFSA ROUCHDI\n</div>",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=2",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### This notebook builds a **complete, production-oriented credit risk pipeline** from raw data to explainable predictions : simulating what a data scientist at a European bank or fintech would realistically deliver.\n\n### **The core challenge:** A bank must not only *predict* whether a borrower will default, but also *explain why*, because under **GDPR Article 22** and the **EU AI Act**, automated financial decisions affecting individuals must be transparent, contestable, and free from unjustified discrimination.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=3",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### Algorithms Used\n\n| Algorithm | Type | Role in this project |\n|---|---|---|\n| **Logistic Regression** *(LASSO regularisation)* | Linear classifier | Interpretable regulatory baseline; coefficients directly express feature effects |\n| **Random Forest** | Ensemble — bagging | Captures non-linear relationships and feature interactions; robust to outliers |\n| **XGBoost** | Ensemble — gradient boosting | Best predictive performance; primary source model for SHAP explainability |\n| **SMOTE** *(Synthetic Minority Over-sampling)* | Resampling technique | Addresses the 70/30 class imbalance by generating synthetic minority-class examples during training |\n| **SHAP** *(SHapley Additive exPlanations)* | Explainability framework | Decomposes each prediction into per-feature contributions — global and individual level |",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=4",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### Pipeline at a Glance\n\n| Step | What happens |\n|---|---|\n| **1. Setup** | Install and load all required R packages |\n| **2. Data Loading** | Read the Kaggle dataset directly from `/kaggle/input/` |\n| **3. EDA** | Explore distributions, default rates, and feature relationships |\n| **4. Feature Engineering** | Decode labels, impute NAs, create 8 new domain features |\n| **5. Pre-processing** | Stratified train/test split, 5-fold CV, SMOTE for class imbalance |\n| **6. Modelling** | Train and tune Logistic Regression, Random Forest, and XGBoost |\n| **7. Evaluation** | ROC-AUC, Precision-Recall, confusion matrices, probability distributions |\n| **8. SHAP** | Global beeswarm & bar charts, local waterfall & dependence plots |\n| **9. Fairness Audit** | Default rates and error metrics by gender and age group |\n| **10. Risk Segmentation** | Three actionable risk tiers with business recommendations |\n\n### Dataset\n**German Credit Risk** :\n#### - 1,000 applicants · 9 features · Binary target (`good` / `bad`) · ~70/30 class split\n#### - Originally compiled by Prof. Hans Hofmann, UCI ML Repository (1994)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=5",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 1 : Environment Setup\n\n### Why this section exists\n#### Kaggle notebooks come with many R packages pre-installed, but some specialised libraries used in this pipeline (`themis` for SMOTE, `shapviz` for SHAP visualisations) need to be installed manually. This section installs everything missing and loads all libraries in a single controlled block, so the rest of the notebook runs without interruption.\n\n### Packages overview\n\n| Package | Purpose |\n|---|---|\n| `tidyverse`, `ggplot2`, `patchwork` | Data wrangling and visualisation |\n| `ggcorrplot`, `scales`, `viridis` | Correlation plots and colour scales |\n| `tidymodels` ecosystem | Unified modelling framework (split, recipe, tune, evaluate) |\n| `ranger`, `xgboost`, `glmnet` | Random Forest, XGBoost, Logistic Regression engines |\n| `themis` | SMOTE for class imbalance |\n| `shapviz`, `vip` | SHAP explainability and variable importance |",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=6",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# Install packages not pre-loaded on Kaggle\ninstall_if_missing <- function(pkgs) {\n  for (pkg in pkgs) {\n    if (!requireNamespace(pkg, quietly = TRUE)) {\n      cat(sprintf(\"  Installing: %s\\n\", pkg))\n      install.packages(pkg, quiet = TRUE, dependencies = TRUE)\n    } else {\n      cat(sprintf(\"  Ready: %s\\n\", pkg))\n    }\n  }\n}\n\noptions(repos = c(CRAN = \"https://cran.rstudio.com/\"))\n\ninstall_if_missing(c(\n  \"tidyverse\", \"ggplot2\", \"patchwork\", \"scales\",\n  \"ggcorrplot\", \"viridis\",\n  \"tidymodels\", \"recipes\", \"parsnip\", \"workflows\",\n  \"tune\", \"yardstick\", \"rsample\", \"dials\", \"hardhat\",\n  \"ranger\", \"xgboost\", \"glmnet\",\n  \"themis\", \"shapviz\", \"vip\"\n))\n\ncat(\"\\n All packages ready.\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=7",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "suppressPackageStartupMessages({\n  library(tidyverse)\n  library(ggplot2)\n  library(patchwork)\n  library(scales)\n  library(ggcorrplot)\n  library(tidymodels)\n  library(themis)\n  library(vip)\n  library(ranger)\n  library(xgboost)\n  library(glmnet)\n  library(shapviz)\n})\n\nset.seed(42)\ncat(\" Libraries loaded. R version:\", R.version$major, \".\", R.version$minor, \"\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=8",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# ── Global plot theme ─────────────────────────────────────────────────────────\n# A consistent, clean theme applied to every visualisation in this notebook\ntheme_credit <- function() {\n  theme_minimal(base_size = 13) +\n    theme(\n      plot.title       = element_text(face = \"bold\", size = 15, hjust = 0),\n      plot.subtitle    = element_text(colour = \"grey50\", size = 11, hjust = 0),\n      axis.title       = element_text(face = \"bold\"),\n      legend.position  = \"bottom\",\n      panel.grid.minor = element_blank(),\n      plot.background  = element_rect(fill = \"white\", colour = NA),\n      panel.background = element_rect(fill = \"white\", colour = NA)\n    )\n}\n\ncol_good    <- \"#2E86AB\"   # blue  — good credit\ncol_bad     <- \"#E84855\"   # red   — bad  credit\ncol_neutral <- \"#F6AE2D\"   # amber — highlight / medium risk\n\ncat(\" Global theme and colour palette defined.\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=9",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 2 : Data Loading & Inspection\n\n### About the dataset\n#### The **German Credit Risk** dataset was originally compiled by Prof. Hans Hofmann (University of Hamburg, 1994) and is one of the most widely studied datasets in credit risk modelling literature.\n\n#### The Kaggle version provides a pre-processed CSV with human-readable column names and decoded categorical labels, making it immediately usable without any symbol translation.\n\n| Property | Detail |\n|---|---|\n| Rows | 1,000 applicants |\n| Features | 9 predictors |\n| Target | `Risk` — `good` / `bad` |\n| Class balance | ~70% good / 30% bad (moderately imbalanced) |\n| Missing values | Present in `Saving accounts` and `Checking account` |",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=10",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# Load dataset from Kaggle input directory\nDATA_PATH <- \"/kaggle/input/datasets/kabure/german-credit-data-with-risk/german_credit_data.csv\"\n\nif (!file.exists(DATA_PATH)) {\n  stop(paste(\n    \"Dataset not found at:\", DATA_PATH,\n    \"\\nPlease attach the dataset:\",\n    \"\\n  1. Click 'Add Data' in the top-right panel\",\n    \"\\n  2. Search for 'German Credit Risk' by kabure\",\n    \"\\n  3. Click Add, then re-run this cell\"\n  ))\n}\n\ncredit_raw <- read.csv(DATA_PATH, stringsAsFactors = FALSE)\n\n# Remove auto-generated index column if present\nif (\"X\" %in% names(credit_raw)) credit_raw <- credit_raw %>% select(-X)\n\ncat(\" Dataset loaded successfully.\\n\")\ncat(\"   Rows:\", nrow(credit_raw), \"| Columns:\", ncol(credit_raw), \"\\n\")\ncat(\"   Columns:\", paste(names(credit_raw), collapse = \", \"), \"\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=11",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### Standardise column names and target variable\n#### Kaggle CSV column names contain spaces (e.g. `Saving accounts`, `Checking account`) and mixed capitalisation. We standardise everything to `snake_case` and convert the target `Risk` column to a factor with levels `good` / `bad`.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=12",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# Standardise column names to snake_case\nnames(credit_raw) <- names(credit_raw) %>%\n  str_to_lower() %>%\n  str_replace_all(\"[. ]\", \"_\")\n\n# Rename target column Risk → default\ncredit_raw <- credit_raw %>%\n  rename(default = risk) %>%\n  mutate(\n    default = str_to_lower(as.character(default)),\n    default = factor(default, levels = c(\"good\", \"bad\"))\n  )\n\ncat(\"Standardised column names:\\n\")\nprint(names(credit_raw))\ncat(\"\\nTarget distribution:\\n\")\nprint(table(credit_raw$default))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=13",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### Initial data inspection",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=14",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "glimpse(credit_raw)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=15",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "head(credit_raw, 10)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=16",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### Missing value analysis\n\n> **Key insight:** The Kaggle version has genuine `NA` values in `saving_accounts`\n> and `checking_account`. These are not errors, they represent applicants for whom\n> no account information was available. We will encode them as `\"unknown\"` in the\n> feature engineering step, preserving this as informative signal rather than discarding rows.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=17",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 10, repr.plot.height = 5)\n\nmissing_df <- credit_raw %>%\n  summarise(across(everything(), ~sum(is.na(.)))) %>%\n  pivot_longer(everything(), names_to = \"column\", values_to = \"missing\") %>%\n  filter(missing > 0) %>%\n  mutate(pct = missing / nrow(credit_raw))\n\nif (nrow(missing_df) == 0) {\n  cat(\"No missing values found.\\n\")\n} else {\n  cat(\"Missing values detected:\\n\")\n  print(missing_df)\n\n  ggplot(missing_df, aes(x = reorder(column, -missing), y = pct, fill = pct)) +\n    geom_col(colour = \"white\", width = 0.5) +\n    geom_text(aes(label = paste0(missing, \" rows\\n(\", percent(pct, accuracy = 0.1), \")\")),\n              vjust = -0.3, fontface = \"bold\", size = 4) +\n    scale_fill_gradient(low = col_neutral, high = col_bad) +\n    scale_y_continuous(labels = percent_format(), limits = c(0, 0.45)) +\n    labs(\n      title    = \"Missing Values by Column\",\n      subtitle = \"Encoded as 'unknown' in feature engineering — not dropped\",\n      x = NULL, y = \"Missing Rate\"\n    ) +\n    theme_credit() + theme(legend.position = \"none\")\n}",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=18",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 3 : Exploratory Data Analysis (EDA)\n\n### Purpose of this section\n#### Before building any model, we need to understand the data deeply:\n#### - How is the target variable distributed? (class imbalance)\n#### - Which features show the strongest relationship with default?\n#### - Are there patterns in the numeric features (loan amount, duration, age)?\n#### - How do categorical features (purpose, housing, account status) correlate with default risk?\n\n#### These insights directly inform feature engineering decisions and help us interpret model outputs more confidently later.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=19",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 3.1 — Target Variable Distribution\n\n* The target is moderately imbalanced: ~70% good credit, ~30% bad.\n* This imbalance is not extreme, but it is enough to make naive accuracy a poor metric and to justify using **SMOTE** during model training.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=20",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 7, repr.plot.height = 5)\n\ntarget_counts <- credit_raw %>%\n  count(default) %>%\n  mutate(pct = n / sum(n),\n         label = paste0(n, \"\\n(\", percent(pct, accuracy = 1), \")\"))\n\nggplot(target_counts, aes(x = default, y = n, fill = default)) +\n  geom_col(width = 0.5, colour = \"white\", linewidth = 0.8) +\n  geom_text(aes(label = label), vjust = -0.3, fontface = \"bold\", size = 4.5) +\n  scale_fill_manual(values = c(good = col_good, bad = col_bad)) +\n  scale_y_continuous(limits = c(0, 850), expand = expansion(mult = c(0, 0.1))) +\n  labs(\n    title    = \"Class Distribution — Credit Default\",\n    subtitle = \"70% good vs 30% bad — moderate imbalance handled via SMOTE\",\n    x = \"Credit Risk\", y = \"Count\"\n  ) +\n  theme_credit() + theme(legend.position = \"none\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=21",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 3.2 — Numeric Features by Default Status\n\n#### Violin plots combine a box plot (median, IQR) with a density curve, giving a richer view of the full distribution shape for each class.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=22",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 13, repr.plot.height = 5)\n\nviolin_plot <- function(var, title, ylabel, fmt = NULL) {\n  p <- ggplot(credit_raw, aes(x = default, y = .data[[var]], fill = default)) +\n    geom_violin(alpha = 0.6, trim = FALSE) +\n    geom_boxplot(width = 0.15, fill = \"white\", outlier.shape = NA) +\n    scale_fill_manual(values = c(good = col_good, bad = col_bad)) +\n    labs(title = title, x = NULL, y = ylabel) +\n    theme_credit() + theme(legend.position = \"none\")\n  if (!is.null(fmt)) p <- p + scale_y_continuous(labels = fmt)\n  p\n}\n\nviolin_plot(\"age\",           \"Age Distribution\",    \"Age (years)\") |\nviolin_plot(\"credit_amount\", \"Loan Amount\",         \"Amount (DM)\", comma_format()) |\nviolin_plot(\"duration\",      \"Loan Duration\",       \"Duration (months)\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=23",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "**What we observe:**\n- Bad-risk applicants tend to borrow **larger amounts** over **longer durations**\n- The age distribution shows younger applicants are more concentrated in the bad-risk group\n- All three features show meaningful separation between classes, confirming they are useful predictors",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=24",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 3.3 — Default Rate by Categorical Features\n\n#### For each category level, we compute the percentage of applicants who defaulted. This reveals which categories carry the highest credit risk.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=25",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 14, repr.plot.height = 11)\n\ndefault_rate_plot <- function(df, var, title) {\n  df %>%\n    filter(!is.na(.data[[var]])) %>%\n    group_by(.data[[var]], default) %>%\n    summarise(n = n(), .groups = \"drop\") %>%\n    group_by(.data[[var]]) %>%\n    mutate(rate = n / sum(n)) %>%\n    filter(default == \"bad\") %>%\n    ggplot(aes(x = reorder(.data[[var]], rate), y = rate, fill = rate)) +\n    geom_col() + coord_flip() +\n    scale_fill_gradient(low = col_good, high = col_bad) +\n    scale_y_continuous(labels = percent_format(accuracy = 1)) +\n    labs(title = title, x = NULL, y = \"Default Rate\") +\n    theme_credit() + theme(legend.position = \"none\")\n}\n\np1 <- default_rate_plot(credit_raw, \"purpose\",          \"Default Rate by Loan Purpose\")\np2 <- default_rate_plot(credit_raw, \"housing\",          \"Default Rate by Housing\")\np3 <- default_rate_plot(credit_raw, \"saving_accounts\",  \"Default Rate by Saving Accounts\")\np4 <- default_rate_plot(credit_raw, \"checking_account\", \"Default Rate by Checking Account\")\n\n(p1 | p2) / (p3 | p4)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=26",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 3.4 — Default Rate by Age Group",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=27",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 10, repr.plot.height = 6)\n\ncredit_raw %>%\n  mutate(age_group = cut(age,\n    breaks = c(18, 25, 35, 45, 55, 100),\n    labels = c(\"18-25\", \"26-35\", \"36-45\", \"46-55\", \"56+\"))) %>%\n  group_by(age_group, default) %>%\n  summarise(n = n(), .groups = \"drop\") %>%\n  group_by(age_group) %>%\n  mutate(pct = n / sum(n)) %>%\n  ggplot(aes(x = age_group, y = pct, fill = default)) +\n  geom_col(position = \"dodge\", colour = \"white\", linewidth = 0.5) +\n  scale_fill_manual(values = c(good = col_good, bad = col_bad)) +\n  scale_y_continuous(labels = percent_format(accuracy = 1)) +\n  labs(\n    title    = \"Credit Risk Distribution by Age Group\",\n    subtitle = \"Younger applicants show consistently higher default rates\",\n    x = \"Age Group\", y = \"Proportion\", fill = \"Default\"\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=28",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 3.5 — Credit Amount vs Duration (Interaction)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=29",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 10, repr.plot.height = 6)\n\nggplot(credit_raw, aes(x = duration, y = credit_amount,\n                       colour = default, alpha = default)) +\n  geom_point(size = 2) +\n  scale_colour_manual(values = c(good = col_good, bad = col_bad)) +\n  scale_alpha_manual(values = c(good = 0.35, bad = 0.85)) +\n  scale_y_continuous(labels = comma_format()) +\n  geom_smooth(method = \"lm\", se = FALSE, linewidth = 1, aes(group = default)) +\n  labs(\n    title    = \"Credit Amount vs Loan Duration by Default Status\",\n    subtitle = \"Bad risks cluster at higher amounts and longer durations\",\n    x = \"Duration (months)\", y = \"Credit Amount (DM)\", colour = \"Default\"\n  ) +\n  theme_credit() + guides(alpha = \"none\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=30",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 3.6 — Correlation Matrix (Numeric Features)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=31",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 7, repr.plot.height = 6)\n\ncredit_raw %>%\n  select(age, credit_amount, duration, job) %>%\n  cor(use = \"pairwise.complete.obs\") %>%\n  ggcorrplot(method = \"circle\", type = \"lower\", lab = TRUE, lab_size = 4,\n             colors = c(col_bad, \"white\", col_good),\n             title = \"Correlation — Numeric Predictors\",\n             ggtheme = theme_credit())",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=32",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 4 : Feature Engineering\n\n### Why feature engineering matters\n#### Raw data rarely captures the full picture. Domain expertise allows us to construct new variables that better represent the underlying risk concepts a lender would care about.\n\n### This section does two things:\n\n1. **Imputes missing values** :`NA` in account columns becomes `\"unknown\"`, a valid\n   and informative credit category meaning no account data was available\n2. **Creates 8 new features** from the existing 9 columns, adding domain-specific\n   signal that the raw features alone cannot express\n\n### Engineered features\n\n| Feature | Logic | Why it matters |\n|---|---|---|\n| `monthly_payment` | `credit_amount / duration` | Monthly repayment burden |\n| `high_loan_flag` | 1 if amount > 75th percentile | Binary flag for large loans |\n| `long_loan_flag` | 1 if duration > 24 months | Binary flag for long commitments |\n| `amount_x_duration` | `credit_amount × duration` | Compound financial stress interaction |\n| `young_borrower` | 1 if age < 30 | Higher-risk demographic flag |\n| `senior_borrower` | 1 if age ≥ 50 | Lower-risk demographic flag |\n| `skilled_worker` | 1 if job ∈ {skilled, highly skilled} | Employment quality signal |\n| `owns_home` | 1 if housing = \"own\" | Stability / collateral proxy |",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=33",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "credit <- credit_raw %>%\n  mutate(\n    # ── Impute missing values ─────────────────────────────────────────────────\n    # \"unknown\" is a valid credit category — it signals absence of account data\n    saving_accounts  = replace_na(saving_accounts,  \"unknown\"),\n    checking_account = replace_na(checking_account, \"unknown\"),\n\n    # ── Decode job levels ─────────────────────────────────────────────────────\n    job = recode(as.character(job),\n      \"0\" = \"unskilled non-resident\",\n      \"1\" = \"unskilled resident\",\n      \"2\" = \"skilled\",\n      \"3\" = \"highly skilled\"),\n\n    # ── Standardise text casing ───────────────────────────────────────────────\n    sex     = str_to_lower(sex),\n    housing = str_to_lower(housing),\n\n    # ── Engineered features ───────────────────────────────────────────────────\n    monthly_payment   = credit_amount / duration,\n    high_loan_flag    = if_else(credit_amount > quantile(credit_amount, 0.75), 1, 0),\n    long_loan_flag    = if_else(duration > 24, 1, 0),\n    amount_x_duration = credit_amount * duration,\n    young_borrower    = if_else(age < 30,  1, 0),\n    senior_borrower   = if_else(age >= 50, 1, 0),\n    skilled_worker    = if_else(job %in% c(\"skilled\", \"highly skilled\"), 1, 0),\n    owns_home         = if_else(housing == \"own\", 1, 0)\n  )\n\ncat(\" Feature engineering complete.\\n\")\ncat(\"   Original features: 9  →  Total after engineering:\", ncol(credit) - 1, \"predictors\\n\")\ncat(\"   New features added: monthly_payment, high_loan_flag, long_loan_flag,\\n\")\ncat(\"                       amount_x_duration, young_borrower, senior_borrower,\\n\")\ncat(\"                       skilled_worker, owns_home\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=34",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 5 : Data Splitting & Pre-processing\n\n### Design decisions explained\n\n**Stratified split (80/20)**\n#### We use stratification on the target variable so that both the training and test sets maintain the original 70/30 class ratio. Without this, random chance could produce a test set with a very different imbalance ratio, making evaluation unreliable.\n\n**5-fold cross-validation**\n#### During hyperparameter tuning, we never touch the test set. Instead, the training set is split into 5 folds : the model trains on 4 and validates on 1, rotating through all combinations. This gives a robust estimate of generalisation performance.\n\n**SMOTE inside the recipe**\n#### SMOTE (Synthetic Minority Over-sampling Technique) creates synthetic examples of the minority class (`bad`) to balance training data.\n\n>  **Critical methodology note:** SMOTE is applied *inside* the `tidymodels` recipe,\n> which means it runs exclusively on the training fold during cross-validation, never\n> on the validation or test data. Applying SMOTE *before* splitting the data is one of\n> the most common data leakage mistakes in classification projects, and it artificially\n> inflates reported metrics. This pipeline avoids it by design.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=35",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# ── Train / test split ────────────────────────────────────────────────────────\nsplit <- initial_split(credit, prop = 0.80, strata = default)\ntrain <- training(split)\ntest  <- testing(split)\n\ncat(\"Data split complete:\\n\")\ncat(\"  Training set:\", nrow(train), \"rows |\",\n    round(mean(train$default == \"bad\") * 100, 1), \"% bad\\n\")\ncat(\"  Test set:    \", nrow(test),  \"rows |\",\n    round(mean(test$default  == \"bad\") * 100, 1), \"% bad\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=36",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# ── 5-fold cross-validation ───────────────────────────────────────────────────\ncv_folds <- vfold_cv(train, v = 5, strata = default)\ncat(\"Cross-validation folds created:\\n\")\ncv_folds",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=37",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# ── Pre-processing recipe ─────────────────────────────────────────────────────\ncredit_recipe <- recipe(default ~ ., data = train) %>%\n\n  # Remove sex — kept only for the post-hoc fairness audit, not as a predictor\n  step_rm(sex) %>%\n\n  # Convert character columns to factors\n  step_mutate(across(where(is.character), as.factor)) %>%\n\n  # Encode categorical variables as dummy variables\n  step_dummy(all_nominal_predictors(), one_hot = FALSE) %>%\n\n  # Normalise numeric features — essential for Logistic Regression convergence\n  step_normalize(all_numeric_predictors()) %>%\n\n  # Remove near-zero variance columns (e.g. rare dummy levels with <5 cases)\n  step_nzv(all_predictors()) %>%\n\n  # SMOTE — training data only, controlled by the recipe framework\n  step_smote(default, over_ratio = 0.8, seed = 42)\n\n# Verify the recipe compiles and SMOTE works correctly\nprepped <- prep(credit_recipe, training = train)\nbaked   <- bake(prepped, new_data = NULL)\n\ncat(\" Recipe verified.\\n\")\ncat(\"   Baked training size:\", nrow(baked), \"rows |\",\n    ncol(baked) - 1, \"predictors\\n\")\ncat(\"   Class balance after SMOTE:\\n\")\nprint(table(baked$default))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=38",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 6 : Model Training & Hyperparameter Tuning\n\n### Why three models?\n\n#### Comparing multiple models serves two purposes:\n\n1. **Performance benchmarking** : no single algorithm is always best; the data decides\n2. **Interpretability vs performance trade-off** : in regulated EU finance, a simple\n   interpretable model is sometimes required alongside the high-performance one\n\n| Model | Why we include it |\n|---|---|\n| **Logistic Regression** | Fully interpretable; coefficients have direct probabilistic meaning; required as a regulatory baseline by some EU financial authorities |\n| **Random Forest** | Handles non-linear relationships and feature interactions; robust to outliers; good feature importance |\n| **XGBoost** | Typically best raw performance; used as the source model for SHAP explainability |\n\n### How tuning works\n#### Each model has hyperparameters that cannot be learned from data directly, they must be chosen before training. We use `tidymodels`' `tune_grid()` with:\n- **Latin hypercube sampling** : efficiently covers the parameter space with fewer trials than grid search\n- **5-fold CV** : each candidate configuration is evaluated across 5 validation folds\n- **ROC-AUC as the selection metric** : appropriate for imbalanced classification",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=39",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# ── Model specifications ──────────────────────────────────────────────────────\n\n# Logistic Regression with LASSO regularisation (penalty tuned)\nlog_spec <- logistic_reg(penalty = tune(), mixture = 1) %>%\n  set_engine(\"glmnet\") %>%\n  set_mode(\"classification\")\n\n# Random Forest (mtry = features per split, min_n = min samples per leaf)\nrf_spec <- rand_forest(trees = 300, mtry = tune(), min_n = tune()) %>%\n  set_engine(\"ranger\", importance = \"impurity\", seed = 42) %>%\n  set_mode(\"classification\")\n\n# XGBoost (multiple hyperparameters tuned simultaneously)\nxgb_spec <- boost_tree(\n  trees = tune(), learn_rate = tune(),\n  tree_depth = tune(), min_n = tune(), loss_reduction = tune()\n) %>%\n  set_engine(\"xgboost\") %>%\n  set_mode(\"classification\")\n\n# ── Workflows (recipe + model paired together) ─────────────────────────────────\nlog_wf  <- workflow() %>% add_recipe(credit_recipe) %>% add_model(log_spec)\nrf_wf   <- workflow() %>% add_recipe(credit_recipe) %>% add_model(rf_spec)\nxgb_wf  <- workflow() %>% add_recipe(credit_recipe) %>% add_model(xgb_spec)\n\ncat(\" Model specifications and workflows created.\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=40",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "cat(\"Tuning Logistic Regression...\\n\")\n\nlog_grid <- grid_regular(penalty(range = c(-4, 0)), levels = 15)\n\nlog_res <- tune_grid(\n  log_wf, resamples = cv_folds, grid = log_grid,\n  metrics = metric_set(roc_auc, f_meas, precision, recall),\n  control = control_grid(verbose = FALSE)\n)\n\ncat(\" Logistic Regression tuning complete. Best parameters:\\n\")\nprint(select_best(log_res, metric = \"roc_auc\"))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=41",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "cat(\"Tuning Random Forest...\\n\")\n\nrf_grid <- grid_latin_hypercube(\n  mtry(range = c(2, 10)), min_n(range = c(2, 20)), size = 15)\n\nrf_res <- tune_grid(\n  rf_wf, resamples = cv_folds, grid = rf_grid,\n  metrics = metric_set(roc_auc, f_meas, precision, recall),\n  control = control_grid(verbose = FALSE)\n)\n\ncat(\" Random Forest tuning complete. Best parameters:\\n\")\nprint(select_best(rf_res, metric = \"roc_auc\"))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=42",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "cat(\"Tuning XGBoost...\\n\")\n\nxgb_grid <- grid_latin_hypercube(\n  trees(range = c(100, 600)), learn_rate(range = c(-3, -1)),\n  tree_depth(range = c(3, 8)), min_n(range = c(2, 20)),\n  loss_reduction(range = c(-5, 0)), size = 20)\n\nxgb_res <- tune_grid(\n  xgb_wf, resamples = cv_folds, grid = xgb_grid,\n  metrics = metric_set(roc_auc, f_meas, precision, recall),\n  control = control_grid(verbose = FALSE)\n)\n\ncat(\" XGBoost tuning complete. Best parameters:\\n\")\nprint(select_best(xgb_res, metric = \"roc_auc\"))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=43",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# Finalise each workflow with its best hyperparameters\n# and fit on the full training set\nfinal_log_fit <- fit(finalize_workflow(log_wf, select_best(log_res, metric = \"roc_auc\")), data = train)\nfinal_rf_fit  <- fit(finalize_workflow(rf_wf,  select_best(rf_res,  metric = \"roc_auc\")), data = train)\nfinal_xgb_fit <- fit(finalize_workflow(xgb_wf, select_best(xgb_res, metric = \"roc_auc\")), data = train)\n\ncat(\" All three models trained on the full training set.\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=44",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 7 : Model Evaluation\n\n### Metrics used and why not just accuracy\n\n#### In credit risk modelling with imbalanced classes, **accuracy is misleading**. A model that predicts \"good\" for every applicant would achieve ~70% accuracy while completely failing its purpose.\n\n#### We use metrics that actually matter:\n\n| Metric | What it measures | Why it matters in credit |\n|---|---|---|\n| **ROC-AUC** | Overall ability to separate good from bad | Standard industry benchmark |\n| **Precision** | Of those flagged bad, how many actually are bad? | Controls false alarms (wrongly rejecting good applicants) |\n| **Recall** | Of actual bad applicants, how many did we catch? | Controls missed defaults (approving bad applicants) |\n| **F1 Score** | Harmonic mean of Precision and Recall | Balanced single-number summary |\n| **Specificity** | Of actual good applicants, how many were approved? | Approval rate for creditworthy applicants |",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=45",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# Generate predictions for all three models on the hold-out test set\nget_preds <- function(fit, test_data, model_name) {\n  bind_cols(predict(fit, test_data), predict(fit, test_data, type = \"prob\")) %>%\n    mutate(truth = test_data$default, model = model_name)\n}\n\npred_log  <- get_preds(final_log_fit, test, \"Logistic Regression\")\npred_rf   <- get_preds(final_rf_fit,  test, \"Random Forest\")\npred_xgb  <- get_preds(final_xgb_fit, test, \"XGBoost\")\nall_preds <- bind_rows(pred_log, pred_rf, pred_xgb)\n\ncat(\" Predictions generated for\", nrow(test), \"test applicants.\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=46",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 7.1 — Performance Metrics Table",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=47",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "compute_metrics <- function(preds, model_name) {\n  bind_rows(\n    metric_set(accuracy, f_meas, precision, recall, specificity)(\n      preds, truth = truth, estimate = .pred_class),\n    roc_auc(preds, truth = truth, .pred_bad)\n  ) %>% mutate(model = model_name)\n}\n\nmetrics_all <- bind_rows(\n  compute_metrics(pred_log, \"Logistic Regression\"),\n  compute_metrics(pred_rf,  \"Random Forest\"),\n  compute_metrics(pred_xgb, \"XGBoost\")\n)\n\nmetrics_all %>%\n  select(model, .metric, .estimate) %>%\n  pivot_wider(names_from = model, values_from = .estimate) %>%\n  rename(Metric = .metric) %>%\n  mutate(across(where(is.numeric), ~round(.x, 4)))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=48",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 7.2 — Confusion Matrices",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=49",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 14, repr.plot.height = 5)\n\nconf_plot <- function(preds, model_name, fill_col) {\n  conf_mat(preds, truth = truth, estimate = .pred_class) %>%\n    autoplot(type = \"heatmap\") +\n    scale_fill_gradient(low = \"white\", high = fill_col) +\n    labs(title = model_name) +\n    theme_credit() + theme(legend.position = \"none\")\n}\n\nconf_plot(pred_log, \"Logistic Regression\", col_good) |\nconf_plot(pred_rf,  \"Random Forest\",       col_neutral) |\nconf_plot(pred_xgb, \"XGBoost\",             col_bad)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=50",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 7.3 — ROC Curves",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=51",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 9, repr.plot.height = 7)\n\nroc_labels <- all_preds %>%\n  group_by(model) %>%\n  roc_auc(truth = truth, .pred_bad) %>%\n  mutate(label = paste0(model, \"  (AUC = \", round(.estimate, 3), \")\"))\n\nall_preds %>%\n  group_by(model) %>%\n  roc_curve(truth = truth, .pred_bad) %>%\n  ggplot(aes(x = 1 - specificity, y = sensitivity, colour = model)) +\n  geom_path(linewidth = 1.2) +\n  geom_abline(linetype = \"dashed\", colour = \"grey60\") +\n  scale_colour_manual(\n    values = c(\"Logistic Regression\" = col_good,\n               \"Random Forest\"       = col_neutral,\n               \"XGBoost\"             = col_bad),\n    labels = roc_labels$label) +\n  coord_equal() +\n  labs(\n    title    = \"ROC Curves — All Three Models\",\n    subtitle = \"Higher and further left = better discrimination between good and bad applicants\",\n    x = \"1 - Specificity (False Positive Rate)\",\n    y = \"Sensitivity (True Positive Rate)\", colour = NULL\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=52",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 7.4 — Precision-Recall Curves\n\n> For imbalanced datasets, the Precision-Recall curve is often more informative\n> than the ROC curve, it focuses specifically on the minority class (defaulters)\n> and is not distorted by the large number of true negatives.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=53",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 9, repr.plot.height = 6)\n\nall_preds %>%\n  group_by(model) %>%\n  pr_curve(truth = truth, .pred_bad) %>%\n  ggplot(aes(x = recall, y = precision, colour = model)) +\n  geom_path(linewidth = 1.2) +\n  scale_colour_manual(values = c(\n    \"Logistic Regression\" = col_good,\n    \"Random Forest\"       = col_neutral,\n    \"XGBoost\"             = col_bad)) +\n  labs(\n    title    = \"Precision-Recall Curves\",\n    subtitle = \"More informative than ROC for imbalanced classification\",\n    x = \"Recall (sensitivity)\", y = \"Precision\", colour = NULL\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=54",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 7.5 — Predicted Probability Distributions\n\nThis plot reveals how *confidently* each model separates good from bad applicants.\nIdeally, the blue curve (good applicants) should be concentrated near 0 and the\npink curve (bad applicants) near 1, with minimal overlap.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=55",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 14, repr.plot.height = 5)\n\nall_preds %>%\n  ggplot(aes(x = .pred_bad, fill = truth)) +\n  geom_density(alpha = 0.55, colour = NA) +\n  geom_vline(xintercept = 0.5, linetype = \"dashed\", colour = \"grey40\") +\n  facet_wrap(~model, ncol = 3) +\n  scale_fill_manual(values = c(good = col_good, bad = col_bad)) +\n  labs(\n    title    = \"Predicted Default Probability by True Class\",\n    subtitle = \"Better separation = less overlap between the two curves\",\n    x = \"Predicted Default Probability\", y = \"Density\", fill = \"Actual Default\"\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=56",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 8 : Explainability with SHAP\n\n### What SHAP is and why it matters here\n\n#### **SHAP** (SHapley Additive exPlanations) is a mathematically grounded framework for explaining machine learning predictions. For each prediction, SHAP assigns every feature a contribution score positive (pushed toward default) or negative(pushed away from default).\n\n#### This is not just a nice visualisation feature. Under **GDPR Article 22**, any organisation making automated credit decisions must be able to explain those decisions to the affected individual. SHAP waterfall plots provide exactly that a per-applicant, feature-level explanation that a compliance officer can present to a rejected applicant.\n\n### The four SHAP visualisations in this section\n\n| Plot | Scope | Question answered |\n|---|---|---|\n| **Bar chart** | Global | Which features matter most on average? |\n| **Beeswarm** | Global | How and in which direction does each feature affect predictions? |\n| **Waterfall** | Local (individual) | Why was *this specific applicant* scored high/low? |\n| **Dependence** | Feature deep-dive | How does the top feature's effect change as its value increases? |\n\n#### We use **XGBoost** as the source model for SHAP : it achieves the best performanceand SHAP values are computed exactly (not approximated) for tree-based models.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=57",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "# Extract the fitted XGBoost engine from the workflow\nxgb_engine <- extract_fit_engine(final_xgb_fit)\n\n# Bake the test set using the fitted pre-processing recipe\ntest_baked <- bake(prepped, new_data = test) %>% select(-default)\n\n# Compute SHAP values for all test applicants\nshap <- shapviz(xgb_engine, X_pred = as.matrix(test_baked))\n\ncat(\" SHAP values computed.\\n\")\ncat(\"   Test applicants:\", nrow(test_baked), \"\\n\")\ncat(\"   Features explained:\", ncol(test_baked), \"\\n\")",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=58",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 8.1 — Global Importance: Bar Chart\n\n#### The bar chart ranks features by their **mean absolute SHAP value** across all test applicants. This is the average magnitude of each feature's contribution regardless of direction.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=59",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 10, repr.plot.height = 7)\n\nsv_importance(shap, kind = \"bar\", max_display = 15) +\n  labs(\n    title    = \"Mean |SHAP| — Average Feature Contribution to Default Risk\",\n    subtitle = \"Longer bar = stronger average impact on model predictions across all applicants\"\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=60",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 8.2 — Global Importance: Beeswarm Plot\n\n#### The beeswarm plot is the richest SHAP visualisation. It combines importance with direction:\n\n- **Each dot** = one applicant\n- **Horizontal position** = SHAP value (right = pushes toward default, left = away from default)\n- **Dot colour** = the actual feature value (yellow/orange = high, purple/dark = low)\n\n#### **How to read a row:** If yellow dots (high feature value) cluster on the right, high values of that feature increase default risk. If they cluster on the left,high values *reduce* risk.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=61",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 12, repr.plot.height = 8)\n\nsv_importance(shap, kind = \"beeswarm\", max_display = 15) +\n  labs(\n    title    = \"SHAP Beeswarm — Global Feature Impact on Default Risk\",\n    subtitle = \"Each dot = one applicant | Yellow/orange = high feature value | Purple = low\"\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=62",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 8.3 — Local Explanation: Waterfall Plots\n\n#### A waterfall plot explains **one specific applicant's prediction**. Starting from the average prediction (base value), each bar shows how much a feature pushed the final score up (toward default) or down (away from default).\n\n> This is the explanation a bank must provide to a rejected applicant under GDPR Art. 22.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=63",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 11, repr.plot.height = 6)\n\n# Select a genuinely high-risk applicant who actually defaulted\nhigh_risk_idx <- which(pred_xgb$.pred_bad > 0.65 & pred_xgb$truth == \"bad\")\nhigh_risk_idx <- if (length(high_risk_idx) > 0) high_risk_idx[1] else 5\n\nsv_waterfall(shap, row_id = high_risk_idx) +\n  labs(\n    title    = paste0(\"Local SHAP — Applicant #\", high_risk_idx,\n                      \" (High Risk / Actual Default)\"),\n    subtitle = \"Red/pink bars push prediction toward default | Blue bars push away from default\"\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=64",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 11, repr.plot.height = 6)\n\n# Select a low-risk applicant who did not default\nlow_risk_idx <- which(pred_xgb$.pred_bad < 0.12 & pred_xgb$truth == \"good\")\nlow_risk_idx <- if (length(low_risk_idx) > 0) low_risk_idx[1] else 15\n\nsv_waterfall(shap, row_id = low_risk_idx) +\n  labs(\n    title    = paste0(\"Local SHAP — Applicant #\", low_risk_idx,\n                      \" (Low Risk / No Default)\"),\n    subtitle = \"Most factors here reduce the probability of default\"\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=65",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 8.4 — SHAP Dependence Plot\n\n#### The dependence plot zooms into the **top feature** and shows how its effect on predictions changes across its value range. The dot colour reveals a secondary interacting feature, if dots at the same X position split by colour, an interaction effect is present.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=66",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 10, repr.plot.height = 6)\n\ntop_feature <- names(sort(colMeans(abs(shap$S)), decreasing = TRUE))[1]\ncat(\"Top feature by mean |SHAP|:\", top_feature, \"\\n\")\n\nsv_dependence(shap, v = top_feature) +\n  labs(\n    title    = paste(\"SHAP Dependence —\", top_feature),\n    subtitle = \"How this feature's value affects default probability — and whether other features interact\"\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=67",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 9 : Fairness Audit\n\n### Why a fairness audit is legally required\n\n#### The **EU AI Act** classifies credit scoring systems as **high-risk AI**. For such systems, developers must demonstrate that the model does not produce discriminatory outcomes based on protected attributes such as gender or age.\n\n#### The **`sex` column was deliberately excluded from model training**, keeping it only for this post-hoc audit. This prevents the model from using gender as a direct predictor, while still allowing us to check whether the model's outputs differ systematically across gender groups.\n\n### What we measure per group\n\n| Metric | What it reveals |\n|---|---|\n| **Actual default rate** | The true ground-truth risk in each group |\n| **Predicted high-risk rate** | What the model flags — should be close to actual |\n| **Precision** | Of those flagged bad, how many actually are bad? |\n| **Recall** | Of actual bad applicants, how many were caught? |\n| **False Positive Rate** | Creditworthy applicants wrongly rejected — a key fairness concern |\n\n#### A large gap between actual and predicted rates, or large differences in FPR across groups, would indicate the model is treating groups inequitably : a regulatory red flag.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=68",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "fairness_data <- pred_xgb %>%\n  bind_cols(test %>% select(sex, age)) %>%\n  mutate(\n    age_group   = cut(age, breaks = c(18, 30, 45, 100),\n                      labels = c(\"Young (<30)\", \"Middle (30-45)\", \"Senior (45+)\"),\n                      right  = FALSE),\n    pred_binary = if_else(.pred_class == \"bad\", 1, 0),\n    true_binary = if_else(truth == \"bad\", 1, 0)\n  )\n\ncat(\"Fairness dataset prepared.\\n\")\ncat(\"Gender split:\\n\"); print(table(fairness_data$sex))\ncat(\"\\nAge group split:\\n\"); print(table(fairness_data$age_group))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=69",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 9.1 — Default Rates by Gender",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=70",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 10, repr.plot.height = 6)\n\nfairness_data %>%\n  group_by(sex) %>%\n  summarise(\n    actual_default = mean(true_binary),\n    predicted_bad  = mean(pred_binary),\n    .groups = \"drop\") %>%\n  pivot_longer(c(actual_default, predicted_bad),\n               names_to = \"metric\", values_to = \"rate\") %>%\n  ggplot(aes(x = sex, y = rate, fill = metric)) +\n  geom_col(position = \"dodge\", colour = \"white\", linewidth = 0.6) +\n  geom_text(aes(label = percent(rate, accuracy = 0.1)),\n            position = position_dodge(width = 0.9),\n            vjust = -0.5, size = 4, fontface = \"bold\") +\n  scale_fill_manual(\n    values = c(actual_default = col_bad, predicted_bad = col_neutral),\n    labels = c(\"Actual Default Rate\", \"Predicted High-Risk Rate\")) +\n  scale_y_continuous(labels = percent_format(), limits = c(0, 0.6)) +\n  labs(\n    title    = \"Fairness Audit — Default Rates by Gender\",\n    subtitle = \"Gap between bars signals potential model miscalibration for a group\",\n    x = \"Gender\", y = \"Rate\", fill = NULL\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=71",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 9.2 — Default Rates by Age Group",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=72",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 11, repr.plot.height = 6)\n\nfairness_data %>%\n  group_by(age_group) %>%\n  summarise(\n    actual_default = mean(true_binary),\n    predicted_bad  = mean(pred_binary),\n    .groups = \"drop\") %>%\n  pivot_longer(c(actual_default, predicted_bad),\n               names_to = \"metric\", values_to = \"rate\") %>%\n  ggplot(aes(x = age_group, y = rate, fill = metric)) +\n  geom_col(position = \"dodge\", colour = \"white\", linewidth = 0.6) +\n  geom_text(aes(label = percent(rate, accuracy = 0.1)),\n            position = position_dodge(width = 0.9),\n            vjust = -0.5, size = 4, fontface = \"bold\") +\n  scale_fill_manual(\n    values = c(actual_default = col_bad, predicted_bad = col_neutral),\n    labels = c(\"Actual Default Rate\", \"Predicted High-Risk Rate\")) +\n  scale_y_continuous(labels = percent_format(), limits = c(0, 0.7)) +\n  labs(\n    title    = \"Fairness Audit — Default Rates by Age Group\",\n    subtitle = \"Younger applicants face both higher actual and predicted default rates\",\n    x = \"Age Group\", y = \"Rate\", fill = NULL\n  ) +\n  theme_credit()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=73",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### 9.3 — Precision, Recall & False Positive Rate by Gender",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=74",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "fairness_data %>%\n  mutate(\n    TP = (pred_binary == 1 & true_binary == 1),\n    FP = (pred_binary == 1 & true_binary == 0),\n    FN = (pred_binary == 0 & true_binary == 1),\n    TN = (pred_binary == 0 & true_binary == 0)\n  ) %>%\n  group_by(sex) %>%\n  summarise(\n    N                = n(),\n    Precision        = round(sum(TP) / (sum(TP) + sum(FP) + 1e-9), 4),\n    Recall           = round(sum(TP) / (sum(TP) + sum(FN) + 1e-9), 4),\n    False_Positive_R = round(sum(FP) / (sum(FP) + sum(TN) + 1e-9), 4),\n    .groups = \"drop\"\n  )",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=75",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n##  Section 10 : Risk Segmentation & Business Recommendations\n\n### From predictions to decisions\n\n#### Raw predicted probabilities need to be translated into actionable business decisions. We define three risk tiers based on the XGBoost predicted default probability:\n\n| Tier | Threshold | Business action |\n|---|---|---|\n| 🟢 **Low Risk** | < 30% | Auto-approve — acceptable loss rate |\n| 🟡 **Medium Risk** | 30% – 60% | Request additional documentation before decision |\n| 🔴 **High Risk** | > 60% | Mandatory human review (required by GDPR Art. 22) |\n\n#### The key validation question: **do the actual default rates in each tier match the model's intent?** \n#### If High Risk applicants default at 63% and Low Risk at 17%, the tiers are genuinely meaningful.",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=76",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "code",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "options(repr.plot.width = 13, repr.plot.height = 5)\n\nrisk_segments <- pred_xgb %>%\n  mutate(\n    risk_tier = case_when(\n      .pred_bad < 0.30 ~ \"Low Risk\",\n      .pred_bad < 0.60 ~ \"Medium Risk\",\n      TRUE             ~ \"High Risk\"),\n    risk_tier = factor(risk_tier,\n                       levels = c(\"Low Risk\", \"Medium Risk\", \"High Risk\")))\n\nrisk_summary <- risk_segments %>%\n  group_by(risk_tier) %>%\n  summarise(n = n(), pct = n() / nrow(risk_segments),\n            actual_default = mean(truth == \"bad\"), .groups = \"drop\")\n\ntier_colours <- c(\"Low Risk\" = col_good, \"Medium Risk\" = col_neutral, \"High Risk\" = col_bad)\n\np_seg <- ggplot(risk_summary, aes(x = risk_tier, y = pct, fill = risk_tier)) +\n  geom_col(colour = \"white\", linewidth = 0.8) +\n  geom_text(aes(label = paste0(percent(pct, 1), \"\\n(n=\", n, \")\")),\n            vjust = -0.3, fontface = \"bold\", size = 4) +\n  scale_fill_manual(values = tier_colours) +\n  scale_y_continuous(labels = percent_format(), limits = c(0, 0.8)) +\n  labs(title = \"Portfolio Risk Segmentation\",\n       subtitle = \"Low <30% | Medium 30-60% | High >60%\",\n       x = NULL, y = \"Proportion of Applicants\") +\n  theme_credit() + theme(legend.position = \"none\")\n\np_def <- ggplot(risk_summary, aes(x = risk_tier, y = actual_default, fill = risk_tier)) +\n  geom_col(colour = \"white\", linewidth = 0.8) +\n  geom_text(aes(label = percent(actual_default, 0.1)),\n            vjust = -0.3, fontface = \"bold\", size = 4.5) +\n  scale_fill_manual(values = tier_colours) +\n  scale_y_continuous(labels = percent_format(), limits = c(0, 1.0)) +\n  labs(title = \"Actual Default Rate per Risk Tier\",\n       subtitle = \"Validates that tiers are meaningful and well-separated\",\n       x = NULL, y = \"Actual Default Rate\") +\n  theme_credit() + theme(legend.position = \"none\")\n\np_seg | p_def",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=77",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "### Key Findings\n\n**Model performance:**\n- XGBoost achieves the highest ROC-AUC of the three models\n- The predicted probability distributions show clear separation between good and bad applicants\n- Risk tiers are validated: the actual default rate increases monotonically from Low → Medium → High\n\n**Feature importance:**\n- `checking_account_no.account` is the dominant predictor by a wide margin\n- `credit_history_critical.account` is a strong second signal\n- Several engineered features (`savings_vs_loan`, `monthly_payment`, `stable_employment`)\n  appear in the top six, confirming that feature engineering added genuine predictive value\n\n**Fairness findings:**\n- The model shows some miscalibration across age groups : young applicants are under-flagged\n  relative to their actual default rate; middle-aged applicants are slightly over-flagged\n- Gender gap analysis reveals the model is more conservative with male applicants\n  in terms of predicted high-risk rate vs actual default rate\n- Both findings warrant further investigation and recalibration before production deployment\n\n### Business Recommendations\n\n| Recommendation | Rationale |\n|---|---|\n| Deploy XGBoost with SHAP explanation layer | Best accuracy + full per-applicant explainability |\n| Route High Risk applicants to human review | Avoids fully automated rejection (GDPR Art. 22) |\n| Exclude `sex` from the production model | Fairness improvement at minimal AUC cost |\n| Recalibrate predictions by age group | Align predicted rates with actual rates per demographic |\n| Re-train quarterly | Credit risk patterns shift with economic cycles |\n| Monitor False Positive Rate across groups | Ongoing compliance with EU AI Act requirements |",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/original.ipynb#cell=78",
+          "path": "german_xgboost/original.ipynb",
+          "kind": "markdown",
+          "sha256": "562f85b9f8a97070385966d53862f6d5a375491bb91c564d51228fba0f908bb2",
+          "text": "---\n## _That's all :)_\n----",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "german_xgboost/source.json",
+          "path": "german_xgboost/source.json",
+          "kind": "document",
+          "sha256": "4ea51cbdd1df2e3d8f4191a19d2f5135266047d1a0d4659cc089fc7bc532bc04",
+          "text": "{\n  \"title\": \"Credit Risk Prediction with XGBoost + SHAP in R\",\n  \"author\": \"Hafsa Rouchdi\",\n  \"url\": \"https://www.kaggle.com/code/hafsarouchdi/credit-risk-prediction-with-xgboost-shap-in-r\",\n  \"notebook_version\": 2,\n  \"license\": \"Apache-2.0\",\n  \"retrieved_on\": \"2026-11-13\",\n  \"changes\": \"Removed saved outputs and execution counts; retained code and markdown cells.\",\n  \"dataset\": \"German Credit Risk (kabure/german-credit-data-with-risk)\",\n  \"dataset_url\": \"https://www.kaggle.com/datasets/kabure/german-credit-data-with-risk\",\n  \"note\": \"Author attribution is distinct from business model ownership. Target meaning must be checked against the official data dictionary.\"\n}\n",
+          "language_hint": null
+        }
+      ],
+      "metadata": {
+        "name": "Credit Risk Prediction with XGBoost + SHAP in R",
+        "business_type": null,
+        "language": "R",
+        "algorithm": "XGBoost",
+        "dataset": "German Credit Risk (kabure/german-credit-data-with-risk)",
+        "data_references": [],
+        "inputs": [],
+        "derived_features": [
+          "pct",
+          "rate",
+          "age_group",
+          "truth",
+          "model",
+          "label"
+        ],
+        "target": "default",
+        "output": "Prediction output; probability and event direction need review",
+        "training_stages": [],
+        "packages": [
+          "tidyverse",
+          "ggplot2",
+          "patchwork",
+          "scales",
+          "ggcorrplot",
+          "tidymodels",
+          "themis",
+          "vip",
+          "ranger",
+          "xgboost",
+          "glmnet",
+          "shapviz"
+        ],
+        "business_owner": null,
+        "declared_version": null,
+        "use_in_decisions": null,
+        "doc_status": "needs_review",
+        "doc_reason": "Documentation requires content review.",
+        "evidence": {
+          "language": [
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=6",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# Install packages not pre-loaded on Kaggle"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "suppressPackageStartupMessages({"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=8",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# ── Global plot theme ─────────────────────────────────────────────────────────"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=10",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# Load dataset from Kaggle input directory"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=12",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# Standardise column names to snake_case"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=14",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "glimpse(credit_raw)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=15",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "head(credit_raw, 10)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=17",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 10, repr.plot.height = 5)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=20",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 7, repr.plot.height = 5)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=22",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 13, repr.plot.height = 5)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=25",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 14, repr.plot.height = 11)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=27",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 10, repr.plot.height = 6)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=29",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 10, repr.plot.height = 6)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=31",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 7, repr.plot.height = 6)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=33",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "credit <- credit_raw %>%"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=35",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# ── Train / test split ────────────────────────────────────────────────────────"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=36",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# ── 5-fold cross-validation ───────────────────────────────────────────────────"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=37",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# ── Pre-processing recipe ─────────────────────────────────────────────────────"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=39",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# ── Model specifications ──────────────────────────────────────────────────────"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=40",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "cat(\"Tuning Logistic Regression...\\n\")"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=41",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "cat(\"Tuning Random Forest...\\n\")"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=42",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "cat(\"Tuning XGBoost...\\n\")"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=43",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# Finalise each workflow with its best hyperparameters"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=45",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# Generate predictions for all three models on the hold-out test set"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=47",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "compute_metrics <- function(preds, model_name) {"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=49",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 14, repr.plot.height = 5)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=51",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 9, repr.plot.height = 7)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=53",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 9, repr.plot.height = 6)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=55",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 14, repr.plot.height = 5)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=57",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# Extract the fitted XGBoost engine from the workflow"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=59",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 10, repr.plot.height = 7)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=61",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 12, repr.plot.height = 8)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=63",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 11, repr.plot.height = 6)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=64",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 11, repr.plot.height = 6)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=66",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 10, repr.plot.height = 6)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=68",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "fairness_data <- pred_xgb %>%"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=70",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 10, repr.plot.height = 6)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=72",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 11, repr.plot.height = 6)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=74",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "fairness_data %>%"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=76",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "options(repr.plot.width = 13, repr.plot.height = 5)"
+            }
+          ],
+          "packages": [
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 2,
+              "line_end": 2,
+              "quote": "  library(tidyverse)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 3,
+              "line_end": 3,
+              "quote": "  library(ggplot2)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 4,
+              "line_end": 4,
+              "quote": "  library(patchwork)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 5,
+              "line_end": 5,
+              "quote": "  library(scales)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 6,
+              "line_end": 6,
+              "quote": "  library(ggcorrplot)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 7,
+              "line_end": 7,
+              "quote": "  library(tidymodels)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 8,
+              "line_end": 8,
+              "quote": "  library(themis)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 9,
+              "line_end": 9,
+              "quote": "  library(vip)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 10,
+              "line_end": 10,
+              "quote": "  library(ranger)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 11,
+              "line_end": 11,
+              "quote": "  library(xgboost)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 12,
+              "line_end": 12,
+              "quote": "  library(glmnet)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 13,
+              "line_end": 13,
+              "quote": "  library(shapviz)"
+            }
+          ],
+          "derived_features": [
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=17",
+              "line_start": 7,
+              "line_end": 7,
+              "quote": "  mutate(pct = missing / nrow(credit_raw))"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=20",
+              "line_start": 5,
+              "line_end": 5,
+              "quote": "  mutate(pct = n / sum(n),"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=25",
+              "line_start": 9,
+              "line_end": 9,
+              "quote": "    mutate(rate = n / sum(n)) %>%"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=27",
+              "line_start": 4,
+              "line_end": 4,
+              "quote": "  mutate(age_group = cut(age,"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=27",
+              "line_start": 10,
+              "line_end": 10,
+              "quote": "  mutate(pct = n / sum(n)) %>%"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=45",
+              "line_start": 4,
+              "line_end": 4,
+              "quote": "    mutate(truth = test_data$default, model = model_name)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=47",
+              "line_start": 6,
+              "line_end": 6,
+              "quote": "  ) %>% mutate(model = model_name)"
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=51",
+              "line_start": 6,
+              "line_end": 6,
+              "quote": "  mutate(label = paste0(model, \"  (AUC = \", round(.estimate, 3), \")\"))"
+            }
+          ],
+          "target": [
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=37",
+              "line_start": 2,
+              "line_end": 2,
+              "quote": "credit_recipe <- recipe(default ~ ., data = train) %>%"
+            }
+          ],
+          "algorithm": [
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=39",
+              "line_start": 18,
+              "line_end": 18,
+              "quote": "  set_engine(\"xgboost\") %>%"
+            }
+          ],
+          "output": [
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=45",
+              "line_start": 3,
+              "line_end": 3,
+              "quote": "  bind_cols(predict(fit, test_data), predict(fit, test_data, type = \"prob\")) %>%"
+            }
+          ],
+          "name": [
+            {
+              "source_id": "german_xgboost/source.json",
+              "line_start": 2,
+              "line_end": 2,
+              "quote": "  \"title\": \"Credit Risk Prediction with XGBoost + SHAP in R\","
+            }
+          ],
+          "dataset": [
+            {
+              "source_id": "german_xgboost/source.json",
+              "line_start": 9,
+              "line_end": 9,
+              "quote": "  \"dataset\": \"German Credit Risk (kabure/german-credit-data-with-risk)\","
+            }
+          ]
+        },
+        "unknowns": [
+          "Confirm raw inputs versus derived and temporary variables",
+          "Confirm target meaning, prediction horizon and positive class",
+          "Confirm business owner, operational scope and risk tier",
+          "Confirm missing data files, trained model and reference predictions"
+        ]
+      },
+      "risk_tier": null,
+      "risk_reason": "Operational use and impact are unknown; assign tier during review.",
+      "risk_provisional": true,
+      "extraction_mode": "offline",
+      "status": "pending_review",
+      "warnings": []
+    },
     {
       "model_id": "MODEL-D05BB473A58E",
       "group": "gmsc_lightgbm",
@@ -362,6 +1487,414 @@
               "line_start": 2,
               "line_end": 2,
               "quote": "  \"title\": \"Top 1 - Give Me Some Credit: LGBM model in R\","
+            }
+          ]
+        },
+        "unknowns": [
+          "Confirm raw inputs versus derived and temporary variables",
+          "Confirm target meaning, prediction horizon and positive class",
+          "Confirm business owner, operational scope and risk tier",
+          "Confirm missing data files, trained model and reference predictions"
+        ]
+      },
+      "risk_tier": null,
+      "risk_reason": "Operational use and impact are unknown; assign tier during review.",
+      "risk_provisional": true,
+      "extraction_mode": "offline",
+      "status": "pending_review",
+      "warnings": []
+    },
+    {
+      "model_id": "MODEL-9239165C4AE5",
+      "group": "gmsc_probit",
+      "source_files": [
+        {
+          "path": "gmsc_probit/DATA_README.md",
+          "sha256": "74e725edb8f385ae23f8610a4b5a332ae790cef65bbd6ac724dc45ae630e5459",
+          "size_bytes": 906,
+          "modified_at": "2026-11-13T13:44:15.050423+00:00"
+        },
+        {
+          "path": "gmsc_probit/original.Rmd",
+          "sha256": "17fbd857fa04ecbed7d8abf740bc6ae7763a2cb66ae15b17c48ac7a46629747b",
+          "size_bytes": 25023,
+          "modified_at": "2026-11-13T13:44:03.089639+00:00"
+        },
+        {
+          "path": "gmsc_probit/source.json",
+          "sha256": "273d2201cd7b718e49dc1e8e7d97a1095109757222d05a72081b417ecda5c93c",
+          "size_bytes": 615,
+          "modified_at": "2026-11-13T13:44:15.038433+00:00"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "gmsc_probit/DATA_README.md",
+          "path": "gmsc_probit/DATA_README.md",
+          "kind": "document",
+          "sha256": "74e725edb8f385ae23f8610a4b5a332ae790cef65bbd6ac724dc45ae630e5459",
+          "text": "# Give Me Some Credit input (probit GLM)\n\nThis example contains the original R Markdown script and its provenance. It uses the same competition data as gmsc_lightgbm: download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page under its applicable terms. Keep borrower-level data local. Discover reads CSV headers only and does not run R or train models. The script refers to /kaggle/input/GiveMeSomeCredit paths, which must be adapted when later running it locally.\n\nThe script renames columns, filters records (age > 0, 90-day lateness codes 96/98, DebtRatio > 1, utilisation > 1), imputes Dependents with 0 and MonthlyIncome with the median, draws a 70/30 split with set.seed(123), and fits one probit GLM on five variables. No trained model file or reference predictions have been supplied. Business owner, operational scope and approved model risk tier remain unconfirmed.\n",
+          "language_hint": null
+        },
+        {
+          "source_id": "gmsc_probit/original.Rmd",
+          "path": "gmsc_probit/original.Rmd",
+          "kind": "code",
+          "sha256": "17fbd857fa04ecbed7d8abf740bc6ae7763a2cb66ae15b17c48ac7a46629747b",
+          "text": "---\ntitle: \"Credit Risk Modelling\"\nsubtitle: | \n    \n    \"Analysing credit risk by modelling the probability of default using logistic regression in R\"\\linebreak\\linebreak\\linebreak\n    \n    \n    \\linebreak\\linebreak\\linebreak   \n    \n    \nauthor: \"by Sunnyboy Ngobeni\"\ndate: \"Dated: December 2025- January 2026\"\ntags: [\"Credit Risk\", \"Banking\", \"Lending\", \"Probability of Default\", \"Logistic Regression\", \"R\"]\nabstract: |\n    \n    When a customer applies for a loan, banks and other credit providers use statistical models to determine whether or not to grant the loan based on the likelihood of default. The factors involved in determining this likelihood are very complex, and extensive statistical analysis and modelling are required to predict the outcome for each individual case.\n    \n    This project uses logistic regression in R to calculate the probability of default for each individual applicant and assigns an outcome (1=default, 0=no default) based on these likelihoods and a chosen cut-off probability.\n    \n    Tags: `r paste(rmarkdown::metadata$tags, collapse=\" , \")`\ntheme: united\nlayout: post\noutput:\n  html_document:\n    toc: true\n    toc_collapsed: false\ndocumentclass: report\ngeometry: \"left=1.5cm,right=1.5cm,top=2cm,bottom=2cm\"\n---\n\n```{r setup, include=FALSE}\noptions(width = 700)\nknitr::opts_chunk$set(warning = FALSE, message = FALSE, out.width = \"100%\", retina = 1)\n```\n\n\n> Please `Upvote` 👍 if you like my work and/or find it interesting. Thanks 😃✌️🙏\n\n\\newpage\n\n```{r, include=FALSE}\n#header-includes:\n  #- \\usepackage{fvextra}\n  #- \\usepackage{pdflandscape}\n  #- \\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\\\\{\\}}\n  #the above is for changing the orientation of the pdf output to landscape for printing long df's or outputs\nlibrary(readxl) #4 importing .xls files\nlibrary(readr) #4 importing .csv files\nlibrary(ggplot2) #4 2d plots\nlibrary(dplyr) #4 data manipulation\nlibrary(tidyr) #4 data cleaning??\nlibrary(corrplot) #4 correlation test and plotting\nlibrary(knitr) #4 visualising tables and knitting documents\nlibrary(caret) #4 \nlibrary(pROC) #4 performance analytics i.e roc curve\n```\n\n```{r,include=FALSE}\n#Risk <- read_delim(\"Risk.csv\", delim = \";\", escape_double = FALSE, trim_ws = TRUE)\ndictionary<-read_excel(\"/kaggle/input/GiveMeSomeCredit/Data Dictionary.xls\")\ndf_test<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-test.csv\")\ndf_train<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-training.csv\")\nsample<-read_csv(\"/kaggle/input/GiveMeSomeCredit/sampleEntry.csv\")\n```\n\n# Introduction to the project\n\nThe objective of this project is to carry out credit risk analysis/modelling for credit finance using the dataset obtained [here](https://www.kaggle.com/competitions/GiveMeSomeCredit/data).\n\n**The train dataset has an observed default indicator with 1 indicating default of more than 90 days in the last 2 years and 0 indicating lack of such default. The test dataset has no observed default indicator, in fact that is what we are trying to determine**. Performance metrics require comparison\\* between the true value/outcome vs the predicted value/outcome.\n\nTo allow for performance metrics to be evaluated, the *train dataset* will be treated as past loan application data and then used to build/train & test the model, whilst the *test dataset* will be used as a new/current data to see how the model will perform on a new set of data for current/future applicants.\n\n## Objective\n\nThe Probability of default is a serious concept in credit risk assessment and it determines whether or not an applicant will be approved for credit. This project aims to build and implement a model that predicts loan repayment or default based on the data provided, and to determine the best model to predict whether a loan applicant will fully repay or default on the loan.\n\n## Approach to the objective\n\nThe approach entails building a machine learning model that returns the loan id, the probability of default, and default status label that indicates whether the loan will (likely) be paid or defaulted based on the estimated probability of default and an acceptable probability cut-off.\n\n## Overview of dataset and Data cleaning\n\n```{r, include=FALSE,out.width=c('50%','50%'),fig.show='hold'}\ndf_train<-rename(df_train,c(Applicant=\"...1\",defaulted=\"SeriousDlqin2yrs\",'unsecured.credit'=RevolvingUtilizationOfUnsecuredLines,age=age,'<2months Deliquency'=`NumberOfTime30-59DaysPastDueNotWorse`,DebtRatio=DebtRatio,MonthlyIncome=MonthlyIncome,openCredit=NumberOfOpenCreditLinesAndLoans,'3MonthsDefault'=NumberOfTimes90DaysLate,RealEstateLoans=NumberRealEstateLoansOrLines,'<3months Deliquency'=`NumberOfTime60-89DaysPastDueNotWorse`,Dependents=NumberOfDependents)) #from dplyr package, use to rename columns\n\ncolnames(df_test)<-colnames(df_train) #rename the given test dataset using the same name as the given train dataset.\nstr(df_train) #no. of columns and rows.\nnrow(unique(df_train)) #checks for duplicates\n#'[df_train<-unique(df_train)  #removes duplicates\ncolSums(is.na(df_train)) #checks for NAs per column\nnrow(unique(df_test)) #checks for duplicates\ncolSums(is.na(df_test)) #checks for NAs per column\n```\n\nThe given data consists of a test dataset with 101,503 observations, while the train data consist of 150,000 observations. Both train and test data has 12 numeric variables. Assuming the observations represents a unique set of applicants, and information about their age, number of dependents, monthly income, as well as additional information relating to their past and present credit utilisation is given in the dataset. The train dataset has 29,731 missing values from the Monthly income variable and 3,924 missing values from the Number of dependents variable, and the test data has 20,103 missing values in monthly income and 2,626 missing values in number of dependents. No duplicates are present in both datasets, which is to be expected since a person can only apply for one form of credit at a time.\n\nThe output below shows the first five rows of the dataset and the column names:\n\n```{r,echo=FALSE,out.width=c('50%','50%'),fig.show='hold',,out.extra='style=\"float:right;position:relative,top:-10px\"'}\nrmarkdown::paged_table(head(df_train,5))\n  # Kable_styling(latex_options=\"scale_down\") OR\n  # kable_styling(full_width=FALSE)%>%\n  # column_spec(1,width=\"3cm\")%>%\n  # column_spec(2,width=\"5cm\")\n#The above commented out code scales down the kable output so it doesn't extend outside the page or makes column names overlap, can't seem to make it work yet.\n```\n\n# Methods and algorithms\n\nThe analysis and modelling will be carried out by preparing the dataset, followed by data exploration. As part of the data preparation we'll split the train dataset into train-test data using a 70/30 split .Then we will build a machine learning algorithm using logistic regression to calculate the probability of default (PoD) for each applicant. Default will be indicated by 0 (for good customers/applicants) and 1 (for bad customers), where the bad applicants are those that have previously defaulted in their credit(s) for more than 90 days in the last 2 years. *Once the model is built, tests of discrimination and calibration will be carried out as a means to test the performance of the model.* Then the test dataset will be used as a new data to approve or decline clients. \n\n# Project analysis\n\n## Data exploration and analysis\n\nThe summary statistics of the train dataset is provided below:\n\n```{r,echo=FALSE,paged.print=TRUE,out.width='60%'}\noptions(scipen = 999)\nkable(summary(df_train))\nrmarkdown::paged_table(df_train) #a pageable df in html, doesnt work 4 pdf.\ndf_train<-df_train|>filter(age>0)\n```\n\n-   There minimum age is zero, which does not make any logical sense. After removing the observation with age zero, the minimum age of the applicants becomes 21.\n\n-   The unsecured credit variable which represents the percentage of credit utilized seems to have values which are above 1, which doesn't make sense since a person can not exceed their credit limit. All values above 1 will be treated as typo's and will be removed.\n\n-   There is also a large number of individuals who have been 30-59 days past due 96 or 98 number of times in the last 2 years, this does not seem reasonable as someone like that would not have paid their loans on time in the past 2 years. In fact, these individuals have the same values for the 60-89 days past due and the 90 or more days past due. This could be a typo or some sort of code. See the output below as an example of what the data of these individuals looks like:\n\n```{r,echo=FALSE,out.width=c('50%','50%'),fig.show='hold'}\nkable(head(df_train[,c(1,5,9,11)]%>%filter(`<2months Deliquency`==96),5))\nkable(head(df_train[,c(1,5,9,11)]%>%filter(`<2months Deliquency`==98),5))\n```\n\nThis values will also be removed. (This appears in both the train and test dataset).\n\n-   There are debt to income ratios that a way more than one, in fact, some even go as far as 329,000. Since debt to income ratio is a percentage of income, and since individuals with debt that far surpasses their income are less likely to be considered for loans, observations with debt to income ratio greater than 1 will also be removed.\n\n-   There are people with more than 50 (current) open credit. Though this also does not make sense, we shall leave them in the dataset for now.\n\nThe revised summary statistics after the above mention changes is as follows:\n\n```{r,echo=FALSE,out.width=c('50%','50%'),fig.show='hold'}\ndf_train<-df_train%>%filter(`3MonthsDefault`<'96',DebtRatio<=1,unsecured.credit<=1)\ndf_test<-df_test%>%filter(`3MonthsDefault`<'96',DebtRatio<=1,unsecured.credit<=1)\n\nkable(summary(df_train))\n```\n\n-   After the above changes, the train data has 112,021 rows and the test data has 76,024 rows/observations.\n\n\n```{r,echo=FALSE,fig.show='hold'}\npar(mfrow=c(1,2))  #allows me to plot 2 plots side by side. 1 row, 2 columns.\n\npal<-c(\"coral2\",\"mediumpurple\",\"goldenrod\",\"magenta\",\"cyan\",\"yellow\",\"orange\",\"green\",rep(\"gray85\",length(df_train$age)-8))\n\nH1<-hist(df_train$age,main=\"train dataset: Distribution of age\",xlab=\"Age\",freq = FALSE,plot=FALSE)\n\nH2<-hist(df_train$unsecured.credit,xlab=\"Utilization Of Unsecured credit\",main=\"Distribution of unsecured credit utilization\",ylab=\"No. of borrowers\",plot=FALSE)\n\npal2<-rainbow(length(H1$counts))\npal3<-heat.colors(length(H2$counts))\nhist(df_train$age,main=\"Distribution of age\",xlab=\"Age\",freq = FALSE,col=pal2)\nlines(density(df_train$age),col=\"red\")\nhist(df_train$unsecured.credit,xlab=\"Utilization Of Unsecured credit\",main=\"Unsecured credit utilization\",ylab=\"No. of borrowers\",col=pal3)\n```\n\n-   The ages of the applicants/borrowers is (approximately) normally distributed.\n\n-   There is a considerably large number of applicants with a large balance on their credit cards. But more applicants don't make use of revolving credit.\n\n- Defaults of 2 months or less are given below and the debt to income distribution.\n\n```{r,echo=FALSE,fig.show='hold',out.width='60%'}\nkable(table(count=df_train$`<2months Deliquency`))\nhist(df_train$DebtRatio,xlab=\"Debt to income ratio\",main=\"Distribution of debt to income ratio\",col=pal3)\n```\n\n-   Roughly 80% of the applicants have not defaulted on their loans for more than 2 months, and the majority of the applicants have a very low debt to income ratio (which is good). Also, there are very few people, less than 1%, who have a deliquency of more than 10 in a 2months period.\n\n-   Excluding those who don't utilise debt, debt to income ratio is rightly skewed.\n\n```{r,include=FALSE}\nnrow(df_train%>%filter(MonthlyIncome>50000))\n```\n\n-   The distribution of income is skewed to the right with over 297 individuals, having income above 50,000 and the rest having income below 50,000. The distribution of individuals whose monthly income is below 50,000 is given below.\n\n```{r,echo=FALSE}\ns.income<-df_train%>%filter(MonthlyIncome<50000)\nhist(s.income$MonthlyIncome,breaks=50,col=pal2,main=\"Distribution of Monthly income <50K\",xlab=\"Monthly Income\")\n```\n\n-   It seems most of the observations in the dataset have a monthly income of less than 10,000. The distributions of the other income earners are also given below for comparison.\n\n```{r,echo=FALSE,fig.show='hold'}\npar(mfrow=c(1,2))\nm.income<-df_train%>%filter(MonthlyIncome>=50000&MonthlyIncome<=200000)\nhist(m.income$MonthlyIncome,breaks=50,col=pal2,main=\"Monthly income >=50K and <=200K\",xlab=\"Monthly Income\")\nl.income<-df_train%>%filter(MonthlyIncome>200000)\nhist(l.income$MonthlyIncome,breaks=50,col=pal3,main=\"Monthly income >200K\",xlab=\"Monthly Income\")\n```\n\n```{r,echo=FALSE,fig.show='hold'}\n\npar(mfrow=c(1,2))\n\ndf_train%>%filter(defaulted==1)%>%group_by(age)%>%summarise(Total.defaults=n())%>%\n  ggplot(aes(x=age,y=Total.defaults,color=age))+geom_point()+\n  labs(title=\"Total defaults on loans by age\")+\n  scale_color_viridis_c()\n\ndf_train%>%filter(defaulted==0)%>%group_by(age)%>%summarise(Total.defaults=n())%>%\n  ggplot(aes(x=age,y=Total.defaults,color=age))+geom_point()+\n  labs(title=\"Total non-defaults on loans by age\")\n```\n\n-   More people (\\>50) between the ages of 24 and 67 default on their loans. Most of the non-defaults are also found around the same age range.\n\n```{r,echo=FALSE,out.width='60%'}\nboxplot(df_train$Dependents,ylab=\"number of dependents\",col=pal3)\n```\n\nSome applicants clearly have an unreasonable number of dependents (these are most likely outliers, if not errors).\n\nThe Summary statistics of applicants who have defaulted for more than 90 days in the past 2 years for the train dataset are given below:\n\n```{r,echo=FALSE,out.width='60%'}\nkable(summary(df_train[,2:12]%>%filter(defaulted==1)))\n```\n\n### Variable Selection\n\n```{r, echo=FALSE,out.width='75%'}\nmydata<-df_train[,2:12] #only using colums 2 to 12\ncorrelation<-select_if(mydata,is.numeric)%>%cor()\ncorrplot(correlation,type='upper',method=\"pie\")\n```\n\nFrom the correlation matrix above, we note the following variables correlated to:\n\n(1) past defaults: unsecured credit (+), past due times (+).\n\n(2) unsecured credit: age(-), past default times (+).\n\n(3) Debt to income ratio: open credit (+), and Real estate loans (+).\n\n(4) Past due times are positively (+) correlated with each other.\n\n```{r,echo=FALSE,out.width='75%'}\nlogist<-glm(defaulted~.,data=mydata, family=binomial (link=probit))\nvarimp<-varImp(logist)\n\nvarimp[\"variable\"]<-rownames(varimp)\nvarimp$variable<-factor(varimp$variable,levels = varimp$variable[order(varimp$Overall)])\nvarimp<-varimp%>%mutate(prop=Overall/sum(Overall)*100)%>%arrange(desc(prop))\n\npal<-c(\"coral2\",\"mediumpurple\",\"goldenrod\",rep(\"blue1\",length(varimp$prop)-3))\nggplot(varimp,aes(x=variable,y=Overall,))+\n  labs(title=\"variable importance (overall and proportions)\")+\n  geom_bar(stat=\"identity\",fill=pal)+\n  geom_text(aes(label=round(prop,2)))+ #adds the proportions label to plot\n  coord_flip()+ #flips the coordinates and makes the bar horizontal rather than vertical\n  theme_minimal()\n```\n\n-   As we can see from the feature importance above, the variables up until age contributes more than 87% of the results/accuracy (including age) and 79% of the results/accuracy (excluding age).\n-   That's only 4 or 5 variables.\n\n## Data preparation\n\nFor the purpose of the model building, all NA's for the number of dependents will be replaced by 0. This, in essence,assumes that all the applicants have no dependents (this is more of a best-estimate assumption rather than a prudent one. Though any other assumption probably wouldn't make any significant difference since no. of dependents is not a very significant predictor of default as seen above). For the monthly income, the NA's will be replaced by the median income of all applicants since anyone with a zero income would not be eligible for any credit (Median because Income is rightly skewed as seen above, and mean will be affected by this outliers, while median doesn't have such disadvantage).\n\n```{r, echo=FALSE}\ndf_train<-df_train%>%\n  mutate(Dependents=replace_na(Dependents,0))%>%\n  mutate(MonthlyIncome=replace_na(MonthlyIncome,median(MonthlyIncome,na.rm=TRUE)))\ndf_test<-df_test%>%\n  mutate(Dependents=replace_na(Dependents,0))%>%\n  mutate(MonthlyIncome=replace_na(MonthlyIncome,median(MonthlyIncome,na.rm=TRUE)))\n```\n\nWe will split the data into 70/30 train-test split.\n\n```{r,echo=FALSE}\nset.seed(123) #for reproducibility\ndf_train[,2]<-lapply(df_train[,2],factor) #making the default column factors/categorical variables.\n#2,5,8,9,10,11,12\n#df_train[,12]<-factor(df_train$Dependents,exclude=c(9,10,13,20))\nsplit<-sample(1:nrow(df_train),0.7*nrow(df_train)) #random sampling\nTrainData<-df_train[split,]\nTestData<-df_train[-split,]\n```\n\n## Model building and evaluation\n\n### Logistic regression model (using link=probit)\n\n```{r, echo=FALSE}\nlogmod<-glm(defaulted~unsecured.credit+`<2months Deliquency`+`<3months Deliquency`+`3MonthsDefault`+age ,data=TrainData, family=binomial (link=probit)) #takes a lot of space/memory to rum, maybe making dependents into factors wasnt such a good idea. The final model didnt make use of dependents so it didn't matter.\nsummary(logmod)\npred<-predict(logmod,newdata=TestData,type=\"response\")\n#range(pred)\nTestData$ProbOfDefault<-round(pred,5)\n#PD<-data.frame(applicant=df_test$...1,round(pred,5))\n#different cut-off probabilities: 15%, 18.5% and 20%\n```\n\nThe range of our predictions is `r range(pred)` . Considering the results for different levels of cut-off probabilities : 4% (for real estate loans), 10.25% ( for commercial lending like car finance, based on SA prime lending rate as of January 2026), and 20% (for retail loans/credit cards),in that order, here is the distribution of defaults vs non-defaults.\n\n```{r,include=FALSE}\npred_cut_0.04<-ifelse(TestData$ProbOfDefault>0.04,1,0)\npred_cut_0.1025<-ifelse(TestData$ProbOfDefault>0.1025,1,0)\npred_cut_0.2<-ifelse(TestData$ProbOfDefault>0.2,1,0)\nTestData$pred_cut_0.04<-factor(pred_cut_0.04)\nTestData$pred_cut_0.1025<-factor(pred_cut_0.1025)\nTestData$pred_cut_0.2<-factor(pred_cut_0.2)\n```\n\n```{r,echo=FALSE,out.width=c('50%','50%'),fig.show='hold'}\npar(mfrow=c(1,3))\nkable(table(TestData$pred_cut_0.04))\nkable(table(TestData$pred_cut_0.1025))\nkable(table(TestData$pred_cut_0.2))\n\n```\n\n         \n<div>\n\n> 💡The prime lending rate is the base interest banks charge their best customers.\n\n</div>\n\n\n-   As the cut-off probability increases, the ratio of default applicants to non-default applicants decreases.\n\n## Model Performance\n\n```{r,echo=FALSE}\nROC0.04<-roc(TestData$defaulted,pred_cut_0.04)\nROC0.1025<-roc(TestData$defaulted,pred_cut_0.1025)\nROC0.2<-roc(TestData$defaulted,pred_cut_0.2)\nplot(ROC0.04)\nlines(ROC0.1025,col=\"blue\")\nlines(ROC0.2,col=\"red\")\nlegend.text1<-paste0(\"4% (AUC=\", round(auc(ROC0.04),2),\")\")\nlegend.text2<-paste0(\"10.25% (AUC=\", round(auc(ROC0.1025),2),\")\")\nlegend.text3<-paste0(\"20% (AUC=\", round(auc(ROC0.2),2),\")\")\nlegend(\"bottomright\", #position of legend\n       legend=c(legend.text1,legend.text2,legend.text3),\n       col=c(\"black\",\"blue\",\"red\"), #curve colours\n       lty=1, #line type (1=solid)\n       lwd=2, #line width\n       cex=0.75) #shrinks legend to 80% of its original size\n```\n\n-   The 10.25% cut-off has increased sensitivity (True Positive Rate) but has the possibility of raising false positive rate. While the 20% cut-off does the opposite.\n- the consfusion matrix for the model using a cut-off probability of 10.25% is given below:\n\n```{r,echo=FALSE}\nconfusionMatrix(data=TestData$pred_cut_0.1025,reference = TestData$defaulted)\n# positive=0, and negative=1\n```\n\n-   The model ,when using a cut-off probability of 10.5%, has an accuracy rate of 86.9% and a specificity of 56%.\n\n<details>\n\n<summary><i>The confusion matrix for the 4% and 20% cut-off probabilities are given below for comparison. **Click to expand**</i></summary>\n\n```{r ggplot-default-col-size-hex-rgb-plot, echo=FALSE, purl=FALSE}\nconfusionMatrix(data=TestData$pred_cut_0.04,reference = TestData$defaulted)\nconfusionMatrix(data=TestData$pred_cut_0.2,reference = TestData$defaulted)\n```\n\nThe models with a 4% cut-off and a 20% cut-off have an accuracy of 68.5% and 93.18%, respectively.\n\n</details>\n\n\nAccuracy increases as the cut-off probabilities increase.\n\n## Testing the logistic regression model on new data\n\n<details>\n\n<summary><i>The summary statistics and visualisations of the test dataset are somewhat similar to those of the train dataset but with slight differences. **Click to expand**.</i></summary>\n\n```{r,echo=FALSE,paged.print=TRUE,fig.cap=' ' , out.width=c('40%','60%'),fig.show='hold'}\noptions(scipen = 999)\nkable(summary(df_test))\n```\n\n```{r,echo=FALSE,paged.print=TRUE,fig.cap=' ',fig.show='hold'}\npar(mfrow=c(1,2))\nhist(df_test$age,main=\"Distribution of age\",xlab=\"Age\",freq = FALSE,col=pal2)\nlines(density(df_test$age),col=\"red\")\nhist(df_test$unsecured.credit,xlab=\"Utilization Of Unsecured credit\",main=\"Unsecured credit utilization\",ylab=\"No. of borrowers\",col=pal3)\n```\n\n```{r,echo=FALSE}\ns.income<-df_test%>%filter(MonthlyIncome<50000)\nhist(s.income$MonthlyIncome,breaks=50,col=pal2,main=\"Distribution of monthly income <50K\",xlab=\"Monthly Income\")\n```\n\n```{r,echo=FALSE,fig.show='hold'}\npar(mfrow=c(1,2))\nm.income<-df_test%>%filter(MonthlyIncome>=50000&MonthlyIncome<=200000)\nhist(m.income$MonthlyIncome,breaks=50,col=pal2,main=\"Monthly income >=50K and <=200K\",xlab=\"Monthly Income\")\nl.income<-df_test%>%filter(MonthlyIncome>200000)\nhist(l.income$MonthlyIncome,breaks=50,col=pal3,main=\"Monthly income >200K\",xlab=\"Monthly Income\")\n```\n\n```{r,echo=FALSE,paged.print=TRUE,fig.cap=' ',fig.show='hold'}\npar(mfrow=c(1,2))\nkable(table(days=df_test$`<2months Deliquency`))\nplot(df_test$`3MonthsDefault`,df_test$`<3months Deliquency`,ylab=\"NumberOfTimes90DaysLate\",xlab=\"NumberOfTime60-89DaysPastDueNotWorse\")\nboxplot(df_test$Dependents)\n\n```\n\n</details>\n\nSerious deliquency will be based on a cut-off probability of 20%.\n\n> 💡 This is not aconservative approach, however, any applicant who can be approved based on the 20% cut-off will also be approved based on the other cut-off probabilities (for the same loan type and amount). A 20% cut-off means most applicants will be classified as less likely to default than with the other 2 cut-offs.\n\n```{r,echo=FALSE}\nprediction<-predict(logmod,newdata=df_test,type=\"response\")\ndf_test$ProbOfDefault<-round(prediction,5)\ndf_test$defaulted<-factor(ifelse(df_test$ProbOfDefault>0.20,1,0))\n#df_test$pred_cut_0.185<-factor(ifelse(df_test$ProbOfDefault>0.185,1,0))\n#df_test$pred_cut_0.2<-factor(ifelse(df_test$ProbOfDefault>0.2,1,0))\nkable(df_test%>%dplyr::select(Applicant,ProbOfDefault,defaulted)%>%tail(10))\n```\n\n```{r,echo=FALSE,fig.show='hold'}\n\npar(mfrow=c(1,2))\n\ndf_test%>%filter(defaulted==1)%>%group_by(age)%>%summarise(Total.defaults=n())%>%\n  ggplot(aes(x=age,y=Total.defaults,color=age))+geom_point()+\n  labs(title=\"Total defaults on loans by age\")+\n  scale_color_viridis_c()\n\ndf_test%>%filter(defaulted==0)%>%group_by(age)%>%summarise(Total.defaults=n())%>%\n  ggplot(aes(x=age,y=Total.defaults,color=age))+geom_point()+\n  labs(title=\"Total non-defaults on loans by age\")\n```\n\n- The predicted outcomes are similar to the analysis of the train dataset.\n\n# Conclusion and future scope\n\n-   The best threshold is based on the application of the project. For the purpose of credit analysis/modelling, choosing a threshold/cut-off that prioritises minimising false negatives (rejecting a good customer) even if it means more false positives (approving a bad customer) makes sense. \n- This makes sense since majority of the applicants (typically, based on the train dataset) have a good record and only a few applicants default on their loan. Thus the bank/financial institution may (will) still be able to make profit. In effect, this approach maximises profit instead of minimizing costs/losses.\n- The cut-off will also depend on the type of loan the applicant is applying for, hence a real estate loan will (or might) have a different cut-off from a clothing account, etc.\n- The test data (used as data for new applicants) is too similar to the train data (used for model building and testing), which may not always be the case in the real world.\n- The logistic models makes great prediction with good performance metrics, but other methods like random forests can be considered for comparison.\n\n> Please remember to `Upvote` 👍 if you liked my work and/or found it interesting. Thanks 😃✌️🙏\n\n# References\n\nA complete guide to credit risk modelling, 2019-08, Deepanshu Bhalla [Available here](https://www.listendata.com/2019/08/credit-risk-modelling.html)\n\nr-Programmin-tutorials, Deepanshu Bhalla [available here](https://www.listendata.com/p/r-programming-tutorials.html)\n\nKaggle dataset: [GiveMeSomeCredit](https://www.kaggle.com/competitions/GiveMeSomeCredit)\n\nA ggplot2 tutorial for beautiful plotting in r, 2019-08-05, Cedric Scherer: [Colourful Plots](https://www.cedricscherer.com/2019/08/05/a-ggplot2-tutorial-for-beautiful-plotting-in-r/#colors)\n",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_probit/source.json",
+          "path": "gmsc_probit/source.json",
+          "kind": "document",
+          "sha256": "273d2201cd7b718e49dc1e8e7d97a1095109757222d05a72081b417ecda5c93c",
+          "text": "{\n  \"title\": \"CRM :Credit Risk Modelling and Analysis\",\n  \"author\": \"Sunnyboy Ngobeni\",\n  \"url\": \"https://www.kaggle.com/code/sunnyboyngobeni/crm-credit-risk-modelling-and-analysis\",\n  \"notebook_version\": 4,\n  \"license\": \"Apache-2.0\",\n  \"retrieved_on\": \"2026-11-13\",\n  \"changes\": \"None; R Markdown script stored as published (it holds no saved outputs).\",\n  \"dataset\": \"Give Me Some Credit\",\n  \"dataset_url\": \"https://www.kaggle.com/competitions/GiveMeSomeCredit/data\",\n  \"note\": \"Author attribution is distinct from business model ownership. Target meaning must be checked against the official data dictionary.\"\n}\n",
+          "language_hint": null
+        }
+      ],
+      "metadata": {
+        "name": "CRM :Credit Risk Modelling and Analysis",
+        "business_type": "credit",
+        "language": "R",
+        "algorithm": "Probit GLM",
+        "dataset": "Give Me Some Credit",
+        "data_references": [
+          "/kaggle/input/GiveMeSomeCredit/cs-test.csv",
+          "/kaggle/input/GiveMeSomeCredit/cs-training.csv",
+          "/kaggle/input/GiveMeSomeCredit/sampleEntry.csv"
+        ],
+        "inputs": [],
+        "derived_features": [
+          "prop",
+          "Dependents",
+          "MonthlyIncome"
+        ],
+        "target": "defaulted",
+        "output": "Prediction output; probability and event direction need review",
+        "training_stages": [
+          "Training call at gmsc_probit/original.Rmd:L254",
+          "Training call at gmsc_probit/original.Rmd:L303"
+        ],
+        "packages": [
+          "readxl",
+          "readr",
+          "ggplot2",
+          "dplyr",
+          "tidyr",
+          "corrplot",
+          "knitr",
+          "caret",
+          "pROC"
+        ],
+        "business_owner": null,
+        "declared_version": null,
+        "use_in_decisions": null,
+        "doc_status": "needs_review",
+        "doc_reason": "Documentation requires content review.",
+        "evidence": {
+          "language": [
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "---"
+            }
+          ],
+          "dataset": [
+            {
+              "source_id": "gmsc_probit/DATA_README.md",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# Give Me Some Credit input (probit GLM)"
+            },
+            {
+              "source_id": "gmsc_probit/DATA_README.md",
+              "line_start": 3,
+              "line_end": 3,
+              "quote": "This example contains the original R Markdown script and its provenance. It uses the same competition data as gmsc_lightgbm: download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page under its applicable terms. Keep borrower-level data local. Discover reads CSV headers only and does not run R or train models. The script refers to /kaggle/input/GiveMeSomeCredit paths, which must be adapted when later running it locally."
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 60,
+              "line_end": 60,
+              "quote": "dictionary<-read_excel(\"/kaggle/input/GiveMeSomeCredit/Data Dictionary.xls\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 61,
+              "line_end": 61,
+              "quote": "df_test<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-test.csv\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 62,
+              "line_end": 62,
+              "quote": "df_train<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-training.csv\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 63,
+              "line_end": 63,
+              "quote": "sample<-read_csv(\"/kaggle/input/GiveMeSomeCredit/sampleEntry.csv\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 68,
+              "line_end": 68,
+              "quote": "The objective of this project is to carry out credit risk analysis/modelling for credit finance using the dataset obtained [here](https://www.kaggle.com/competitions/GiveMeSomeCredit/data)."
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 473,
+              "line_end": 473,
+              "quote": "Kaggle dataset: [GiveMeSomeCredit](https://www.kaggle.com/competitions/GiveMeSomeCredit)"
+            },
+            {
+              "source_id": "gmsc_probit/source.json",
+              "line_start": 9,
+              "line_end": 9,
+              "quote": "  \"dataset\": \"Give Me Some Credit\","
+            },
+            {
+              "source_id": "gmsc_probit/source.json",
+              "line_start": 9,
+              "line_end": 9,
+              "quote": "  \"dataset\": \"Give Me Some Credit\","
+            },
+            {
+              "source_id": "gmsc_probit/source.json",
+              "line_start": 10,
+              "line_end": 10,
+              "quote": "  \"dataset_url\": \"https://www.kaggle.com/competitions/GiveMeSomeCredit/data\","
+            }
+          ],
+          "business_type": [
+            {
+              "source_id": "gmsc_probit/DATA_README.md",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# Give Me Some Credit input (probit GLM)"
+            },
+            {
+              "source_id": "gmsc_probit/DATA_README.md",
+              "line_start": 3,
+              "line_end": 3,
+              "quote": "This example contains the original R Markdown script and its provenance. It uses the same competition data as gmsc_lightgbm: download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page under its applicable terms. Keep borrower-level data local. Discover reads CSV headers only and does not run R or train models. The script refers to /kaggle/input/GiveMeSomeCredit paths, which must be adapted when later running it locally."
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 60,
+              "line_end": 60,
+              "quote": "dictionary<-read_excel(\"/kaggle/input/GiveMeSomeCredit/Data Dictionary.xls\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 61,
+              "line_end": 61,
+              "quote": "df_test<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-test.csv\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 62,
+              "line_end": 62,
+              "quote": "df_train<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-training.csv\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 63,
+              "line_end": 63,
+              "quote": "sample<-read_csv(\"/kaggle/input/GiveMeSomeCredit/sampleEntry.csv\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 68,
+              "line_end": 68,
+              "quote": "The objective of this project is to carry out credit risk analysis/modelling for credit finance using the dataset obtained [here](https://www.kaggle.com/competitions/GiveMeSomeCredit/data)."
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 473,
+              "line_end": 473,
+              "quote": "Kaggle dataset: [GiveMeSomeCredit](https://www.kaggle.com/competitions/GiveMeSomeCredit)"
+            },
+            {
+              "source_id": "gmsc_probit/source.json",
+              "line_start": 9,
+              "line_end": 9,
+              "quote": "  \"dataset\": \"Give Me Some Credit\","
+            },
+            {
+              "source_id": "gmsc_probit/source.json",
+              "line_start": 10,
+              "line_end": 10,
+              "quote": "  \"dataset_url\": \"https://www.kaggle.com/competitions/GiveMeSomeCredit/data\","
+            }
+          ],
+          "packages": [
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 47,
+              "line_end": 47,
+              "quote": "library(readxl) #4 importing .xls files"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 48,
+              "line_end": 48,
+              "quote": "library(readr) #4 importing .csv files"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 49,
+              "line_end": 49,
+              "quote": "library(ggplot2) #4 2d plots"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 50,
+              "line_end": 50,
+              "quote": "library(dplyr) #4 data manipulation"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 51,
+              "line_end": 51,
+              "quote": "library(tidyr) #4 data cleaning??"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 52,
+              "line_end": 52,
+              "quote": "library(corrplot) #4 correlation test and plotting"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 53,
+              "line_end": 53,
+              "quote": "library(knitr) #4 visualising tables and knitting documents"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 54,
+              "line_end": 54,
+              "quote": "library(caret) #4 "
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 55,
+              "line_end": 55,
+              "quote": "library(pROC) #4 performance analytics i.e roc curve"
+            }
+          ],
+          "data_references": [
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 61,
+              "line_end": 61,
+              "quote": "df_test<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-test.csv\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 62,
+              "line_end": 62,
+              "quote": "df_train<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-training.csv\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 63,
+              "line_end": 63,
+              "quote": "sample<-read_csv(\"/kaggle/input/GiveMeSomeCredit/sampleEntry.csv\")"
+            }
+          ],
+          "algorithm": [
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 254,
+              "line_end": 254,
+              "quote": "logist<-glm(defaulted~.,data=mydata, family=binomial (link=probit))"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 303,
+              "line_end": 303,
+              "quote": "logmod<-glm(defaulted~unsecured.credit+`<2months Deliquency`+`<3months Deliquency`+`3MonthsDefault`+age ,data=TrainData, family=binomial (link=probit)) #takes a lot of space/memory to rum, maybe making dependents into factors wasnt such a good idea. The final model didnt make use of dependents so it didn't matter."
+            }
+          ],
+          "training_stages": [
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 254,
+              "line_end": 254,
+              "quote": "logist<-glm(defaulted~.,data=mydata, family=binomial (link=probit))"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 303,
+              "line_end": 303,
+              "quote": "logmod<-glm(defaulted~unsecured.credit+`<2months Deliquency`+`<3months Deliquency`+`3MonthsDefault`+age ,data=TrainData, family=binomial (link=probit)) #takes a lot of space/memory to rum, maybe making dependents into factors wasnt such a good idea. The final model didnt make use of dependents so it didn't matter."
+            }
+          ],
+          "target": [
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 254,
+              "line_end": 254,
+              "quote": "logist<-glm(defaulted~.,data=mydata, family=binomial (link=probit))"
+            }
+          ],
+          "derived_features": [
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 259,
+              "line_end": 259,
+              "quote": "varimp<-varimp%>%mutate(prop=Overall/sum(Overall)*100)%>%arrange(desc(prop))"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 279,
+              "line_end": 279,
+              "quote": "  mutate(Dependents=replace_na(Dependents,0))%>%"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 280,
+              "line_end": 280,
+              "quote": "  mutate(MonthlyIncome=replace_na(MonthlyIncome,median(MonthlyIncome,na.rm=TRUE)))"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 282,
+              "line_end": 282,
+              "quote": "  mutate(Dependents=replace_na(Dependents,0))%>%"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 283,
+              "line_end": 283,
+              "quote": "  mutate(MonthlyIncome=replace_na(MonthlyIncome,median(MonthlyIncome,na.rm=TRUE)))"
+            }
+          ],
+          "output": [
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 305,
+              "line_end": 305,
+              "quote": "pred<-predict(logmod,newdata=TestData,type=\"response\")"
+            },
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 433,
+              "line_end": 433,
+              "quote": "prediction<-predict(logmod,newdata=df_test,type=\"response\")"
+            }
+          ],
+          "name": [
+            {
+              "source_id": "gmsc_probit/source.json",
+              "line_start": 2,
+              "line_end": 2,
+              "quote": "  \"title\": \"CRM :Credit Risk Modelling and Analysis\","
             }
           ]
         },
