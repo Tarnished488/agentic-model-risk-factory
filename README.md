@@ -92,7 +92,7 @@ Document Agent 可以直接调用。
 
 ```python
 from pathlib import Path
-from discover_agent import load_document_input
+from discover_review import load_document_input
 
 state = load_document_input(Path("实际审核文件路径.json"))
 # state 包含 model_id、inventory_record、input_root、approvals 和 status

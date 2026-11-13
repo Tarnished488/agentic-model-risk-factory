@@ -6,7 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from discover_agent import run_discovery, review
+from discover_agent import run_discovery
+from discover_review import review
 from document_agent import run_document
 from document_review import review_document, load_redevelop_input
 from document_sources import chunk_sources

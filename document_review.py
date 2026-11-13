@@ -4,7 +4,8 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
-from discover_agent import atomic_json, audit, digest, load_document_input, now, output_lock
+from discover_agent import atomic_json, audit, digest, now, output_lock
+from discover_review import load_document_input
 
 
 def load_draft(state_path: Path):

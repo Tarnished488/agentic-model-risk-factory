@@ -15,9 +15,10 @@ from pydantic import Field, ValidationError
 from document_sources import chunk_sources, group_chunks, refs_within_group
 from discover_agent import (
     Evidence, StrictModel, Metadata, Record, MAX_LLM_CHARACTERS,
-    atomic_json, audit, call_llm, digest, load_document_input, now,
+    atomic_json, audit, call_llm, digest, now,
     output_lock, validate_evidence,
 )
+from discover_review import load_document_input
 
 SECTIONS = {
     "purpose": "Model Purpose and Scope",

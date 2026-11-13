@@ -1,6 +1,6 @@
 # Discover Agent 到 Document Agent 的交接约定
 
-Document Agent 接收一条人工批准过的模型记录及其来源材料，用于编写模型说明书。数据在磁盘上保存为 UTF-8 JSON，进入 Python 时为 dict。当前交接入口是 discover_agent.load_document_input，代码已经实现；本页后半部分的 Document 输出格式属于后续节点的实现约定。
+Document Agent 接收一条人工批准过的模型记录及其来源材料，用于编写模型说明书。数据在磁盘上保存为 UTF-8 JSON，进入 Python 时为 dict。当前交接入口是 discover_review.load_document_input，代码已经实现；本页后半部分的 Document 输出格式属于后续节点的实现约定。
 
 ## 一分钟理解
 
@@ -25,7 +25,7 @@ Document 根据这些材料编写说明，遇到缺失信息继续列为待确�
 
 ```python
 from pathlib import Path
-from discover_agent import load_document_input
+from discover_review import load_document_input
 
 review_file = Path(
     "artifacts/discover/reviews/实际运行号/实际模型号/实际审核号.json"

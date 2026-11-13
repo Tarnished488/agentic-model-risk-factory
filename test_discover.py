@@ -6,9 +6,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from discover_agent import (
-    Evidence, Metadata, Source, extract_with_llm, load_document_input,
-    offline_metadata, read_sources, review, run_discovery, validate_evidence, LLMResponse, llm_error_summary,
+    Evidence, Metadata, Source, extract_with_llm,
+    offline_metadata, read_sources, run_discovery, validate_evidence, LLMResponse, llm_error_summary,
 )
+from discover_review import load_document_input, review
 
 
 class DiscoverTests(unittest.TestCase):
