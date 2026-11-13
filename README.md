@@ -1,6 +1,6 @@
 # Agentic Model Risk Factory
 
-当前实现 Discover → 人工关卡 1 → Document 逆向文档与自检 → 人工关卡 2 → Redevelop 输入交接，围绕 Give Me Some Credit 的 R LightGBM Notebook 提供示例。后续模型重构与验证节点尚未实现。
+当前已实现 Discover → 审核 1 → Document → 审核 2 → Redevelop / Parity → 审核 3 → Validate → 审核 4。当前真实数据演示使用 GMSC Probit 的手写 Python 基准，不依赖 API；LLM 自动生成保留接口，未纳入本次无 API 演示。审核由 CLI 执行，尚无完整工作流调度、生产注册表或 Monitor。
 
 ## 先运行离线示例
 
@@ -208,9 +208,9 @@ python -m src.discover.discover_agent scan --mlflow
 
 ## 当前完成范围
 
-已实现 Discover 扫描、离线提取、可配置 LLM 提取、Pydantic 与证据校验、初步文档和风险状态、CLI 人工审核、版本校验及 Document 交接接口。尚未配置真实 LLM 服务或 MLflow 服务，在线调用通过模拟响应测试，后续需要联调。
+已实现 Discover 扫描、离线提取、可配置 LLM 提取、Pydantic 与证据校验、初步文档和风险状态、CLI 人工审核、版本校验及 Document 交接接口。本次无 API 演示未调用真实 LLM；模拟响应测试不作为真实服务联调证据。MLflow 为可选跟踪，不是演示必需项。
 
-Document 及 CLI 人工关卡 2 见下文。LangGraph、Streamlit 和后续 Redevelop / Validate 节点尚未接入。Discover 的 API 不依赖这些框架。基准预测、R 执行环境和真实数据下载另行准备。
+Document、Redevelop、Validate 和 CLI 审核均已实现。LangGraph / Streamlit 尚未接入。下方无 API 指南提供数据下载、R 参考导出和真实 Probit 重建路径。
 
 ## 测试
 
@@ -287,11 +287,11 @@ state = load_redevelop_input(Path("DOCUMENT_REVIEW.json"))
 
 调用审计记录阶段、提示词版本、模型、输入摘要、结果路径、尝试次数及服务返回的 token 用量；未返回用量或缓存命中时记录 null，不估算。MLflow 失败保留本地输出，并返回非零。
 
-共享键在 `src/workflow_state.py` 定义，后续 ir_path、generated_code_path、parity_result、metrics_path、report_path 初始为空。本版本没有执行模型训练或生成 Parity/Validate 的成功状态。
+共享键在 `src/workflow_state.py` 定义，各节点逐步填充代码、Parity、指标与报告路径。Document 本身不训练模型，也不宣称下游已经通过。
 
 ### 流程对照和验证
 
-完整差异与实现边界见 [流程对照记录](docs/flow_alignment.md)。当前审核通过 CLI 执行；LangGraph interrupt、Streamlit 表格审核、Redevelop、Validate 和 Monitor 尚未实现。真实 LLM / MLflow 服务仍需配置后联调。
+完整差异与实现边界见 [流程对照记录](docs/flow_alignment.md)。当前审核通过 CLI 执行，Redevelop / Validate 已实现；LangGraph interrupt、Streamlit 表格审核和 Monitor 尚未实现。本次演示没有真实 LLM 联调。
 
 ```bash
 python -m unittest -v
@@ -304,3 +304,33 @@ python -m unittest -v
 早期 document-v2 将每章与每个小窗口分别生成，再让所有陈述批次与所有窗口逐一核对；29 个窗口可能产生上百次生成和数百次自检。document-v3 保留源码切块用于定位，但按材料组调用，避免这类乘法膨胀。短模型约为六次章节生成加若干次批量自检，实际次数受输出长度、重试、缓存影响；默认总预算 30 次。
 
 如仍有旧进程运行，先在其终端 Ctrl+C，再使用新版本运行同一 generate 命令。修改源文件不会改变已启动进程的逻辑。旧运行的 sections.json 和 cache 保留，但新提示词/分组与旧缓存不同，不能假定新版本无成本续跑。
+
+
+## 无 API 的真实 Probit 演示与独立验证
+
+完整步骤、证据与边界见 [无 API 演示指南](docs/offline_demo.md)。本地界面是可导出的 HTML，不需要 Streamlit、API 或公网部署。
+
+```bash
+python -m scripts.download_gmsc
+# 安装 R 4.4+，从项目根目录执行；脚本缺包时从 CRAN 安装
+Rscript scripts/gmsc_probit_export.R
+python -m scripts.run_offline_demo
+python -m http.server 8765 --bind 127.0.0.1 --directory outputs/demo
+# 浏览器打开 http://127.0.0.1:8765
+```
+
+演示脚本中的关卡 1–3 记录明确标为 Codex 技术核对，不冒充团队成员本人签名。关卡 4 保持待审；人工团队应复核前三关。离线 Document 仅转录已有元数据；Redevelop 使用手写 IR、代码和测试，不宣称自动生成成功。真实 R 对照与性能结果见 [运行证据](docs/evidence/README.md)。
+
+独立 Validate 接收关卡 3 的批准快照并重新验证审批链与文件摘要。计算 AUC/Gini/KS、Brier、Log-loss、ECE/校准表、训练/留出 PSI 和探索性年龄分组 TPR/FPR；检查唯一 ID、切分隔离、IR 过滤后覆盖、原始标签一致性及有效概率。它不执行新生成的模型代码，也不调用 LLM。
+
+```bash
+python -m src.validate.validate_agent REDEVELOP_REVIEW.json
+python -m src.validate.validate_review VALIDATION_STATE.json \
+  --reviewer "Your name" --decision approve --notes "独立核对指标和报告" \
+  --resolution-notes "逐项说明未知项、适用范围及探索性分组指标的处置"
+python -m scripts.evidence_pack VALIDATION_STATE.json --output outputs/demo
+```
+
+每次 Validate 保存 metrics.json、report.md、report.html、state.json。规则失败进入 needs_attention，不能批准，需修复并重跑；规则通过进入 pending_validation_review。关卡 4 批准仅标记 validated_for_research，不等于银行投产批准。策略阈值在 [config/validation_policy.json](config/validation_policy.json)，为演示规则，需要团队事先确认，不能当作 SS1/23 的强制数值。
+
+本地原始数据、逐行预测、R 日志和审核身份均不纳入发布证据包。汇总 JSON / HTML 保留聚合指标与摘要。第三方镜像来源已记录，尚未与 Kaggle 官方下载做逐字节认证。训练/留出 PSI 不是时间漂移监控；年龄分组通过不代表全面公平或合规。

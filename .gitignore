@@ -19,3 +19,6 @@ artifacts/discover/*
 
 artifacts/document/
 !artifacts/discover/reviews/
+
+# Exported dashboards are reproducible; aggregate evidence lives in docs/evidence.
+outputs/

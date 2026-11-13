@@ -1,5 +1,7 @@
 # 与《Agent 系统处理流程详解.md》的实现对照
 
+> 2026-11-13 更新：下文早期缺口清单用于历史对照。Redevelop、Parity、关卡 3，以及确定性 Validate / CLI 关卡 4 现已实现。以 README 和 docs/offline_demo.md 的最新边界为准。真实无 API 证据采用手写 Probit 基准，未验证 LLM 自动生成、Monitor、全图恢复或生产注册表。
+
 本次检查覆盖现有 Discover / Document 及两个节点的交接。原流程文档作为设计基准保留；未编写的下游节点不以占位代码宣称完成。
 
 ## 已发现并修正的偏差
