@@ -1,0 +1,344 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-11-13T16:53:11.519351+00:00",
+  "model_id": "MODEL-9239165C4AE5",
+  "code_revision": "unavailable; see build manifest",
+  "stages": [
+    {
+      "name": "Discover",
+      "mode": "offline",
+      "status": "approved",
+      "sha256": "5fde8ca7dff8fab67ef7b140def93cf6f20df426e30c2178ea2940cf55d5911e"
+    },
+    {
+      "name": "Document",
+      "mode": "offline",
+      "status": "approved",
+      "sha256": "a3d5bf5af5a89baea8f457e17bedee5a47e287ad16f4f449ddf2169c69256b6c"
+    },
+    {
+      "name": "Redevelop",
+      "mode": "offline",
+      "status": "approved",
+      "sha256": "fe7de975ed3c8f8b179b509610f79e829a3a2a5e965e7de3761a5142cb9d135c"
+    },
+    {
+      "name": "Validate",
+      "mode": "deterministic_no_api",
+      "status": "pending_validation_review",
+      "sha256": "abefa214f63b35f06d8cec0336c153eb6e89d1fec4f7e5ab080fc00c929bed18"
+    }
+  ],
+  "artifacts": {
+    "ir_path": {
+      "sha256": "309ba7b55592f3ef08f36c96d84ceec1ed0348d9ae5fd0b752a49dd0e336c4df"
+    },
+    "generated_code_path": {
+      "sha256": "c1d59e5aeaa2664dfe083908b7bd157730c7dd8609ae0b76496376b3232f12a0"
+    },
+    "tests_path": {
+      "sha256": "990fe2c88208209cd7bbbd9a86053e102f091c11b061e60bd7af9a36dc529fb7"
+    },
+    "data_path": {
+      "sha256": "1bd46da486a5708c58c7b01a034fae2a13b327f6f7b62ea7ba4fe3b5824b24ac"
+    },
+    "train_ids_path": {
+      "sha256": "0e31cd6ad95b0e0ebf2d3d14d3350580cd7391389369d279a76c956199faa67f"
+    },
+    "holdout_predictions_path": {
+      "sha256": "5aa618b294535808e1ebe58a96174bf1d2302c3f00617bd07a397b42e836dc12"
+    },
+    "metrics_path": {
+      "sha256": "f9606779f3af9e50f195274e4a1dd00770f3eb5f2606b9d2cb5247e2d1acc86d"
+    },
+    "report_path": {
+      "sha256": "0d2b23736945bb90e1597b33e6c59ee6f5af7c9820a8c4e5d6d16605687425b0"
+    }
+  },
+  "mode": "NO API — hand-written baseline rebuild; no LLM-generated code claim",
+  "parity": {
+    "round": 1,
+    "time": "2026-11-13T16:49:00.075772+00:00",
+    "tier": "reestimation",
+    "passed": true,
+    "metrics": {
+      "rows": 33607,
+      "max_abs_diff": 3.452793606584237e-14,
+      "mean_abs_diff": 4.472933252019459e-15,
+      "spearman": 1.0,
+      "auc_reference": 0.8230755750316715,
+      "auc_candidate": 0.8230755750316715,
+      "ks_reference": 0.4919276427046477,
+      "ks_candidate": 0.4919276427046477,
+      "auc_diff": 0.0,
+      "ks_diff": 0.0,
+      "coef_max_abs_diff": 4.5075054799781356e-14
+    },
+    "checks": [
+      {
+        "metric": "auc_diff",
+        "value": 0.0,
+        "op": "<=",
+        "limit": 0.005,
+        "passed": true
+      },
+      {
+        "metric": "ks_diff",
+        "value": 0.0,
+        "op": "<=",
+        "limit": 0.01,
+        "passed": true
+      },
+      {
+        "metric": "spearman",
+        "value": 1.0,
+        "op": ">=",
+        "limit": 0.99,
+        "passed": true
+      },
+      {
+        "metric": "coef_max_abs_diff",
+        "value": 4.5075054799781356e-14,
+        "op": "<=",
+        "limit": 1e-06,
+        "passed": true
+      }
+    ],
+    "row_counts": {
+      "filtered_rows": 112021,
+      "train_rows": 78414,
+      "holdout_rows": 33607
+    },
+    "code_sha256": "5ff52eb03355b4b209185a7d10c578e5d89ef4d476a9f725c3755cc9cf715517"
+  },
+  "validation": {
+    "schema_version": "1",
+    "model_id": "MODEL-9239165C4AE5",
+    "generated_at": "2026-11-13T16:49:00.092936+00:00",
+    "mode": "deterministic_no_api",
+    "policy": {
+      "version": "hackathon-v1",
+      "description": "Illustrative research thresholds; team review required. Not bank approval or regulatory certification.",
+      "min_auc": 0.65,
+      "min_ks": 0.2,
+      "max_ece": 0.1,
+      "max_feature_psi": 0.25,
+      "decision_threshold": 0.5,
+      "min_group_size": 100,
+      "min_group_class_size": 20,
+      "max_tpr_gap": 0.2,
+      "fairness_column": "age",
+      "fairness_split": 40
+    },
+    "upstream_review_sha256": "fe7de975ed3c8f8b179b509610f79e829a3a2a5e965e7de3761a5142cb9d135c",
+    "metrics": {
+      "rows": 33607,
+      "events": 1935,
+      "event_rate": 0.057577290445442915,
+      "auc": 0.8230755750316715,
+      "gini": 0.646151150063343,
+      "ks": 0.4919276427046477,
+      "brier": 0.046418904255505516,
+      "constant_rate_brier": 0.05426214607040402,
+      "log_loss": 0.1762100803328448,
+      "ece": 0.00537736756992752,
+      "calibration": [
+        {
+          "bin": 0,
+          "count": 28802,
+          "mean_probability": 0.03070694947295414,
+          "observed_rate": 0.028921602666481493
+        },
+        {
+          "bin": 1,
+          "count": 3134,
+          "mean_probability": 0.13321826063312658,
+          "observed_rate": 0.1419910657306956
+        },
+        {
+          "bin": 2,
+          "count": 682,
+          "mean_probability": 0.24323853038182616,
+          "observed_rate": 0.2785923753665689
+        },
+        {
+          "bin": 3,
+          "count": 378,
+          "mean_probability": 0.344579925132966,
+          "observed_rate": 0.3862433862433862
+        },
+        {
+          "bin": 4,
+          "count": 214,
+          "mean_probability": 0.447099498513764,
+          "observed_rate": 0.4766355140186916
+        },
+        {
+          "bin": 5,
+          "count": 144,
+          "mean_probability": 0.5494426038109128,
+          "observed_rate": 0.5486111111111112
+        },
+        {
+          "bin": 6,
+          "count": 84,
+          "mean_probability": 0.649108018708195,
+          "observed_rate": 0.44047619047619047
+        },
+        {
+          "bin": 7,
+          "count": 73,
+          "mean_probability": 0.7507500055907932,
+          "observed_rate": 0.6027397260273972
+        },
+        {
+          "bin": 8,
+          "count": 53,
+          "mean_probability": 0.8498454326566333,
+          "observed_rate": 0.6226415094339622
+        },
+        {
+          "bin": 9,
+          "count": 43,
+          "mean_probability": 0.9564994713993163,
+          "observed_rate": 0.6046511627906976
+        }
+      ]
+    },
+    "train_holdout_psi": {
+      "RevolvingUtilizationOfUnsecuredLines": 0.00025658051723270855,
+      "NumberOfTime30-59DaysPastDueNotWorse": 8.618356100693448e-05,
+      "NumberOfTime60-89DaysPastDueNotWorse": 7.202620886576863e-06,
+      "NumberOfTimes90DaysLate": 7.202620886576863e-06,
+      "age": 0.00033436859842200393
+    },
+    "groups": [
+      {
+        "group": "age < 40",
+        "rows": 7331,
+        "events": 627,
+        "sufficient": true,
+        "selection_rate": 0.019369799481653252,
+        "tpr": 0.12440191387559808,
+        "fpr": 0.00954653937947494
+      },
+      {
+        "group": "age >= 40",
+        "rows": 26276,
+        "events": 1308,
+        "sufficient": true,
+        "selection_rate": 0.009704673466281018,
+        "tpr": 0.10779816513761468,
+        "fpr": 0.004565844280679269
+      }
+    ],
+    "findings": [
+      {
+        "check": "holdout_auc",
+        "result": "pass",
+        "severity": "high",
+        "value": 0.8230755750316715,
+        "limit": 0.65
+      },
+      {
+        "check": "holdout_ks",
+        "result": "pass",
+        "severity": "high",
+        "value": 0.4919276427046477,
+        "limit": 0.2
+      },
+      {
+        "check": "calibration_ece",
+        "result": "pass",
+        "severity": "medium",
+        "value": 0.00537736756992752,
+        "limit": 0.1
+      },
+      {
+        "check": "train_holdout_psi:RevolvingUtilizationOfUnsecuredLines",
+        "result": "pass",
+        "severity": "medium",
+        "value": 0.00025658051723270855,
+        "limit": 0.25
+      },
+      {
+        "check": "train_holdout_psi:NumberOfTime30-59DaysPastDueNotWorse",
+        "result": "pass",
+        "severity": "medium",
+        "value": 8.618356100693448e-05,
+        "limit": 0.25
+      },
+      {
+        "check": "train_holdout_psi:NumberOfTime60-89DaysPastDueNotWorse",
+        "result": "pass",
+        "severity": "medium",
+        "value": 7.202620886576863e-06,
+        "limit": 0.25
+      },
+      {
+        "check": "train_holdout_psi:NumberOfTimes90DaysLate",
+        "result": "pass",
+        "severity": "medium",
+        "value": 7.202620886576863e-06,
+        "limit": 0.25
+      },
+      {
+        "check": "train_holdout_psi:age",
+        "result": "pass",
+        "severity": "medium",
+        "value": 0.00033436859842200393,
+        "limit": 0.25
+      },
+      {
+        "check": "age_group_tpr_gap",
+        "result": "pass",
+        "severity": "medium",
+        "value": 0.016603748737983398,
+        "limit": 0.2
+      }
+    ],
+    "unknowns": [
+      "Business scope, representativeness and policy thresholds require human confirmation.",
+      "Train/holdout PSI is sample comparison, not temporal drift monitoring.",
+      "Group rates are exploratory; decision threshold is illustrative, not a lending policy.",
+      "Coverage matches IR filters; appropriateness of those exclusions requires review.",
+      "No production data, external validation or regulatory compliance certification.",
+      "Legacy preprocessing may fit imputation before the split; independently review leakage."
+    ],
+    "train_rows": 78414,
+    "raw_rows": 150000,
+    "status": "pending_validation_review"
+  },
+  "gate4": "pending; not automatically approved",
+  "review_provenance": "Gates 1–3 are Codex technical checks in this demo, not team human signatures. All human sign-off remains pending.",
+  "data_origin": "Public third-party GMSC mirror; original Kaggle bytes not independently authenticated",
+  "source_files_sha256": {
+    "src/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/discover/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/discover/discover_agent.py": "75d6439ff3944ce893edd7b04f7d49cdf71d964f9dcab487796c6e50d85c7518",
+    "src/discover/discover_review.py": "bda98574e16a5859c210f2d8b13f9f0bb7c0ba157861d4b3a1bf1da8e9f6b217",
+    "src/document/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/document/document_agent.py": "6f6c65606877423b9b45e417912d0767cef48ab8dff1a2173c599bbc94f48b5c",
+    "src/document/document_review.py": "17a1ff528ca17893a3d4386033d7e20d23d0c17e7359b285650dae3576ad70a0",
+    "src/document/document_sources.py": "7c35789eb680d5644ec0111197f896506d10d344fa00973a2c48ed97820c57d5",
+    "src/redevelop/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/redevelop/baselines/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/redevelop/baselines/gmsc_probit.py": "c1d59e5aeaa2664dfe083908b7bd157730c7dd8609ae0b76496376b3232f12a0",
+    "src/redevelop/baselines/gmsc_probit_ir.json": "24fa921d7ea9332efb772c70a66433ca253ad5ab5acb93ec1486eb6832d0688e",
+    "src/redevelop/baselines/gmsc_probit_test.py": "990fe2c88208209cd7bbbd9a86053e102f091c11b061e60bd7af9a36dc529fb7",
+    "src/redevelop/parity.py": "73f26594d0f84ef9258b09f522d6bda8476febcf09361d4690f5ece1c42151db",
+    "src/redevelop/redevelop_agent.py": "6df8e22dbd6901f26b1a3931cd18f56b2e962a335db701e570d9c73599c26f88",
+    "src/redevelop/redevelop_review.py": "20d20ce5c146e3563745d1abb82facfe4e595b4f2ebca8728fc6ef38f9e59022",
+    "src/validate/__init__.py": "b9c964bebeacdfae73e3e66ef47b546b8cebdf43d0c06598aaa19d79d802ae5c",
+    "src/validate/validate_agent.py": "8738d801235e90f3661a2a88897e27fb6b8c9664ef725cfd32b7e08752695393",
+    "src/validate/validate_review.py": "092413d478848a91d4aef0c9dac3d0517544066f3bfc0f01c480f70854325f31",
+    "src/workflow_state.py": "49796410ff3e1f8bf027ebe90c38fcc223c9c20aa37c264e762a011cecdbe1f1",
+    "scripts/__init__.py": "4947c7d725048cc5b7d990f8ce540bf03f63b6df57ce37e5c0a1f5290862a6ff",
+    "scripts/download_gmsc.py": "7dcf63758a0d688dbfd326e7bf4c2d44737cb4b664d2ffd8f9380c8bb905c88d",
+    "scripts/evidence_pack.py": "99322bf09c5df8bc3e4475ad9f59396e80a3dc0921f2a92c37fe92e6f26fda33",
+    "scripts/gmsc_lightgbm_export.R": "05730e2f4bfb070299d788e0d15122d31cb23075fe8e6f56f693e9ec725fbe18",
+    "scripts/gmsc_probit_export.R": "9a81b7b963530d7f4da95d23d903ce90f394e2de5e1c724c382ec407c27ee437",
+    "scripts/run_offline_demo.py": "4843837bc130594a74d7a2cac6995e7d8264002109b7649b57736daa03123725",
+    "config/validation_policy.json": "3220450bca1620651c0bea470623223c4efe0bbf58f4ea63643f0727aeec94a0"
+  }
+}
