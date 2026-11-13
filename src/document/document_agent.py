@@ -105,9 +105,6 @@ def request_json(model, instruction, payload, validate, caller, log, cache_dir=N
             raise
         except (ValueError, KeyError, TypeError, IndexError, urllib.error.URLError, TimeoutError) as error:
             details["elapsed_seconds"] = round(time.monotonic() - started, 3)
-            log(attempt, type(error).__name__, details)
-            if attempt == 3:
-                raise ValueError("Document LLM stage failed after three attempts") from None
             if isinstance(error, ValidationError):
                 feedback = json.dumps(error.errors(include_input=False, include_url=False,
                                                     include_context=False), ensure_ascii=False)
@@ -115,6 +112,10 @@ def request_json(model, instruction, payload, validate, caller, log, cache_dir=N
                 feedback = "Transient provider/network failure: " + type(error).__name__
             else:
                 feedback = str(error) if isinstance(error, ValueError) else type(error).__name__
+            # The same text the LLM is told, so failed stages can be diagnosed from the audit log.
+            log(attempt, type(error).__name__, {**details, "error_summary": feedback[:500]})
+            if attempt == 3:
+                raise ValueError("Document LLM stage failed after three attempts") from None
             messages.append({"role": "user", "content":
                              "Regenerate complete valid JSON. Validation error: " + feedback[:2000]})
             time.sleep(0.2 * 2 ** (attempt - 1))

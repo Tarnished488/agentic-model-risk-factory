@@ -66,6 +66,19 @@ class DiscoverTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'quote mismatch'):
             validate_evidence(metadata, [source])
 
+    def test_quotes_ignore_decorative_punctuation_but_not_wording(self):
+        # The German XGBoost notebook's comments use box drawing and em dashes, which LLMs re-type as "-".
+        line = '    # ── Impute missing values ─── "unknown" is valid — no account'
+        source = Source(source_id='n.ipynb#cell=33', path='n.ipynb', kind='code', sha256='abc', text='x\n' + line)
+
+        def check(quote):
+            validate_evidence(Metadata(algorithm='XGBoost', evidence={'algorithm': [
+                Evidence(source_id='n.ipynb#cell=33', line_start=2, line_end=2, quote=quote)]}), [source])
+        check('# -- Impute missing values --- "unknown" is valid - no account')
+        check('Impute  missing values')
+        with self.assertRaisesRegex(ValueError, r'lines 2-2\. The quote must be text copied verbatim'):
+            check('Impute absent values')
+
     def test_llm_retries_invalid_json_and_hallucinated_source(self):
         source = Source(source_id='x.R', path='x.R', kind='code', sha256='abc', text='library(lightgbm)')
         bad = Metadata(algorithm='LightGBM', evidence={'algorithm': [

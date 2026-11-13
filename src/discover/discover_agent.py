@@ -243,6 +243,25 @@ def offline_metadata(sources: list[Source]) -> Metadata:
     return result
 
 
+# Decorative punctuation LLMs rewrite when quoting: box drawing, dashes, minus, curly quotes, no-break space.
+_QUOTE_FOLD = {**{c: "-" for c in range(0x2500, 0x2580)}, **{c: "-" for c in range(0x2010, 0x2016)},
+               0x2212: "-", 0x2018: "'", 0x2019: "'", 0x201C: '"', 0x201D: '"', 0x00A0: " "}
+
+
+def normalise_quote(text: str) -> str:
+    """Fold decorative punctuation and whitespace runs; words, numbers and code still compare exactly."""
+    return " ".join(text.translate(_QUOTE_FOLD).split())
+
+
+def quote_matches(quote: str, excerpt: str) -> bool:
+    return normalise_quote(quote) in normalise_quote(excerpt)
+
+
+def quote_mismatch(source_id: str, start: int, end: int) -> str:
+    return (f"Evidence quote mismatch: {source_id} lines {start}-{end}. The quote must be text copied verbatim from "
+            "those lines; quote a shorter exact fragment rather than paraphrasing")
+
+
 def validate_evidence(metadata: Metadata, sources: list[Source]) -> None:
     by_id = {source.source_id: source for source in sources}
     values = metadata.model_dump()
@@ -262,8 +281,8 @@ def validate_evidence(metadata: Metadata, sources: list[Source]) -> None:
             if item.line_end > len(lines):
                 raise ValueError(f"Evidence outside source: {item.source_id}")
             excerpt = "\n".join(lines[item.line_start - 1:item.line_end])
-            if item.quote not in excerpt:
-                raise ValueError(f"Evidence quote mismatch: {item.source_id}")
+            if not quote_matches(item.quote, excerpt):
+                raise ValueError(quote_mismatch(item.source_id, item.line_start, item.line_end))
     if metadata.doc_status in {"current", "outdated"} and not metadata.evidence.get("doc_status"):
         raise ValueError("Document assessment requires source evidence")
 

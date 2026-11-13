@@ -23,7 +23,7 @@ from pydantic import Field
 
 from src.discover.discover_agent import (
     MAX_LLM_CHARACTERS, Evidence, Record, StrictModel, atomic_json, audit, call_llm, digest, file_sha256,
-    llm_error_summary, now,
+    llm_error_summary, now, quote_matches, quote_mismatch,
 )
 from src.redevelop.parity import compare, load_coefficients, load_predictions, record_round
 
@@ -117,9 +117,8 @@ def check_ir(ir: IR, sources: dict[str, str], model_id: str) -> None:
             lines = sources[evidence.source_id].splitlines()
             if evidence.line_end > len(lines):
                 raise CheckError(f"Evidence outside source: {evidence.source_id}")
-            if evidence.quote not in "\n".join(lines[evidence.line_start - 1:evidence.line_end]):
-                raise CheckError(f"Evidence quote mismatch: {evidence.source_id} lines "
-                                 f"{evidence.line_start}-{evidence.line_end}")
+            if not quote_matches(evidence.quote, "\n".join(lines[evidence.line_start - 1:evidence.line_end])):
+                raise CheckError(quote_mismatch(evidence.source_id, evidence.line_start, evidence.line_end))
 
 
 def ir_differences(ir: IR, baseline: IR) -> list[str]:
