@@ -1,0 +1,248 @@
+{
+  "approval": {
+    "reviewer": "Discover reviewer",
+    "decision": "approve",
+    "notes": "Verified against the source. Target SeriousDlqin2yrs is wrongly listed under inputs; final model uses 5 predictors. Training stages should be one final probit fit plus an exploratory full-variable GLM for variable importance; thresholds and ROC are evaluation, not training. Risk tier \"low\" accepted for this research exercise only.",
+    "time": "2026-11-13T16:23:00.641408+00:00",
+    "record_sha256": "cc0dfe2a0d4933a33cdf9a64dba8c32d71bcc37fa602c97a035217fe5a7a549b",
+    "run_id": "d8c0f101-8e20-409a-b400-5913d1a4cd7d"
+  },
+  "inventory_record": {
+    "model_id": "MODEL-9239165C4AE5",
+    "group": "gmsc_probit",
+    "source_files": [
+      {
+        "path": "gmsc_probit/DATA_README.md",
+        "sha256": "74e725edb8f385ae23f8610a4b5a332ae790cef65bbd6ac724dc45ae630e5459",
+        "size_bytes": 906,
+        "modified_at": "2026-11-13T15:37:49.205239+00:00"
+      },
+      {
+        "path": "gmsc_probit/original.Rmd",
+        "sha256": "17fbd857fa04ecbed7d8abf740bc6ae7763a2cb66ae15b17c48ac7a46629747b",
+        "size_bytes": 25023,
+        "modified_at": "2026-11-13T15:37:49.209588+00:00"
+      },
+      {
+        "path": "gmsc_probit/source.json",
+        "sha256": "273d2201cd7b718e49dc1e8e7d97a1095109757222d05a72081b417ecda5c93c",
+        "size_bytes": 615,
+        "modified_at": "2026-11-13T15:37:49.216545+00:00"
+      }
+    ],
+    "sources": [
+      {
+        "source_id": "gmsc_probit/DATA_README.md",
+        "path": "gmsc_probit/DATA_README.md",
+        "kind": "document",
+        "sha256": "74e725edb8f385ae23f8610a4b5a332ae790cef65bbd6ac724dc45ae630e5459",
+        "text": "# Give Me Some Credit input (probit GLM)\n\nThis example contains the original R Markdown script and its provenance. It uses the same competition data as gmsc_lightgbm: download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page under its applicable terms. Keep borrower-level data local. Discover reads CSV headers only and does not run R or train models. The script refers to /kaggle/input/GiveMeSomeCredit paths, which must be adapted when later running it locally.\n\nThe script renames columns, filters records (age > 0, 90-day lateness codes 96/98, DebtRatio > 1, utilisation > 1), imputes Dependents with 0 and MonthlyIncome with the median, draws a 70/30 split with set.seed(123), and fits one probit GLM on five variables. No trained model file or reference predictions have been supplied. Business owner, operational scope and approved model risk tier remain unconfirmed.\n",
+        "language_hint": null
+      },
+      {
+        "source_id": "gmsc_probit/original.Rmd",
+        "path": "gmsc_probit/original.Rmd",
+        "kind": "code",
+        "sha256": "17fbd857fa04ecbed7d8abf740bc6ae7763a2cb66ae15b17c48ac7a46629747b",
+        "text": "---\ntitle: \"Credit Risk Modelling\"\nsubtitle: | \n    \n    \"Analysing credit risk by modelling the probability of default using logistic regression in R\"\\linebreak\\linebreak\\linebreak\n    \n    \n    \\linebreak\\linebreak\\linebreak   \n    \n    \nauthor: \"by Sunnyboy Ngobeni\"\ndate: \"Dated: December 2025- January 2026\"\ntags: [\"Credit Risk\", \"Banking\", \"Lending\", \"Probability of Default\", \"Logistic Regression\", \"R\"]\nabstract: |\n    \n    When a customer applies for a loan, banks and other credit providers use statistical models to determine whether or not to grant the loan based on the likelihood of default. The factors involved in determining this likelihood are very complex, and extensive statistical analysis and modelling are required to predict the outcome for each individual case.\n    \n    This project uses logistic regression in R to calculate the probability of default for each individual applicant and assigns an outcome (1=default, 0=no default) based on these likelihoods and a chosen cut-off probability.\n    \n    Tags: `r paste(rmarkdown::metadata$tags, collapse=\" , \")`\ntheme: united\nlayout: post\noutput:\n  html_document:\n    toc: true\n    toc_collapsed: false\ndocumentclass: report\ngeometry: \"left=1.5cm,right=1.5cm,top=2cm,bottom=2cm\"\n---\n\n```{r setup, include=FALSE}\noptions(width = 700)\nknitr::opts_chunk$set(warning = FALSE, message = FALSE, out.width = \"100%\", retina = 1)\n```\n\n\n> Please `Upvote` 👍 if you like my work and/or find it interesting. Thanks 😃✌️🙏\n\n\\newpage\n\n```{r, include=FALSE}\n#header-includes:\n  #- \\usepackage{fvextra}\n  #- \\usepackage{pdflandscape}\n  #- \\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\\\\{\\}}\n  #the above is for changing the orientation of the pdf output to landscape for printing long df's or outputs\nlibrary(readxl) #4 importing .xls files\nlibrary(readr) #4 importing .csv files\nlibrary(ggplot2) #4 2d plots\nlibrary(dplyr) #4 data manipulation\nlibrary(tidyr) #4 data cleaning??\nlibrary(corrplot) #4 correlation test and plotting\nlibrary(knitr) #4 visualising tables and knitting documents\nlibrary(caret) #4 \nlibrary(pROC) #4 performance analytics i.e roc curve\n```\n\n```{r,include=FALSE}\n#Risk <- read_delim(\"Risk.csv\", delim = \";\", escape_double = FALSE, trim_ws = TRUE)\ndictionary<-read_excel(\"/kaggle/input/GiveMeSomeCredit/Data Dictionary.xls\")\ndf_test<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-test.csv\")\ndf_train<-read_csv(\"/kaggle/input/GiveMeSomeCredit/cs-training.csv\")\nsample<-read_csv(\"/kaggle/input/GiveMeSomeCredit/sampleEntry.csv\")\n```\n\n# Introduction to the project\n\nThe objective of this project is to carry out credit risk analysis/modelling for credit finance using the dataset obtained [here](https://www.kaggle.com/competitions/GiveMeSomeCredit/data).\n\n**The train dataset has an observed default indicator with 1 indicating default of more than 90 days in the last 2 years and 0 indicating lack of such default. The test dataset has no observed default indicator, in fact that is what we are trying to determine**. Performance metrics require comparison\\* between the true value/outcome vs the predicted value/outcome.\n\nTo allow for performance metrics to be evaluated, the *train dataset* will be treated as past loan application data and then used to build/train & test the model, whilst the *test dataset* will be used as a new/current data to see how the model will perform on a new set of data for current/future applicants.\n\n## Objective\n\nThe Probability of default is a serious concept in credit risk assessment and it determines whether or not an applicant will be approved for credit. This project aims to build and implement a model that predicts loan repayment or default based on the data provided, and to determine the best model to predict whether a loan applicant will fully repay or default on the loan.\n\n## Approach to the objective\n\nThe approach entails building a machine learning model that returns the loan id, the probability of default, and default status label that indicates whether the loan will (likely) be paid or defaulted based on the estimated probability of default and an acceptable probability cut-off.\n\n## Overview of dataset and Data cleaning\n\n```{r, include=FALSE,out.width=c('50%','50%'),fig.show='hold'}\ndf_train<-rename(df_train,c(Applicant=\"...1\",defaulted=\"SeriousDlqin2yrs\",'unsecured.credit'=RevolvingUtilizationOfUnsecuredLines,age=age,'<2months Deliquency'=`NumberOfTime30-59DaysPastDueNotWorse`,DebtRatio=DebtRatio,MonthlyIncome=MonthlyIncome,openCredit=NumberOfOpenCreditLinesAndLoans,'3MonthsDefault'=NumberOfTimes90DaysLate,RealEstateLoans=NumberRealEstateLoansOrLines,'<3months Deliquency'=`NumberOfTime60-89DaysPastDueNotWorse`,Dependents=NumberOfDependents)) #from dplyr package, use to rename columns\n\ncolnames(df_test)<-colnames(df_train) #rename the given test dataset using the same name as the given train dataset.\nstr(df_train) #no. of columns and rows.\nnrow(unique(df_train)) #checks for duplicates\n#'[df_train<-unique(df_train)  #removes duplicates\ncolSums(is.na(df_train)) #checks for NAs per column\nnrow(unique(df_test)) #checks for duplicates\ncolSums(is.na(df_test)) #checks for NAs per column\n```\n\nThe given data consists of a test dataset with 101,503 observations, while the train data consist of 150,000 observations. Both train and test data has 12 numeric variables. Assuming the observations represents a unique set of applicants, and information about their age, number of dependents, monthly income, as well as additional information relating to their past and present credit utilisation is given in the dataset. The train dataset has 29,731 missing values from the Monthly income variable and 3,924 missing values from the Number of dependents variable, and the test data has 20,103 missing values in monthly income and 2,626 missing values in number of dependents. No duplicates are present in both datasets, which is to be expected since a person can only apply for one form of credit at a time.\n\nThe output below shows the first five rows of the dataset and the column names:\n\n```{r,echo=FALSE,out.width=c('50%','50%'),fig.show='hold',,out.extra='style=\"float:right;position:relative,top:-10px\"'}\nrmarkdown::paged_table(head(df_train,5))\n  # Kable_styling(latex_options=\"scale_down\") OR\n  # kable_styling(full_width=FALSE)%>%\n  # column_spec(1,width=\"3cm\")%>%\n  # column_spec(2,width=\"5cm\")\n#The above commented out code scales down the kable output so it doesn't extend outside the page or makes column names overlap, can't seem to make it work yet.\n```\n\n# Methods and algorithms\n\nThe analysis and modelling will be carried out by preparing the dataset, followed by data exploration. As part of the data preparation we'll split the train dataset into train-test data using a 70/30 split .Then we will build a machine learning algorithm using logistic regression to calculate the probability of default (PoD) for each applicant. Default will be indicated by 0 (for good customers/applicants) and 1 (for bad customers), where the bad applicants are those that have previously defaulted in their credit(s) for more than 90 days in the last 2 years. *Once the model is built, tests of discrimination and calibration will be carried out as a means to test the performance of the model.* Then the test dataset will be used as a new data to approve or decline clients. \n\n# Project analysis\n\n## Data exploration and analysis\n\nThe summary statistics of the train dataset is provided below:\n\n```{r,echo=FALSE,paged.print=TRUE,out.width='60%'}\noptions(scipen = 999)\nkable(summary(df_train))\nrmarkdown::paged_table(df_train) #a pageable df in html, doesnt work 4 pdf.\ndf_train<-df_train|>filter(age>0)\n```\n\n-   There minimum age is zero, which does not make any logical sense. After removing the observation with age zero, the minimum age of the applicants becomes 21.\n\n-   The unsecured credit variable which represents the percentage of credit utilized seems to have values which are above 1, which doesn't make sense since a person can not exceed their credit limit. All values above 1 will be treated as typo's and will be removed.\n\n-   There is also a large number of individuals who have been 30-59 days past due 96 or 98 number of times in the last 2 years, this does not seem reasonable as someone like that would not have paid their loans on time in the past 2 years. In fact, these individuals have the same values for the 60-89 days past due and the 90 or more days past due. This could be a typo or some sort of code. See the output below as an example of what the data of these individuals looks like:\n\n```{r,echo=FALSE,out.width=c('50%','50%'),fig.show='hold'}\nkable(head(df_train[,c(1,5,9,11)]%>%filter(`<2months Deliquency`==96),5))\nkable(head(df_train[,c(1,5,9,11)]%>%filter(`<2months Deliquency`==98),5))\n```\n\nThis values will also be removed. (This appears in both the train and test dataset).\n\n-   There are debt to income ratios that a way more than one, in fact, some even go as far as 329,000. Since debt to income ratio is a percentage of income, and since individuals with debt that far surpasses their income are less likely to be considered for loans, observations with debt to income ratio greater than 1 will also be removed.\n\n-   There are people with more than 50 (current) open credit. Though this also does not make sense, we shall leave them in the dataset for now.\n\nThe revised summary statistics after the above mention changes is as follows:\n\n```{r,echo=FALSE,out.width=c('50%','50%'),fig.show='hold'}\ndf_train<-df_train%>%filter(`3MonthsDefault`<'96',DebtRatio<=1,unsecured.credit<=1)\ndf_test<-df_test%>%filter(`3MonthsDefault`<'96',DebtRatio<=1,unsecured.credit<=1)\n\nkable(summary(df_train))\n```\n\n-   After the above changes, the train data has 112,021 rows and the test data has 76,024 rows/observations.\n\n\n```{r,echo=FALSE,fig.show='hold'}\npar(mfrow=c(1,2))  #allows me to plot 2 plots side by side. 1 row, 2 columns.\n\npal<-c(\"coral2\",\"mediumpurple\",\"goldenrod\",\"magenta\",\"cyan\",\"yellow\",\"orange\",\"green\",rep(\"gray85\",length(df_train$age)-8))\n\nH1<-hist(df_train$age,main=\"train dataset: Distribution of age\",xlab=\"Age\",freq = FALSE,plot=FALSE)\n\nH2<-hist(df_train$unsecured.credit,xlab=\"Utilization Of Unsecured credit\",main=\"Distribution of unsecured credit utilization\",ylab=\"No. of borrowers\",plot=FALSE)\n\npal2<-rainbow(length(H1$counts))\npal3<-heat.colors(length(H2$counts))\nhist(df_train$age,main=\"Distribution of age\",xlab=\"Age\",freq = FALSE,col=pal2)\nlines(density(df_train$age),col=\"red\")\nhist(df_train$unsecured.credit,xlab=\"Utilization Of Unsecured credit\",main=\"Unsecured credit utilization\",ylab=\"No. of borrowers\",col=pal3)\n```\n\n-   The ages of the applicants/borrowers is (approximately) normally distributed.\n\n-   There is a considerably large number of applicants with a large balance on their credit cards. But more applicants don't make use of revolving credit.\n\n- Defaults of 2 months or less are given below and the debt to income distribution.\n\n```{r,echo=FALSE,fig.show='hold',out.width='60%'}\nkable(table(count=df_train$`<2months Deliquency`))\nhist(df_train$DebtRatio,xlab=\"Debt to income ratio\",main=\"Distribution of debt to income ratio\",col=pal3)\n```\n\n-   Roughly 80% of the applicants have not defaulted on their loans for more than 2 months, and the majority of the applicants have a very low debt to income ratio (which is good). Also, there are very few people, less than 1%, who have a deliquency of more than 10 in a 2months period.\n\n-   Excluding those who don't utilise debt, debt to income ratio is rightly skewed.\n\n```{r,include=FALSE}\nnrow(df_train%>%filter(MonthlyIncome>50000))\n```\n\n-   The distribution of income is skewed to the right with over 297 individuals, having income above 50,000 and the rest having income below 50,000. The distribution of individuals whose monthly income is below 50,000 is given below.\n\n```{r,echo=FALSE}\ns.income<-df_train%>%filter(MonthlyIncome<50000)\nhist(s.income$MonthlyIncome,breaks=50,col=pal2,main=\"Distribution of Monthly income <50K\",xlab=\"Monthly Income\")\n```\n\n-   It seems most of the observations in the dataset have a monthly income of less than 10,000. The distributions of the other income earners are also given below for comparison.\n\n```{r,echo=FALSE,fig.show='hold'}\npar(mfrow=c(1,2))\nm.income<-df_train%>%filter(MonthlyIncome>=50000&MonthlyIncome<=200000)\nhist(m.income$MonthlyIncome,breaks=50,col=pal2,main=\"Monthly income >=50K and <=200K\",xlab=\"Monthly Income\")\nl.income<-df_train%>%filter(MonthlyIncome>200000)\nhist(l.income$MonthlyIncome,breaks=50,col=pal3,main=\"Monthly income >200K\",xlab=\"Monthly Income\")\n```\n\n```{r,echo=FALSE,fig.show='hold'}\n\npar(mfrow=c(1,2))\n\ndf_train%>%filter(defaulted==1)%>%group_by(age)%>%summarise(Total.defaults=n())%>%\n  ggplot(aes(x=age,y=Total.defaults,color=age))+geom_point()+\n  labs(title=\"Total defaults on loans by age\")+\n  scale_color_viridis_c()\n\ndf_train%>%filter(defaulted==0)%>%group_by(age)%>%summarise(Total.defaults=n())%>%\n  ggplot(aes(x=age,y=Total.defaults,color=age))+geom_point()+\n  labs(title=\"Total non-defaults on loans by age\")\n```\n\n-   More people (\\>50) between the ages of 24 and 67 default on their loans. Most of the non-defaults are also found around the same age range.\n\n```{r,echo=FALSE,out.width='60%'}\nboxplot(df_train$Dependents,ylab=\"number of dependents\",col=pal3)\n```\n\nSome applicants clearly have an unreasonable number of dependents (these are most likely outliers, if not errors).\n\nThe Summary statistics of applicants who have defaulted for more than 90 days in the past 2 years for the train dataset are given below:\n\n```{r,echo=FALSE,out.width='60%'}\nkable(summary(df_train[,2:12]%>%filter(defaulted==1)))\n```\n\n### Variable Selection\n\n```{r, echo=FALSE,out.width='75%'}\nmydata<-df_train[,2:12] #only using colums 2 to 12\ncorrelation<-select_if(mydata,is.numeric)%>%cor()\ncorrplot(correlation,type='upper',method=\"pie\")\n```\n\nFrom the correlation matrix above, we note the following variables correlated to:\n\n(1) past defaults: unsecured credit (+), past due times (+).\n\n(2) unsecured credit: age(-), past default times (+).\n\n(3) Debt to income ratio: open credit (+), and Real estate loans (+).\n\n(4) Past due times are positively (+) correlated with each other.\n\n```{r,echo=FALSE,out.width='75%'}\nlogist<-glm(defaulted~.,data=mydata, family=binomial (link=probit))\nvarimp<-varImp(logist)\n\nvarimp[\"variable\"]<-rownames(varimp)\nvarimp$variable<-factor(varimp$variable,levels = varimp$variable[order(varimp$Overall)])\nvarimp<-varimp%>%mutate(prop=Overall/sum(Overall)*100)%>%arrange(desc(prop))\n\npal<-c(\"coral2\",\"mediumpurple\",\"goldenrod\",rep(\"blue1\",length(varimp$prop)-3))\nggplot(varimp,aes(x=variable,y=Overall,))+\n  labs(title=\"variable importance (overall and proportions)\")+\n  geom_bar(stat=\"identity\",fill=pal)+\n  geom_text(aes(label=round(prop,2)))+ #adds the proportions label to plot\n  coord_flip()+ #flips the coordinates and makes the bar horizontal rather than vertical\n  theme_minimal()\n```\n\n-   As we can see from the feature importance above, the variables up until age contributes more than 87% of the results/accuracy (including age) and 79% of the results/accuracy (excluding age).\n-   That's only 4 or 5 variables.\n\n## Data preparation\n\nFor the purpose of the model building, all NA's for the number of dependents will be replaced by 0. This, in essence,assumes that all the applicants have no dependents (this is more of a best-estimate assumption rather than a prudent one. Though any other assumption probably wouldn't make any significant difference since no. of dependents is not a very significant predictor of default as seen above). For the monthly income, the NA's will be replaced by the median income of all applicants since anyone with a zero income would not be eligible for any credit (Median because Income is rightly skewed as seen above, and mean will be affected by this outliers, while median doesn't have such disadvantage).\n\n```{r, echo=FALSE}\ndf_train<-df_train%>%\n  mutate(Dependents=replace_na(Dependents,0))%>%\n  mutate(MonthlyIncome=replace_na(MonthlyIncome,median(MonthlyIncome,na.rm=TRUE)))\ndf_test<-df_test%>%\n  mutate(Dependents=replace_na(Dependents,0))%>%\n  mutate(MonthlyIncome=replace_na(MonthlyIncome,median(MonthlyIncome,na.rm=TRUE)))\n```\n\nWe will split the data into 70/30 train-test split.\n\n```{r,echo=FALSE}\nset.seed(123) #for reproducibility\ndf_train[,2]<-lapply(df_train[,2],factor) #making the default column factors/categorical variables.\n#2,5,8,9,10,11,12\n#df_train[,12]<-factor(df_train$Dependents,exclude=c(9,10,13,20))\nsplit<-sample(1:nrow(df_train),0.7*nrow(df_train)) #random sampling\nTrainData<-df_train[split,]\nTestData<-df_train[-split,]\n```\n\n## Model building and evaluation\n\n### Logistic regression model (using link=probit)\n\n```{r, echo=FALSE}\nlogmod<-glm(defaulted~unsecured.credit+`<2months Deliquency`+`<3months Deliquency`+`3MonthsDefault`+age ,data=TrainData, family=binomial (link=probit)) #takes a lot of space/memory to rum, maybe making dependents into factors wasnt such a good idea. The final model didnt make use of dependents so it didn't matter.\nsummary(logmod)\npred<-predict(logmod,newdata=TestData,type=\"response\")\n#range(pred)\nTestData$ProbOfDefault<-round(pred,5)\n#PD<-data.frame(applicant=df_test$...1,round(pred,5))\n#different cut-off probabilities: 15%, 18.5% and 20%\n```\n\nThe range of our predictions is `r range(pred)` . Considering the results for different levels of cut-off probabilities : 4% (for real estate loans), 10.25% ( for commercial lending like car finance, based on SA prime lending rate as of January 2026), and 20% (for retail loans/credit cards),in that order, here is the distribution of defaults vs non-defaults.\n\n```{r,include=FALSE}\npred_cut_0.04<-ifelse(TestData$ProbOfDefault>0.04,1,0)\npred_cut_0.1025<-ifelse(TestData$ProbOfDefault>0.1025,1,0)\npred_cut_0.2<-ifelse(TestData$ProbOfDefault>0.2,1,0)\nTestData$pred_cut_0.04<-factor(pred_cut_0.04)\nTestData$pred_cut_0.1025<-factor(pred_cut_0.1025)\nTestData$pred_cut_0.2<-factor(pred_cut_0.2)\n```\n\n```{r,echo=FALSE,out.width=c('50%','50%'),fig.show='hold'}\npar(mfrow=c(1,3))\nkable(table(TestData$pred_cut_0.04))\nkable(table(TestData$pred_cut_0.1025))\nkable(table(TestData$pred_cut_0.2))\n\n```\n\n         \n<div>\n\n> 💡The prime lending rate is the base interest banks charge their best customers.\n\n</div>\n\n\n-   As the cut-off probability increases, the ratio of default applicants to non-default applicants decreases.\n\n## Model Performance\n\n```{r,echo=FALSE}\nROC0.04<-roc(TestData$defaulted,pred_cut_0.04)\nROC0.1025<-roc(TestData$defaulted,pred_cut_0.1025)\nROC0.2<-roc(TestData$defaulted,pred_cut_0.2)\nplot(ROC0.04)\nlines(ROC0.1025,col=\"blue\")\nlines(ROC0.2,col=\"red\")\nlegend.text1<-paste0(\"4% (AUC=\", round(auc(ROC0.04),2),\")\")\nlegend.text2<-paste0(\"10.25% (AUC=\", round(auc(ROC0.1025),2),\")\")\nlegend.text3<-paste0(\"20% (AUC=\", round(auc(ROC0.2),2),\")\")\nlegend(\"bottomright\", #position of legend\n       legend=c(legend.text1,legend.text2,legend.text3),\n       col=c(\"black\",\"blue\",\"red\"), #curve colours\n       lty=1, #line type (1=solid)\n       lwd=2, #line width\n       cex=0.75) #shrinks legend to 80% of its original size\n```\n\n-   The 10.25% cut-off has increased sensitivity (True Positive Rate) but has the possibility of raising false positive rate. While the 20% cut-off does the opposite.\n- the consfusion matrix for the model using a cut-off probability of 10.25% is given below:\n\n```{r,echo=FALSE}\nconfusionMatrix(data=TestData$pred_cut_0.1025,reference = TestData$defaulted)\n# positive=0, and negative=1\n```\n\n-   The model ,when using a cut-off probability of 10.5%, has an accuracy rate of 86.9% and a specificity of 56%.\n\n<details>\n\n<summary><i>The confusion matrix for the 4% and 20% cut-off probabilities are given below for comparison. **Click to expand**</i></summary>\n\n```{r ggplot-default-col-size-hex-rgb-plot, echo=FALSE, purl=FALSE}\nconfusionMatrix(data=TestData$pred_cut_0.04,reference = TestData$defaulted)\nconfusionMatrix(data=TestData$pred_cut_0.2,reference = TestData$defaulted)\n```\n\nThe models with a 4% cut-off and a 20% cut-off have an accuracy of 68.5% and 93.18%, respectively.\n\n</details>\n\n\nAccuracy increases as the cut-off probabilities increase.\n\n## Testing the logistic regression model on new data\n\n<details>\n\n<summary><i>The summary statistics and visualisations of the test dataset are somewhat similar to those of the train dataset but with slight differences. **Click to expand**.</i></summary>\n\n```{r,echo=FALSE,paged.print=TRUE,fig.cap=' ' , out.width=c('40%','60%'),fig.show='hold'}\noptions(scipen = 999)\nkable(summary(df_test))\n```\n\n```{r,echo=FALSE,paged.print=TRUE,fig.cap=' ',fig.show='hold'}\npar(mfrow=c(1,2))\nhist(df_test$age,main=\"Distribution of age\",xlab=\"Age\",freq = FALSE,col=pal2)\nlines(density(df_test$age),col=\"red\")\nhist(df_test$unsecured.credit,xlab=\"Utilization Of Unsecured credit\",main=\"Unsecured credit utilization\",ylab=\"No. of borrowers\",col=pal3)\n```\n\n```{r,echo=FALSE}\ns.income<-df_test%>%filter(MonthlyIncome<50000)\nhist(s.income$MonthlyIncome,breaks=50,col=pal2,main=\"Distribution of monthly income <50K\",xlab=\"Monthly Income\")\n```\n\n```{r,echo=FALSE,fig.show='hold'}\npar(mfrow=c(1,2))\nm.income<-df_test%>%filter(MonthlyIncome>=50000&MonthlyIncome<=200000)\nhist(m.income$MonthlyIncome,breaks=50,col=pal2,main=\"Monthly income >=50K and <=200K\",xlab=\"Monthly Income\")\nl.income<-df_test%>%filter(MonthlyIncome>200000)\nhist(l.income$MonthlyIncome,breaks=50,col=pal3,main=\"Monthly income >200K\",xlab=\"Monthly Income\")\n```\n\n```{r,echo=FALSE,paged.print=TRUE,fig.cap=' ',fig.show='hold'}\npar(mfrow=c(1,2))\nkable(table(days=df_test$`<2months Deliquency`))\nplot(df_test$`3MonthsDefault`,df_test$`<3months Deliquency`,ylab=\"NumberOfTimes90DaysLate\",xlab=\"NumberOfTime60-89DaysPastDueNotWorse\")\nboxplot(df_test$Dependents)\n\n```\n\n</details>\n\nSerious deliquency will be based on a cut-off probability of 20%.\n\n> 💡 This is not aconservative approach, however, any applicant who can be approved based on the 20% cut-off will also be approved based on the other cut-off probabilities (for the same loan type and amount). A 20% cut-off means most applicants will be classified as less likely to default than with the other 2 cut-offs.\n\n```{r,echo=FALSE}\nprediction<-predict(logmod,newdata=df_test,type=\"response\")\ndf_test$ProbOfDefault<-round(prediction,5)\ndf_test$defaulted<-factor(ifelse(df_test$ProbOfDefault>0.20,1,0))\n#df_test$pred_cut_0.185<-factor(ifelse(df_test$ProbOfDefault>0.185,1,0))\n#df_test$pred_cut_0.2<-factor(ifelse(df_test$ProbOfDefault>0.2,1,0))\nkable(df_test%>%dplyr::select(Applicant,ProbOfDefault,defaulted)%>%tail(10))\n```\n\n```{r,echo=FALSE,fig.show='hold'}\n\npar(mfrow=c(1,2))\n\ndf_test%>%filter(defaulted==1)%>%group_by(age)%>%summarise(Total.defaults=n())%>%\n  ggplot(aes(x=age,y=Total.defaults,color=age))+geom_point()+\n  labs(title=\"Total defaults on loans by age\")+\n  scale_color_viridis_c()\n\ndf_test%>%filter(defaulted==0)%>%group_by(age)%>%summarise(Total.defaults=n())%>%\n  ggplot(aes(x=age,y=Total.defaults,color=age))+geom_point()+\n  labs(title=\"Total non-defaults on loans by age\")\n```\n\n- The predicted outcomes are similar to the analysis of the train dataset.\n\n# Conclusion and future scope\n\n-   The best threshold is based on the application of the project. For the purpose of credit analysis/modelling, choosing a threshold/cut-off that prioritises minimising false negatives (rejecting a good customer) even if it means more false positives (approving a bad customer) makes sense. \n- This makes sense since majority of the applicants (typically, based on the train dataset) have a good record and only a few applicants default on their loan. Thus the bank/financial institution may (will) still be able to make profit. In effect, this approach maximises profit instead of minimizing costs/losses.\n- The cut-off will also depend on the type of loan the applicant is applying for, hence a real estate loan will (or might) have a different cut-off from a clothing account, etc.\n- The test data (used as data for new applicants) is too similar to the train data (used for model building and testing), which may not always be the case in the real world.\n- The logistic models makes great prediction with good performance metrics, but other methods like random forests can be considered for comparison.\n\n> Please remember to `Upvote` 👍 if you liked my work and/or found it interesting. Thanks 😃✌️🙏\n\n# References\n\nA complete guide to credit risk modelling, 2019-08, Deepanshu Bhalla [Available here](https://www.listendata.com/2019/08/credit-risk-modelling.html)\n\nr-Programmin-tutorials, Deepanshu Bhalla [available here](https://www.listendata.com/p/r-programming-tutorials.html)\n\nKaggle dataset: [GiveMeSomeCredit](https://www.kaggle.com/competitions/GiveMeSomeCredit)\n\nA ggplot2 tutorial for beautiful plotting in r, 2019-08-05, Cedric Scherer: [Colourful Plots](https://www.cedricscherer.com/2019/08/05/a-ggplot2-tutorial-for-beautiful-plotting-in-r/#colors)\n",
+        "language_hint": "R"
+      },
+      {
+        "source_id": "gmsc_probit/source.json",
+        "path": "gmsc_probit/source.json",
+        "kind": "document",
+        "sha256": "273d2201cd7b718e49dc1e8e7d97a1095109757222d05a72081b417ecda5c93c",
+        "text": "{\n  \"title\": \"CRM :Credit Risk Modelling and Analysis\",\n  \"author\": \"Sunnyboy Ngobeni\",\n  \"url\": \"https://www.kaggle.com/code/sunnyboyngobeni/crm-credit-risk-modelling-and-analysis\",\n  \"notebook_version\": 4,\n  \"license\": \"Apache-2.0\",\n  \"retrieved_on\": \"2026-11-13\",\n  \"changes\": \"None; R Markdown script stored as published (it holds no saved outputs).\",\n  \"dataset\": \"Give Me Some Credit\",\n  \"dataset_url\": \"https://www.kaggle.com/competitions/GiveMeSomeCredit/data\",\n  \"note\": \"Author attribution is distinct from business model ownership. Target meaning must be checked against the official data dictionary.\"\n}\n",
+        "language_hint": null
+      }
+    ],
+    "metadata": {
+      "name": "Credit Risk Modelling",
+      "business_type": "credit",
+      "language": "R",
+      "algorithm": "probit GLM (generalized linear model, binomial family with probit link)",
+      "dataset": "Give Me Some Credit",
+      "data_references": [
+        "cs-training.csv",
+        "cs-test.csv",
+        "Data Dictionary.xls",
+        "sampleEntry.csv"
+      ],
+      "inputs": [
+        "SeriousDlqin2yrs (defaulted)",
+        "RevolvingUtilizationOfUnsecuredLines (unsecured.credit)",
+        "age",
+        "NumberOfTime30-59DaysPastDueNotWorse (<2months Deliquency)",
+        "DebtRatio",
+        "MonthlyIncome",
+        "NumberOfOpenCreditLinesAndLoans (openCredit)",
+        "NumberOfTimes90DaysLate (3MonthsDefault)",
+        "NumberRealEstateLoansOrLines (RealEstateLoans)",
+        "NumberOfTime60-89DaysPastDueNotWorse (<3months Deliquency)",
+        "NumberOfDependents (Dependents)"
+      ],
+      "derived_features": [],
+      "target": "SeriousDlqin2yrs (defaulted)",
+      "output": "Probability of default and default status label",
+      "training_stages": [
+        "Probit GLM on five variables (unsecured.credit, <2months Deliquency, <3months Deliquency, 3MonthsDefault, age)",
+        "Threshold cut-off classification at 4%, 10.25% and 20%",
+        "Evaluation via ROC/AUC and confusion matrices"
+      ],
+      "packages": [
+        "readxl",
+        "readr",
+        "ggplot2",
+        "dplyr",
+        "tidyr",
+        "corrplot",
+        "knitr",
+        "caret",
+        "pROC",
+        "rmarkdown"
+      ],
+      "business_owner": null,
+      "declared_version": null,
+      "use_in_decisions": "research",
+      "doc_status": "needs_review",
+      "doc_reason": "Documentation describes a notebook research exercise with no confirmed business owner, operational scope, or approved model risk tier; real-world approval and performance cannot be inferred.",
+      "evidence": {
+        "name": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 2,
+            "line_end": 2,
+            "quote": "title: \"Credit Risk Modelling\""
+          },
+          {
+            "source_id": "gmsc_probit/source.json",
+            "line_start": 2,
+            "line_end": 2,
+            "quote": "\"title\": \"CRM :Credit Risk Modelling and Analysis\","
+          }
+        ],
+        "business_type": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 13,
+            "line_end": 13,
+            "quote": "tags: [\"Credit Risk\", \"Banking\", \"Lending\", \"Probability of Default\", \"Logistic Regression\", \"R\"]"
+          }
+        ],
+        "language": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 47,
+            "line_end": 47,
+            "quote": "library(readxl) #4 importing .xls files"
+          }
+        ],
+        "algorithm": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 303,
+            "line_end": 303,
+            "quote": "logmod<-glm(defaulted~unsecured.credit+`<2months Deliquency`+`<3months Deliquency`+`3MonthsDefault`+age ,data=TrainData, family=binomial (link=probit))"
+          }
+        ],
+        "dataset": [
+          {
+            "source_id": "gmsc_probit/source.json",
+            "line_start": 9,
+            "line_end": 9,
+            "quote": "\"dataset\": \"Give Me Some Credit\","
+          }
+        ],
+        "data_references": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 60,
+            "line_end": 63,
+            "quote": "dictionary<-read_excel(\"/kaggle/input/GiveMeSomeCredit/Data Dictionary.xls\")"
+          },
+          {
+            "source_id": "gmsc_probit/DATA_README.md",
+            "line_start": 3,
+            "line_end": 3,
+            "quote": "download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page under its applicable terms."
+          }
+        ],
+        "inputs": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 85,
+            "line_end": 85,
+            "quote": "df_train<-rename(df_train,c(Applicant=\"...1\",defaulted=\"SeriousDlqin2yrs\",'unsecured.credit'=RevolvingUtilizationOfUnsecuredLines,age=age,'<2months Deliquency'=`NumberOfTime30-59DaysPastDueNotWorse`,DebtRatio=DebtRatio,MonthlyIncome=MonthlyIncome,openCredit=NumberOfOpenCreditLinesAndLoans,'3MonthsDefault'=NumberOfTimes90DaysLate,RealEstateLoans=NumberRealEstateLoansOrLines,'<3months Deliquency'=`NumberOfTime60-89DaysPastDueNotWorse`,Dependents=NumberOfDependents))"
+          }
+        ],
+        "target": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 70,
+            "line_end": 70,
+            "quote": "**The train dataset has an observed default indicator with 1 indicating default of more than 90 days in the last 2 years and 0 indicating lack of such default."
+          }
+        ],
+        "output": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 80,
+            "line_end": 80,
+            "quote": "The approach entails building a machine learning model that returns the loan id, the probability of default, and default status label"
+          }
+        ],
+        "training_stages": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 303,
+            "line_end": 303,
+            "quote": "logmod<-glm(defaulted~unsecured.credit+`<2months Deliquency`+`<3months Deliquency`+`3MonthsDefault`+age ,data=TrainData, family=binomial (link=probit))"
+          },
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 315,
+            "line_end": 317,
+            "quote": "pred_cut_0.04<-ifelse(TestData$ProbOfDefault>0.04,1,0)"
+          },
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 344,
+            "line_end": 346,
+            "quote": "ROC0.04<-roc(TestData$defaulted,pred_cut_0.04)"
+          }
+        ],
+        "packages": [
+          {
+            "source_id": "gmsc_probit/original.Rmd",
+            "line_start": 47,
+            "line_end": 56,
+            "quote": "library(pROC) #4 performance analytics i.e roc curve"
+          }
+        ],
+        "use_in_decisions": [
+          {
+            "source_id": "gmsc_probit/DATA_README.md",
+            "line_start": 5,
+            "line_end": 5,
+            "quote": "No trained model file or reference predictions have been supplied. Business owner, operational scope and approved model risk tier remain unconfirmed."
+          }
+        ]
+      },
+      "unknowns": [
+        "Business owner",
+        "Operational scope",
+        "Approved model risk tier",
+        "Real-world performance",
+        "Real-world approval status"
+      ]
+    },
+    "risk_tier": "low",
+    "risk_reason": "Provisional project rule for research; human confirmation required.",
+    "risk_provisional": true,
+    "extraction_mode": "llm",
+    "status": "pending_review",
+    "warnings": []
+  },
+  "input_root": "legacy_models",
+  "status": "approved_for_document"
+}
