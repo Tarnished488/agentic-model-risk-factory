@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from discover_agent import (
     Evidence, Metadata, Source, extract_with_llm, load_document_input,
-    offline_metadata, read_sources, review, run_discovery, validate_evidence,
+    offline_metadata, read_sources, review, run_discovery, validate_evidence, LLMResponse, llm_error_summary,
 )
 
 
@@ -92,7 +92,7 @@ class DiscoverTests(unittest.TestCase):
 
     def test_approval_handoff_and_source_change(self):
         model = self.scan().models[0]
-        approved = review(self.output, model.model_id, 'Tester', 'approve', '已核对来源和未知项')  # non-ASCII: Windows cp936 regression
+        approved = review(self.output, model.model_id, 'Tester', 'approve', 'Verified sources and unknowns')
         self.assertEqual(load_document_input(approved)['status'], 'ready_for_document')
         self.code.write_text('changed\n')
         with self.assertRaisesRegex(ValueError, 'Source changed'):
@@ -147,6 +147,35 @@ class DiscoverTests(unittest.TestCase):
         self.assertEqual(record.metadata.inputs, [])  # No raw dataset header supplied.
         self.assertEqual(record.status, 'pending_review')
         self.assertEqual(len(result.models), 1)
+
+    def test_call_audit_includes_usage_and_request_hash(self):
+        source = Source(source_id='x.R', path='x.R', kind='code', sha256='abc', text='library(lightgbm)')
+        response = LLMResponse(Metadata().model_dump_json(), {'total_tokens': 12})
+        events = []
+        extract_with_llm([source], caller=lambda m, s: response,
+                         on_call=lambda attempt, info: events.append((attempt, info)))
+        self.assertEqual(events[0][1]['tokens']['total_tokens'], 12)
+        self.assertEqual(len(events[0][1]['input_hash']), 64)
+
+    def test_final_failure_and_call_log_explain_http_error(self):
+        source = Source(source_id='x.R', path='x.R', kind='code', sha256='abc', text='library(lightgbm)')
+        events = []
+        with patch('discover_agent.time.sleep'):
+            with self.assertRaisesRegex(ValueError, 'LLM HTTP 400'):
+                extract_with_llm([source], caller=lambda m, s: (_ for _ in ()).throw(ValueError('LLM HTTP 400')),
+                                 on_call=lambda attempt, info: events.append(info))
+        self.assertEqual(len(events), 3)
+        self.assertEqual(events[-1]['error_summary'], 'LLM HTTP 400')
+
+    def test_diagnostics_exclude_validation_inputs_and_unknown_error_text(self):
+        from pydantic import ValidationError
+        try:
+            Metadata.model_validate({'name': {'secret': 'PRIVATE_VALUE'}})
+        except ValidationError as error:
+            summary = llm_error_summary(error)
+        self.assertIn('Schema validation', summary)
+        self.assertNotIn('PRIVATE_VALUE', summary)
+        self.assertNotIn('PRIVATE_VALUE', llm_error_summary(ValueError('PRIVATE_VALUE')))
 
 
 if __name__ == '__main__':

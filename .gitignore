@@ -14,3 +14,6 @@ artifacts/*
 !artifacts/discover/
 artifacts/discover/*
 !artifacts/discover/inventory.json
+
+artifacts/document/
+!artifacts/discover/reviews/

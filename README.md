@@ -1,6 +1,6 @@
 # Agentic Model Risk Factory
 
-Discover Agent 的首个可运行版本，围绕 Give Me Some Credit 的 R LightGBM Notebook 建立带证据的模型清单，并提供 Document Agent 的人工审核入口。
+当前实现 Discover → 人工关卡 1 → Document 逆向文档与自检 → 人工关卡 2 → Redevelop 输入交接，围绕 Give Me Some Credit 的 R LightGBM Notebook 提供示例。后续模型重构与验证节点尚未实现。
 
 ## 先运行离线示例
 
@@ -118,7 +118,7 @@ python discover_agent.py scan --mlflow
 
 已实现 Discover 扫描、离线提取、可配置 LLM 提取、Pydantic 与证据校验、初步文档和风险状态、CLI 人工审核、版本校验及 Document 交接接口。尚未配置真实 LLM 服务或 MLflow 服务，在线调用通过模拟响应测试，后续需要联调。
 
-LangGraph、Streamlit 和后续 Document / Redevelop / Validate 节点由后续模块接入。Discover 的 API 不依赖这些框架。基准预测、R 执行环境和真实数据下载另行准备。
+Document 及 CLI 人工关卡 2 见下文。LangGraph、Streamlit 和后续 Redevelop / Validate 节点尚未接入。Discover 的 API 不依赖这些框架。基准预测、R 执行环境和真实数据下载另行准备。
 
 ## 测试
 
@@ -128,3 +128,87 @@ python discover_agent.py schema
 ```
 
 测试覆盖真实 Notebook、稳定编号、目录分组、Notebook 单元引用、CSV 表头、伪造证据、LLM 重试与失败回退、审批与源文件变动、记录篡改、坏文件、外部符号链接以及输出目录约束。
+
+## Document Agent：源码逆向文档
+
+`document_agent.py` 接收 Discover `review` 命令返回的批准快照路径。
+
+```bash
+source .venv/bin/activate
+# 离线草稿，转录已有清单，不执行语义自检
+python document_agent.py generate DISCOVER_REVIEW.json
+# 在线生成，使用 LLM_BASE_URL / LLM_MODEL / LLM_API_KEY
+python document_agent.py generate DISCOVER_REVIEW.json --llm
+# 可选：每个 Document 节点一次 MLflow run（先安装 mlflow-skinny）
+python document_agent.py generate DISCOVER_REVIEW.json --llm --mlflow
+```
+
+旧形式 `python document_agent.py DISCOVER_REVIEW.json --llm` 保持兼容。
+
+源码按数据、变量变换、拟合、评分阶段启发式切块，并受字符预算约束；说明、字典及未分类代码也完整保留。切块是上下文窗口，不是完整的 SAS/R 语法解析器，跨块依赖必须保留为未知项。引用始终使用原 source_id 和原局部行号。单行过长或完整请求超限会显式失败，不截断。
+
+相邻源窗口完整打包到约 40000 字符的材料组；当前示例的全部材料仅一组，因此每章只调用一次 LLM，而不逐小窗口重复生成。每章每组最多提炼 12 条重要事实，未知项和建议单列；相同陈述合并引用。自检把陈述分批，与所有材料组交叉核对；有一处矛盾时优先保留 inconsistent，所有组均无支持时为 unverifiable。LLM 自检不保证语义正确，仍需人工审核。事实必须附原文引用，建议单独呈现。
+
+每次调用初次尝试加最多两次重试，携带结构或引用错误反馈，间隔指数退避。默认单次运行最多 30 次实际 API 尝试（含重试，缓存命中不计）；`--max-calls` 可显式调整。达到预算会保留草稿并标记 needs_attention。CLI 在请求前后打印阶段、调用计数和结果，运行目录的 progress.json 同步记录进度。Ctrl+C 中断会保存部分结果并释放锁。默认启用经校验的本地响应缓存，键包含完整提示词、材料、JSON Schema、服务地址和模型；`--no-cache` 强制重新调用。`--chunk-characters` 可调整默认 12000 字符的源窗口预算。显式 `--llm` 会向配置服务发送提取材料。
+
+输出位于 `artifacts/document/runs/<run_id>/`：
+
+| 文件 | 内容 |
+| --- | --- |
+| docs/<model_id>.md | 六章文档、引用及自检结论 |
+| chunks.json | 原始行号、阶段提示和完整源窗口 |
+| sections.json | 结构化章节，逐步保存以保留已完成内容 |
+| check_windows.json | 各材料组的核对结论，逐批保存 |
+| progress.json | 当前阶段、API 尝试数、预算和完成状态 |
+| consistency_report.json | 陈述、结论、理由、证据及版本关联 |
+| state.json | 共享状态、审批历史、路径、摘要、重试计数及失败原因 |
+
+生成前后均重验 Discover 批准快照和源码。成功为 `pending_document_review`；发现矛盾或生成/自检失败为 `needs_attention`。失败保留已完成章节，模式标记 `partial_llm`，命令返回非零。离线模式为 `offline`，自检项均为 `unverifiable`。
+
+### 人工关卡 2 和 Redevelop 交接
+
+打开 `state.json` 中的 doc_path 和 consistency_report_path 进行审核。可直接编辑草稿 Markdown；编辑稿、自检未确认项或离线稿的批准必须填写 resolution-notes，记录人工核对及处理结果。技术失败的运行必须重跑，不能直接批准。
+
+```bash
+python document_agent.py review DOCUMENT_STATE.json \
+  --reviewer "Your name" --decision approve --notes "已核对文档与源码"
+# 修改稿或存在待确认项时
+python document_agent.py review DOCUMENT_STATE.json \
+  --reviewer "Your name" --decision approve --notes "完成审核" \
+  --resolution-notes "说明具体修改，以及矛盾和未知项的人工处置"
+# 驳回，随后将意见传入新一轮生成
+python document_agent.py review DOCUMENT_STATE.json \
+  --reviewer "Your name" --decision reject --notes "请修正缺失值处理描述"
+python document_agent.py generate DISCOVER_REVIEW.json --llm --feedback-review REJECTED_REVIEW.json
+# 使用 review 命令输出的快照路径交接
+python document_agent.py handoff DOCUMENT_REVIEW.json
+```
+
+审核生成独立快照，保存当时的文档全文、报告、审批、原始摘要和编辑后摘要。后续修改草稿不影响已批准版本；修改批准副本或原始源码会阻止交接。摘要锁定属于本地完整性检查，不是数字签名或操作系统不可变存储。CLI 审核人由操作者填写，尚无身份认证。
+
+```python
+from pathlib import Path
+from document_review import load_redevelop_input
+state = load_redevelop_input(Path("DOCUMENT_REVIEW.json"))
+# status == ready_for_redevelop；含源码记录、批准文档和两个人工关卡的审批
+```
+
+调用审计记录阶段、提示词版本、模型、输入摘要、结果路径、尝试次数及服务返回的 token 用量；未返回用量或缓存命中时记录 null，不估算。MLflow 失败保留本地输出，并返回非零。
+
+共享键在 `workflow_state.py` 定义，后续 ir_path、generated_code_path、parity_result、metrics_path、report_path 初始为空。本版本没有执行模型训练或生成 Parity/Validate 的成功状态。
+
+### 流程对照和验证
+
+完整差异与实现边界见 [流程对照记录](docs/flow_alignment.md)。当前审核通过 CLI 执行；LangGraph interrupt、Streamlit 表格审核、Redevelop、Validate 和 Monitor 尚未实现。真实 LLM / MLflow 服务仍需配置后联调。
+
+```bash
+python -m unittest -v
+```
+
+测试覆盖静态扫描、源窗口完整性与行号、模拟 LLM 生成和跨窗口自检、重试反馈与退避、缓存、编辑审批、驳回反馈、快照及源码变更阻断、MLflow 失败保留本地结果。
+
+### Document 耗时与调用预算
+
+早期 document-v2 将每章与每个小窗口分别生成，再让所有陈述批次与所有窗口逐一核对；29 个窗口可能产生上百次生成和数百次自检。document-v3 保留源码切块用于定位，但按材料组调用，避免这类乘法膨胀。短模型约为六次章节生成加若干次批量自检，实际次数受输出长度、重试、缓存影响；默认总预算 30 次。
+
+如仍有旧进程运行，先在其终端 Ctrl+C，再使用新版本运行同一 generate 命令。修改源文件不会改变已启动进程的逻辑。旧运行的 sections.json 和 cache 保留，但新提示词/分组与旧缓存不同，不能假定新版本无成本续跑。
