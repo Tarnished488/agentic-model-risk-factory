@@ -27,7 +27,7 @@ from src.discover.discover_agent import (
 )
 from src.redevelop.parity import compare, load_coefficients, load_predictions, record_round
 
-PROMPT_VERSION = "redevelop-v5"
+PROMPT_VERSION = "redevelop-v6"
 BASELINES = Path(__file__).parent / "baselines"
 MODEL_METHODS = {"fit", "predict_proba", "get_coefficients"}
 
@@ -265,7 +265,8 @@ INTERFACE = (
     "data_dir / IR.data.file (first column is the row id); applies the IR filters and imputation in order; selects "
     "training rows whose row id is in reference_dir / 'train_ids.csv' (column row_id) and treats the remaining "
     "filtered rows as holdout; fits Model; creates output if needed and writes output / 'holdout_predictions.csv' "
-    "with columns row_id, probability, label (probability unrounded) and output / 'coefficients.csv' with columns "
+    "with columns row_id, probability, label (probability unrounded; label is the OBSERVED 0/1 target value from "
+    "the data, never a predicted class or a cut-off) and output / 'coefficients.csv' with columns "
     "term, Estimate using exactly reference_coefficient_terms in that order; returns row counts. "
     "train_ids.csv only ever lists rows that survive the filters, because the legacy split was drawn after "
     "filtering; run() raises ValueError if a listed training row was filtered out. ")
@@ -390,6 +391,18 @@ def generate_code(ir: IR, terms: list[str], columns: list[str], previous: str | 
     return ask_json(CodeDraft, CODE_INSTRUCTION, payload, caller, log, check=lambda d: check_code(d.code)).code
 
 
+def check_labels(reference: dict[str, int] | None, candidate: dict[str, int] | None) -> None:
+    """Parity scores against the legacy labels, so a candidate's own label column must be checked separately."""
+    if reference is None:
+        return
+    if candidate is None:
+        raise CheckError("holdout_predictions.csv needs a label column with the observed 0/1 target")
+    differing = sum(candidate.get(row) != label for row, label in reference.items())
+    if differing:
+        raise CheckError(f"label column differs from the observed target on {differing} of {len(reference)} holdout "
+                         "rows: write the observed 0/1 target, not a predicted class")
+
+
 def handoff_paths(data_dir: Path, reference_dir: Path, data_file: str, candidate_dir: Path) -> dict:
     """What Validate needs to recompute metrics, with hashes so a later swap of any file is detected."""
     files = {"data_path": data_dir / data_file, "train_ids_path": reference_dir / "train_ids.csv",
@@ -506,7 +519,8 @@ def run_redevelop(state: dict, data_dir: Path, reference_dir: Path, output: Path
             run_tests(code, tests, round_dir / "pytest")
             counts = run_candidate(round_dir / "new_model.py", data_dir, reference_dir, round_dir / "candidate")
             # 3.5 parity
-            candidate, _ = load_predictions(round_dir / "candidate" / "holdout_predictions.csv")
+            candidate, candidate_labels = load_predictions(round_dir / "candidate" / "holdout_predictions.csv")
+            check_labels(labels, candidate_labels)
             coefficients = (load_coefficients(reference_coef),
                             load_coefficients(round_dir / "candidate" / "coefficients.csv")) if terms else None
             result = {**compare(reference, candidate, labels, tier, coefficients), "row_counts": counts}

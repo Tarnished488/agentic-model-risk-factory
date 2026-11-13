@@ -187,6 +187,25 @@ class RedevelopTests(unittest.TestCase):
         self.assertEqual(final['status'], 'pending_redevelop_review')
         self.assertIn("not in the data file header: ['credit_score']", seen[1][-1]['content'])
 
+    def test_predicted_class_as_label_fails_the_round(self, _):
+        # The real DeepSeek mistake: label = prediction > 0.2 instead of the observed target.
+        original = '"label": holdout[TARGET].astype(int)'
+        self.assertIn(original, BASELINE_CODE)
+        predicted = BASELINE_CODE.replace(original, '"label": (model.predict_proba(holdout) > 0.2).astype(int)')
+        answers = iter([BASELINE_IR, code(BASELINE_TESTS), code(predicted), code(BASELINE_CODE)])
+        seen = []
+
+        def caller(messages, schema):
+            seen.append(messages)
+            return next(answers)
+
+        final = self.run_agent('labels', caller=caller)
+        self.assertEqual(final['status'], 'pending_redevelop_review')
+        self.assertEqual(final['retry_count'], 1)
+        history = json.loads(Path(final['parity_result_path']).read_text(encoding='utf-8'))['history']
+        self.assertIn('label column differs from the observed target', history[0]['error'])
+        self.assertIn('not a predicted class', json.loads(seen[-1][1]['content'])['feedback'])
+
     def test_wrong_model_escalates_with_difference_report(self, _):
         wrong = BASELINE_CODE.replace('epsilon: float = 1e-8', 'epsilon: float = 1e-2')
         answers = iter([BASELINE_IR, code(BASELINE_TESTS)] + [code(wrong)] * 4)
