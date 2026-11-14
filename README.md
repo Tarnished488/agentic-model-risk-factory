@@ -1,6 +1,6 @@
 # Agentic Model Risk Factory
 
-当前已实现 Discover → 审核 1 → Document → 审核 2 → Redevelop / Parity → 审核 3 → Validate → 审核 4。当前真实数据演示使用 GMSC Probit 的手写 Python 基准，不依赖 API；LLM 自动生成保留接口，未纳入本次无 API 演示。审核由 CLI 执行，尚无完整工作流调度、生产注册表或 Monitor。
+当前已实现 Discover → 审核 1 → Document → 审核 2 → Redevelop / Parity → 审核 3 → Validate → 审核 4。`src/pipeline.py` 按模型串联全部节点，到每个人工关卡自动暂停；`src/ui/app.py` 是 Streamlit 审批界面。配置 LLM 时各节点用 LLM 生成（已用 DeepSeek 跑通 Probit 全流程），否则使用手写基准离线运行。尚无生产模型注册表和 Monitor。
 
 ## 先运行离线示例
 
@@ -24,6 +24,8 @@ Windows 激活命令为 `.venv\Scripts\activate`。离线模式无需 API 密钥
 
 ```text
 src/
+  pipeline.py                  # 端到端调度：运行到下一关卡暂停，记录审批后继续（run / review / status CLI）
+  ui/app.py                    # Streamlit 审批界面（streamlit run src/ui/app.py）
   workflow_state.py            # 各节点共享状态键
   discover/
     discover_agent.py          # 扫描与证据抽取（scan / review / handoff / schema CLI）
@@ -40,11 +42,39 @@ src/
       gmsc_probit_ir.json      # 手写 IR（带源码证据），LLM 生成的 IR 需与之对齐
       gmsc_probit.py           # 手写 Python 重建，代码生成的对照与演示兜底
       gmsc_probit_test.py      # 手写 pytest，生成测试先在此实现上验证（test the tests）
+  validate/
+    validate_agent.py          # 指标、稳定性、公平性、系数符号；Explainer；Markdown/HTML/Word 报告
+    explainer.py               # LLM 解读 + 数字校验（只能引用 metrics 中的数字）+ 离线模板
+    report_docx.py             # Word 验证报告
+    validate_review.py         # 人工关卡 4
+config/
+  pipeline.json                # 每个模型的流水线设置（是否重构、数据与参考路径）
+  validation_policy.json       # 验证阈值与系数预期符号
 scripts/
   gmsc_probit_export.R         # 本地运行 R 原模型，导出 parity 参考
   gmsc_lightgbm_export.R
 tests/                         # python -m unittest
 ```
+
+## 端到端流水线与审批界面
+
+每个模型一份状态文件（`artifacts/pipeline/<模型组>.json`）。`run` 依次执行各节点，遇到人工关卡就停；`review` 记录该关卡的决定；再次 `run` 继续。驳回会重跑该关卡之前的节点，并清除其后所有步骤，旧批准不能被复用。任何节点出错都会停下并记录原因，不会跳过。`config/pipeline.json` 中 `redevelop` 为 `null` 的模型在关卡 2 后结束（只出文档，不重构）。
+
+```bash
+python -m src.pipeline status
+python -m src.pipeline run --model gmsc_probit --llm      # 自动读取 .env；不加 --llm 则离线
+python -m src.pipeline review --model gmsc_probit --reviewer "Discover reviewer" \
+  --decision approve --notes "逐项核对源码"
+python -m src.pipeline run --model gmsc_probit --llm      # 继续到下一关卡
+```
+
+审批界面调用同一流水线，展示当前关卡需要审阅的内容（清单记录、文档与自检、IR/代码/测试/parity、指标/解读/Word 报告），并提交决定。所有校验仍在各 agent 内执行，界面无法批准命令行会拒绝的内容。
+
+```bash
+streamlit run src/ui/app.py --server.address localhost
+```
+
+只绑定本机：界面可批准关卡并显示模型细节，不应暴露到网络。排练或演示时可设置 `PIPELINE_ARTIFACTS=<目录>`，让流水线写入独立目录，不改动共享的 `artifacts/discover/inventory.json`。
 
 ### R 参考导出与 Probit 重建
 
@@ -321,7 +351,14 @@ python -m http.server 8765 --bind 127.0.0.1 --directory outputs/demo
 
 演示脚本中的关卡 1–3 记录明确标为 Codex 技术核对，不冒充团队成员本人签名。关卡 4 保持待审；人工团队应复核前三关。离线 Document 仅转录已有元数据；Redevelop 使用手写 IR、代码和测试，不宣称自动生成成功。真实 R 对照与性能结果见 [运行证据](docs/evidence/README.md)。
 
-独立 Validate 接收关卡 3 的批准快照并重新验证审批链与文件摘要。计算 AUC/Gini/KS、Brier、Log-loss、ECE/校准表、训练/留出 PSI 和探索性年龄分组 TPR/FPR；检查唯一 ID、切分隔离、IR 过滤后覆盖、原始标签一致性及有效概率。它不执行新生成的模型代码，也不调用 LLM。
+独立 Validate 接收关卡 3 的批准快照并重新验证审批链与文件摘要。计算 AUC/Gini/KS、Brier、Log-loss、ECE/校准表、训练/留出 PSI 和探索性年龄分组 TPR/FPR；检查唯一 ID、切分隔离、IR 过滤后覆盖、原始标签一致性及有效概率。它不执行新生成的模型代码。
+
+- **决策阈值 0.2**：沿用原 notebook 的截断值。0.5 时只有 1–2% 的申请人被标记，公平性检查几乎测不出差异。
+- **概念合理性（4.4）**：代码按 `expected_signs` 检查每个系数的符号（如逾期次数应为正、年龄为负），通过 IR 的重命名映射对应 R 中的别名；没有系数的模型（树模型）标为无法验证。
+- **Explainer（4.6–4.7）**：加 `--llm` 时由 LLM 撰写解读。代码校验其中每个数字都必须是报告中的值（同等或更粗的精度，可写成百分比），结论必须与规则结果一致（有失败只能是 fail，有未知项只能是 conditional_pass），否则带错误重试。三次不通过或未配置 LLM 时使用确定性模板，并在报告中注明。
+- **Word 报告（4.8）**：`report.docx` 包含指标、校准、PSI、公平性、系数、规则检查、解读和完整审批记录；关卡 4 会校验它未被修改。
+
+Probit 真实结果（R 4.6.2 参考，DeepSeek 解读）：全部规则通过；0.2 阈值下年龄组 TPR 差 0.106；5 个系数符号均符合预期；解读一次通过数字校验，并指出高分段（第 6–9 箱）预测偏高、样本少需人工复核。
 
 ```bash
 python -m src.validate.validate_agent REDEVELOP_REVIEW.json
@@ -331,6 +368,6 @@ python -m src.validate.validate_review VALIDATION_STATE.json \
 python -m scripts.evidence_pack VALIDATION_STATE.json --output outputs/demo
 ```
 
-每次 Validate 保存 metrics.json、report.md、report.html、state.json。规则失败进入 needs_attention，不能批准，需修复并重跑；规则通过进入 pending_validation_review。关卡 4 批准仅标记 validated_for_research，不等于银行投产批准。策略阈值在 [config/validation_policy.json](config/validation_policy.json)，为演示规则，需要团队事先确认，不能当作 SS1/23 的强制数值。
+每次 Validate 保存 metrics.json、report.md、report.html、report.docx、state.json。规则失败进入 needs_attention，不能批准，需修复并重跑；规则通过进入 pending_validation_review。关卡 4 批准仅标记 validated_for_research，不等于银行投产批准。策略阈值在 [config/validation_policy.json](config/validation_policy.json)，为演示规则，需要团队事先确认，不能当作 SS1/23 的强制数值。
 
 本地原始数据、逐行预测、R 日志和审核身份均不纳入发布证据包。汇总 JSON / HTML 保留聚合指标与摘要。第三方镜像来源已记录，尚未与 Kaggle 官方下载做逐字节认证。训练/留出 PSI 不是时间漂移监控；年龄分组通过不代表全面公平或合规。

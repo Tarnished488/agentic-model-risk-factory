@@ -1,0 +1,16 @@
+{
+  "description": "Per-model pipeline settings. redevelop null means the model stops after gate 2 (documented, not rebuilt). validation_policy defaults to config/validation_policy.json.",
+  "legacy_root": "legacy_models",
+  "models": {
+    "gmsc_probit": {
+      "redevelop": {
+        "data": "data/GiveMeSomeCredit",
+        "reference": "data/reference/gmsc_probit",
+        "tier": "reestimation",
+        "baseline": "gmsc_probit"
+      }
+    },
+    "gmsc_lightgbm": {"redevelop": null},
+    "german_xgboost": {"redevelop": null}
+  }
+}

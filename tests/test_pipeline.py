@@ -1,0 +1,96 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+import pandas as pd
+
+from src import pipeline
+from src.redevelop.baselines import gmsc_probit
+from tests.test_redevelop import synthetic_gmsc
+
+
+class PipelineTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        base = Path(temp.name)
+        data, reference = base / 'data', base / 'reference'
+        data.mkdir()
+        reference.mkdir()
+        synthetic_gmsc(data / 'cs-training.csv')
+        kept = gmsc_probit.prepare(gmsc_probit.load(data / 'cs-training.csv'))
+        pd.DataFrame({'row_id': kept['row_id'].sample(frac=0.7, random_state=0)}).to_csv(
+            reference / 'train_ids.csv', index=False)
+        gmsc_probit.run(data, reference, reference)
+        # Synthetic labels ignore age and past-due counts, so their coefficient signs are random here.
+        policy = json.loads(Path('config/validation_policy.json').read_text(encoding='utf-8'))
+        (base / 'policy.json').write_text(json.dumps({**policy, 'expected_signs': {}}), encoding='utf-8')
+        config = base / 'pipeline.json'
+        config.write_text(json.dumps({'legacy_root': 'legacy_models', 'models': {
+            'gmsc_probit': {'redevelop': {'data': str(data), 'reference': str(reference),
+                                          'tier': 'reestimation', 'baseline': 'gmsc_probit'},
+                            'validation_policy': str(base / 'policy.json')},
+            'gmsc_lightgbm': {'redevelop': None}}}), encoding='utf-8')
+        for name, value in [('CONFIG', config), ('ARTIFACTS', base / 'artifacts')]:
+            patcher = patch.object(pipeline, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def approve(self, group, resolution=''):
+        pipeline.review(group, 'Reviewer', 'approve', 'Checked against the source', resolution)
+
+    def test_full_offline_run_pauses_at_every_gate(self):
+        quiet = dict(progress=lambda message: None)
+        self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('await', 'gate1'))
+        self.approve('gmsc_probit')
+        self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('await', 'gate2'))
+        self.approve('gmsc_probit', 'Offline draft checked by hand')
+        self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('await', 'gate3'))
+        self.approve('gmsc_probit')
+        self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('await', 'gate4'))
+        state = pipeline.load_state('gmsc_probit')
+        validation = json.loads(Path(state['steps']['validate']['state_path']).read_text(encoding='utf-8'))
+        self.assertTrue(Path(validation['docx_path']).is_file())
+        self.approve('gmsc_probit', 'Unknowns accepted for research use')
+        self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('done', 'validated_for_research'))
+        gates = [e['gate'] for e in pipeline.load_state('gmsc_probit')['history'] if e['event'] == 'gate_decision']
+        self.assertEqual(gates, ['gate1', 'gate2', 'gate3', 'gate4'])
+
+    def test_rejection_reruns_the_stage_and_clears_later_steps(self):
+        quiet = dict(progress=lambda message: None)
+        pipeline.run('gmsc_lightgbm', False, **quiet)
+        self.approve('gmsc_lightgbm')
+        pipeline.run('gmsc_lightgbm', False, **quiet)
+        first = pipeline.load_state('gmsc_lightgbm')['steps']['document']['state_path']
+        pipeline.review('gmsc_lightgbm', 'Reviewer', 'reject', 'Inputs list is wrong')
+        self.assertEqual(pipeline.next_action(pipeline.load_state('gmsc_lightgbm')), ('run', 'document'))
+        self.assertEqual(pipeline.run('gmsc_lightgbm', False, **quiet), ('await', 'gate2'))
+        state = pipeline.load_state('gmsc_lightgbm')
+        self.assertNotEqual(state['steps']['document']['state_path'], first)
+        self.assertNotIn('gate2', state['steps'])
+        self.approve('gmsc_lightgbm', 'Offline draft checked by hand')
+        self.assertEqual(pipeline.run('gmsc_lightgbm', False, **quiet), ('done', 'documented'))
+        with self.assertRaisesRegex(ValueError, 'No gate is waiting'):
+            self.approve('gmsc_lightgbm')
+
+    def test_stage_failure_is_reported_not_skipped(self):
+        quiet = dict(progress=lambda message: None)
+        with patch.object(pipeline, 'run_discovery', side_effect=ValueError('scan broke')):
+            self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('error', 'discover'))
+        state = pipeline.load_state('gmsc_probit')
+        self.assertIn('scan broke', state['last_error']['error'])
+        self.assertEqual(pipeline.next_action(state), ('run', 'discover'))
+
+    def test_env_loader_keeps_existing_values(self):
+        env = Path(tempfile.mkdtemp()) / '.env'
+        env.write_text('PIPELINE_TEST_A=from_file\nPIPELINE_TEST_B=from_file\n# comment\n', encoding='utf-8')
+        with patch.dict('os.environ', {'PIPELINE_TEST_A': 'existing'}):
+            pipeline.load_env(env)
+            import os
+            self.assertEqual((os.environ['PIPELINE_TEST_A'], os.environ['PIPELINE_TEST_B']), ('existing', 'from_file'))
+
+
+if __name__ == '__main__':
+    unittest.main()
