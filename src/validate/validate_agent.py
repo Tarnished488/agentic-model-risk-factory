@@ -14,7 +14,10 @@ import pandas as pd
 from src.discover.discover_agent import atomic_json, audit, call_llm, digest, file_sha256, now
 from src.redevelop.parity import auc, ks
 from src.redevelop.redevelop_review import load_validate_input
+from src.validate.charts import draw_charts, log_validation_mlflow
 from src.validate.explainer import llm_explanation, template_explanation
+from src.validate.fairness import fairness_audit
+from src.validate.ratings import annotate
 from src.validate.report_docx import write_report
 
 DEFAULT_POLICY = Path(__file__).resolve().parents[2] / 'config/validation_policy.json'
@@ -30,6 +33,12 @@ def read_policy(path: Path) -> dict:
             raise ValueError(f'Invalid policy field: {k}')
     if not math.isfinite(p['fairness_split']):
         raise ValueError('fairness_split must be finite')
+    p.setdefault('max_demographic_parity_difference', 0.1)
+    p.setdefault('min_disparate_impact', 0.8)
+    p.setdefault('max_equalized_odds_difference', 0.2)
+    for spec in p.get('fairness_attributes', []):
+        if not spec.get('column') or ('split' in spec and not math.isfinite(spec['split'])):
+            raise ValueError('Each fairness attribute needs a column and an optional finite split')
     if not all(sign in ('+', '-') for sign in p.get('expected_signs', {}).values()):
         raise ValueError('expected_signs values must be "+" or "-"')
     return p
@@ -170,44 +179,37 @@ def evaluate(state: dict, policy: dict) -> dict:
         distribution[feature] = value
         if value is not None:
             check('train_holdout_psi:' + feature, value <= policy['max_feature_psi'], value, policy['max_feature_psi'], 'medium')
-    groups = []
-    col = policy['fairness_column']
-    if col in raw:
-        values = pd.to_numeric(raw.loc[predictions.row_id, col], errors='coerce').to_numpy()
-        split = policy['fairness_split']
-        for label, mask in [(f'{col} < {split}', values < split), (f'{col} >= {split}', values >= split)]:
-            y, s = yraw[mask], scores[mask]
-            positives, negatives = int(y.sum()), int(len(y) - y.sum())
-            sufficient = len(y) >= policy['min_group_size'] and min(positives, negatives) >= policy['min_group_class_size']
-            selected = s >= policy['decision_threshold']
-            groups.append({'group': label, 'rows': int(len(y)), 'events': positives, 'sufficient': sufficient,
-                           'selection_rate': float(selected.mean()) if len(y) else None,
-                           'tpr': float(selected[y == 1].mean()) if positives else None,
-                           'fpr': float(selected[y == 0].mean()) if negatives else None})
-        if all(g['sufficient'] for g in groups):
-            gap = abs(groups[0]['tpr'] - groups[1]['tpr'])
-            check('age_group_tpr_gap', gap <= policy['max_tpr_gap'], gap, policy['max_tpr_gap'], 'medium')
-        else:
-            findings.append({'check': 'age_group_tpr_gap', 'result': 'unverifiable', 'severity': 'medium',
-                             'reason': 'Insufficient group/class support; no fairness pass is claimed'})
-    else:
-        findings.append({'check': 'group_fairness', 'result': 'unverifiable', 'severity': 'medium',
-                         'reason': 'Configured group column is absent'})
+    groups, fairness, fairness_findings, fairness_unknowns = fairness_audit(
+        raw, predictions.row_id, yraw, scores, policy)
+    findings += fairness_findings
     coefficients, sign_findings = coefficient_signs(state, ir, policy)
     findings += sign_findings
     unknowns = ['Business scope, representativeness and policy thresholds require human confirmation.',
                 'Train/holdout PSI is sample comparison, not temporal drift monitoring.',
                 'Group rates are exploratory; decision threshold is illustrative, not a lending policy.',
                 'Coverage matches IR filters; appropriateness of those exclusions requires review.',
-                'No production data, external validation or regulatory compliance certification.']
-    if col in raw and pd.to_numeric(raw.loc[predictions.row_id, col], errors='coerce').isna().any():
-        unknowns.append('Missing group values are excluded from group comparisons; review their coverage.')
+                'No production data, external validation or regulatory compliance certification.',
+                'No time variable in the data, so out-of-time back-testing and per-period metrics are not possible.']
+    unknowns += fairness_unknowns
     if any('before the split' in (i.get('computed_on') or '').lower() for i in ir.get('imputation', [])):
         unknowns.append('Legacy preprocessing may fit imputation before the split; independently review leakage.')
-    return {'metrics': metrics, 'train_holdout_psi': distribution, 'groups': groups, 'findings': findings,
-            'coefficients': coefficients,
-            'unknowns': unknowns, 'train_rows': len(train), 'raw_rows': len(raw),
+    overall_rating = annotate(findings, policy)
+    return {'metrics': metrics, 'train_holdout_psi': distribution, 'groups': groups, 'fairness': fairness,
+            'findings': findings, 'overall_rating': overall_rating, 'coefficients': coefficients,
+            'curves': curves(yraw, scores), 'unknowns': unknowns, 'train_rows': len(train), 'raw_rows': len(raw),
             'status': 'needs_attention' if any(f['result'] == 'fail' for f in findings) else 'pending_validation_review'}
+
+
+def curves(y: np.ndarray, scores: np.ndarray, points: int = 101) -> dict:
+    """Aggregate ROC and score histograms for charts; no row-level values leave this function."""
+    order = np.argsort(-scores, kind='stable')
+    tp, fp = np.cumsum(y[order]), np.cumsum(1 - y[order])
+    picks = np.unique(np.linspace(0, len(y) - 1, points).astype(int))
+    roc = [{'fpr': 0.0, 'tpr': 0.0}] + [{'fpr': float(fp[i] / fp[-1]), 'tpr': float(tp[i] / tp[-1])} for i in picks]
+    edges = np.linspace(0, 1, 21)
+    return {'roc': roc, 'histogram_edges': edges.tolist(),
+            'histogram_good': np.histogram(scores[y == 0], edges)[0].tolist(),
+            'histogram_bad': np.histogram(scores[y == 1], edges)[0].tolist()}
 
 
 def render_report(report: dict) -> tuple[str, str]:
@@ -262,7 +264,7 @@ def explain(report: dict, run_dir: Path, use_llm: bool, caller) -> tuple[dict, s
 
 
 def run_validation(review_file: Path, output: Path, policy_path: Path = DEFAULT_POLICY,
-                   use_llm: bool = False, caller=None) -> Path:
+                   use_llm: bool = False, caller=None, use_mlflow: bool = False) -> Path:
     upstream = load_validate_input(review_file)
     policy = read_policy(policy_path)
     run_dir = output.resolve() / 'runs' / str(uuid.uuid4())
@@ -276,10 +278,22 @@ def run_validation(review_file: Path, output: Path, policy_path: Path = DEFAULT_
     explanation, explainer_mode, explainer_error = explain(report, run_dir, use_llm, caller)
     report.update(explanation=explanation, explainer_mode=explainer_mode, explainer_error=explainer_error)
     atomic_json(run_dir / 'metrics.json', report)
+    findings_doc = {'model_id': report['model_id'], 'generated_at': report['generated_at'],
+                    'status': report['status'], 'overall_rating': report['overall_rating'],
+                    'findings': report['findings'], 'unknowns': report['unknowns']}
+    atomic_json(run_dir / 'findings.json', findings_doc)
+    charts = draw_charts(report, run_dir / 'charts')
     md, page = render_report(report)
     (run_dir / 'report.md').write_text(md, encoding='utf-8')
     (run_dir / 'report.html').write_text(page, encoding='utf-8')
-    write_report(report, explanation, upstream['approvals'], run_dir / 'report.docx')
+    write_report(report, explanation, upstream['approvals'], run_dir / 'report.docx', charts)
+    if use_mlflow:
+        try:
+            log_validation_mlflow(run_dir, report, [run_dir / 'metrics.json', run_dir / 'findings.json',
+                                                    run_dir / 'report.docx', *map(Path, charts.values())])
+        except Exception as error:  # tracking is optional; the local files are the record
+            audit(run_dir, {'node': 'validate', 'event': 'mlflow_failed', 'model_id': report['model_id'],
+                            'error_type': type(error).__name__})
     state = {**upstream, 'status': report['status'], 'validation_run_id': run_dir.name,
              'redevelop_review_path': str(review_file.resolve()),
              'upstream_review_sha256': report['upstream_review_sha256'],
@@ -287,7 +301,9 @@ def run_validation(review_file: Path, output: Path, policy_path: Path = DEFAULT_
              'report_path': str(run_dir / 'report.md'), 'report_sha256': file_sha256(run_dir / 'report.md'),
              'html_path': str(run_dir / 'report.html'),
              'docx_path': str(run_dir / 'report.docx'), 'docx_sha256': file_sha256(run_dir / 'report.docx'),
-             'explainer_mode': explainer_mode, 'explanation_conclusion': explanation['conclusion']}
+             'explainer_mode': explainer_mode, 'explanation_conclusion': explanation['conclusion'],
+             'overall_rating': report['overall_rating'], 'findings_path': str(run_dir / 'findings.json'),
+             'chart_paths': charts}
     atomic_json(run_dir / 'state.json', state)
     return run_dir / 'state.json'
 
@@ -298,9 +314,10 @@ def main():
     p.add_argument('--output', type=Path, default=Path('artifacts/validate'))
     p.add_argument('--policy', type=Path, default=DEFAULT_POLICY)
     p.add_argument('--llm', action='store_true', help='LLM explainer (needs LLM_BASE_URL, LLM_MODEL, LLM_API_KEY)')
+    p.add_argument('--mlflow', action='store_true', help='Log metrics and artifacts to MLflow (mlflow-skinny)')
     a = p.parse_args()
     try:
-        path = run_validation(a.review_file, a.output, a.policy, use_llm=a.llm)
+        path = run_validation(a.review_file, a.output, a.policy, use_llm=a.llm, use_mlflow=a.mlflow)
         print(path)
         return 0 if json.loads(path.read_text())['status'] == 'pending_validation_review' else 2
     except (ValueError, KeyError, OSError) as e:

@@ -6,3 +6,5 @@ pandas>=2.1,<4
 scipy>=1.11,<2
 pytest>=8,<10
 streamlit>=1.40,<2
+fairlearn>=0.11,<1
+matplotlib>=3.8,<4

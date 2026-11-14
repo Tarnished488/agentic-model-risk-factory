@@ -80,6 +80,48 @@ class ExplainerTests(unittest.TestCase):
         self.assertEqual(mode, 'template_after_llm_failure')
         self.assertIn('0.91', error)
 
+    def test_rag_ratings_and_recommendations(self):
+        from src.validate.ratings import annotate, rate
+        amber = self.policy['amber']
+        self.assertEqual(rate({'check': 'holdout_auc', 'result': 'pass', 'value': 0.68}, amber), 'amber')
+        self.assertEqual(rate({'check': 'holdout_auc', 'result': 'pass', 'value': 0.82}, amber), 'green')
+        self.assertEqual(rate({'check': 'age_disparate_impact', 'result': 'pass', 'value': 0.85}, amber), 'amber')
+        self.assertEqual(rate({'check': 'train_holdout_psi:x', 'result': 'pass', 'value': 0.2}, amber), 'amber')
+        self.assertEqual(rate({'check': 'anything', 'result': 'fail', 'value': 1}, amber), 'red')
+        self.assertEqual(rate({'check': 'anything', 'result': 'unverifiable'}, amber), 'amber')
+        findings = [{'check': 'coefficient_sign:age', 'result': 'fail', 'value': 0.1}]
+        self.assertEqual(annotate(findings, self.policy), 'red')
+        self.assertIn('direction', findings[0]['recommendation'])
+
+    def test_fairlearn_metrics_use_approval_for_disparate_impact(self):
+        from src.validate.fairness import fairness_audit
+        rows = 600
+        raw = pd.DataFrame({'sex': np.repeat(['male', 'female'], rows // 2), 'age': np.tile([30, 50], rows // 2)},
+                           index=[str(i) for i in range(rows)])
+        y = np.tile([0, 0, 1], rows // 3)
+        scores = np.where(np.arange(rows) < rows // 2, 0.9 * y + 0.05, 0.5 * y + 0.1)  # women flagged less
+        policy = {**self.policy, 'fairness_attributes': [{'column': 'sex'}, {'column': 'ethnicity'}]}
+        groups, summary, findings, _ = fairness_audit(raw, raw.index, y, scores, policy)
+        flag_rates = {g['group']: g['selection_rate'] for g in groups}
+        approval = {g['group']: g['approval_rate'] for g in groups}
+        self.assertAlmostEqual(summary['sex']['disparate_impact'], min(approval.values()) / max(approval.values()))
+        self.assertAlmostEqual(summary['sex']['demographic_parity_difference'],
+                               abs(flag_rates['male'] - flag_rates['female']))
+        results = {f['check']: f['result'] for f in findings}
+        self.assertEqual(results['ethnicity_group_fairness'], 'unverifiable')
+        self.assertIn('sex_equalized_odds_difference', results)
+
+    def test_charts_and_findings_file_are_written(self):
+        from src.validate.charts import draw_charts
+        from src.validate.ratings import annotate
+        report = self.report()
+        report['overall_rating'] = annotate(report['findings'], self.policy)
+        charts = draw_charts(report, self.root / 'charts')
+        self.assertEqual(set(charts), {'roc', 'calibration', 'score_distribution', 'fairness', 'psi'})
+        self.assertTrue(all(Path(p).stat().st_size > 1000 for p in charts.values()))
+        self.assertEqual(report['curves']['roc'][0], {'fpr': 0.0, 'tpr': 0.0})
+        self.assertAlmostEqual(report['curves']['roc'][-1]['tpr'], 1.0)
+
     def test_word_report_contains_metrics_explanation_and_governance(self):
         report = self.report()
         explanation = template_explanation(report).model_dump()

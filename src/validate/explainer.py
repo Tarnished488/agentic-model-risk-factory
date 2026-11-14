@@ -70,8 +70,9 @@ def expected_conclusion(report: dict) -> set[str]:
 
 
 def check_explanation(explanation: Explanation, report: dict) -> None:
-    allowed = numeric_values({k: report[k] for k in ("metrics", "findings", "groups", "train_holdout_psi",
-                                                    "coefficients", "policy", "train_rows", "raw_rows")})
+    allowed = numeric_values({k: report.get(k) for k in ("metrics", "findings", "groups", "train_holdout_psi",
+                                                        "coefficients", "fairness", "policy", "train_rows",
+                                                        "raw_rows")})
     text = " ".join([getattr(explanation, s) for s in SECTIONS] + explanation.limitations
                     + explanation.recommendations + [explanation.conclusion_reason])
     bad = unsupported_numbers(text, allowed)
@@ -95,8 +96,8 @@ INSTRUCTION = (
 
 
 def llm_explanation(report: dict, caller, log) -> Explanation:
-    payload = {k: report[k] for k in ("model_id", "metrics", "findings", "groups", "train_holdout_psi",
-                                      "coefficients", "unknowns", "policy")}
+    payload = {k: report.get(k) for k in ("model_id", "metrics", "findings", "overall_rating", "groups",
+                                          "fairness", "train_holdout_psi", "coefficients", "unknowns", "policy")}
     return ask_json(Explanation, INSTRUCTION, payload, caller, log,
                     check=lambda e: check_explanation(e, report), prompt_version=PROMPT_VERSION)
 
@@ -109,7 +110,8 @@ def template_explanation(report: dict) -> Explanation:
     conclusion = sorted(expected_conclusion(report))[0]
     signs = [f for f in report["findings"] if f["check"].startswith("coefficient_sign:")]
     explanation = Explanation(
-        summary=f"Holdout AUC {m['auc']:.3f}, KS {m['ks']:.3f} and ECE {m['ece']:.4f} on {m['rows']} rows. "
+        summary=f"Overall rating {report.get('overall_rating', 'n/a')}. "
+                f"Holdout AUC {m['auc']:.3f}, KS {m['ks']:.3f} and ECE {m['ece']:.4f} on {m['rows']} rows. "
                 + (f"Failed checks: {', '.join(failed)}." if failed else "All rule checks with a verdict passed."),
         performance=f"AUC {m['auc']:.3f} (Gini {m['gini']:.3f}) and KS {m['ks']:.3f} measure ranking power; "
                     f"Brier {m['brier']:.4f} versus {m['constant_rate_brier']:.4f} for a constant prediction.",
@@ -117,10 +119,16 @@ def template_explanation(report: dict) -> Explanation:
         stability="Train/holdout PSI per feature: " + ", ".join(
             f"{k} {v:.4f}" for k, v in report["train_holdout_psi"].items() if v is not None)
             + ". This compares two samples of one split, not drift over time.",
-        fairness="; ".join(f"{g['group']}: TPR {g['tpr']:.3f}, FPR {g['fpr']:.3f}, selection rate "
-                           f"{g['selection_rate']:.3f}" for g in report["groups"]
-                           if g["tpr"] is not None and g["fpr"] is not None)
-                 or "No group comparison was possible.",
+        fairness=("; ".join(f"{g['group']}: TPR {g['tpr']:.3f}, FPR {g['fpr']:.3f}, flag rate "
+                            f"{g['selection_rate']:.3f}" for g in report["groups"]
+                            if g["tpr"] is not None and g["fpr"] is not None)
+                  or "No group comparison was possible.")
+                 + "".join(f". {attribute}: disparate impact {m['disparate_impact']:.3f}, demographic parity "
+                           f"difference {m['demographic_parity_difference']:.3f}, equalized odds difference "
+                           f"{m['equalized_odds_difference']:.3f}"
+                           for attribute, m in (report.get("fairness") or {}).items()
+                           if None not in (m["disparate_impact"], m["demographic_parity_difference"],
+                                           m["equalized_odds_difference"])),
         conceptual_soundness=("Coefficient signs: " + "; ".join(f"{f['check'].split(':', 1)[1]} {f['result']}"
                                                                 for f in signs)) if signs
                              else "No coefficients were available for a sign check.",

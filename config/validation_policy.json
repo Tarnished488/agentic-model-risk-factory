@@ -1,5 +1,5 @@
 {
-  "version": "hackathon-v2",
+  "version": "hackathon-v3",
   "description": "Illustrative research thresholds; team review required. Not bank approval or regulatory certification.",
   "min_auc": 0.65,
   "min_ks": 0.2,
@@ -10,8 +10,28 @@
   "min_group_size": 100,
   "min_group_class_size": 20,
   "max_tpr_gap": 0.2,
+  "max_demographic_parity_difference": 0.1,
+  "min_disparate_impact": 0.8,
+  "max_equalized_odds_difference": 0.2,
+  "fairness_note": "Disparate impact uses the favourable outcome (not flagged, i.e. approved); 0.8 is the four-fifths rule.",
   "fairness_column": "age",
   "fairness_split": 40,
+  "fairness_attributes": [
+    {"column": "age", "split": 40},
+    {"column": "sex"}
+  ],
+  "fairness_attributes_note": "split: numeric column cut into two groups; no split: categorical. Attributes absent from a dataset are reported as unverifiable.",
+  "amber": {
+    "holdout_auc": 0.70,
+    "holdout_ks": 0.30,
+    "calibration_ece": 0.05,
+    "train_holdout_psi": 0.10,
+    "group_tpr_gap": 0.10,
+    "demographic_parity_difference": 0.05,
+    "disparate_impact": 0.90,
+    "equalized_odds_difference": 0.10
+  },
+  "amber_note": "Red = fails the limit above. Amber = passes but inside the warning band, or unverifiable. Green = clear pass.",
   "expected_signs": {
     "RevolvingUtilizationOfUnsecuredLines": "+",
     "NumberOfTime30-59DaysPastDueNotWorse": "+",
