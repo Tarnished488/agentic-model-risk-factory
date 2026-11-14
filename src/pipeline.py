@@ -194,7 +194,7 @@ def describe(group: str) -> str:
     for step in ORDER:
         if step in state["steps"]:
             info = state["steps"][step]
-            lines.append(f"  {step:9} {info.get('decision') or info.get('status', '')}")
+            lines.append(f"  {step:9} {info.get('decision') or info.get('status') or info.get('record_status', '')}")
     if state["last_error"]:
         lines.append(f"  last error at {state['last_error']['stage']}: {state['last_error']['error'][:200]}")
     return "\n".join(lines)

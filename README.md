@@ -64,11 +64,19 @@ tests/                         # python -m unittest
 python -m src.pipeline status
 python -m src.pipeline run --model gmsc_probit --llm      # 自动读取 .env；不加 --llm 则离线
 python -m src.pipeline review --model gmsc_probit --reviewer "Discover reviewer" \
-  --decision approve --notes "逐项核对源码"
+  --decision approve --notes "逐项核对源码" --correct "output=Probability of default per applicant"
 python -m src.pipeline run --model gmsc_probit --llm      # 继续到下一关卡
+python -m src.pipeline registry                           # 本地模型注册表
 ```
 
-审批界面调用同一流水线，展示当前关卡需要审阅的内容（清单记录、文档与自检、IR/代码/测试/parity、指标/解读/Word 报告），并提交决定。所有校验仍在各 agent 内执行，界面无法批准命令行会拒绝的内容。
+- **关卡 1 字段更正**：`--correct 字段=值`（可重复）或界面中的 Correction 列。清单记录本身受哈希锁定不被修改；更正随批准保存，并作为人工输入传给 Document。
+- **文档新旧提示**：Discover 比较最新代码文件与最新文档文件的日期，写入 `doc_reason`。这只是提示：复制或 git checkout 会重置文件日期，因此不作为警告、不阻塞关卡 1。
+- **模型注册表**：`artifacts/registry/models.json`。关卡 3 批准 → `Staging`；关卡 4 批准 → `Validated (research)`，驳回 → `Rejected`，带代码版本（哈希）和历史。它是 MLflow Model Registry 的本地替代。
+
+界面有两个视图：
+
+- **Dashboard**：全部模型的进度看板与关键数字；所选模型的红黄绿评级、ROC / 校准 / 分数分布 / PSI / 分组比率交互图表、带建议的发现项表和 Word 报告下载；parity 各轮记录；关卡决定时间线与模型注册表。只使用汇总数据，不显示借款人级数据。
+- **Gate console**：运行下一节点（LLM 或离线），展示当前关卡需要审阅的内容（清单记录与可编辑更正列、文档与自检、IR/代码/测试/parity、指标/解读/Word 报告），并提交决定。所有校验仍在各 agent 内执行，界面无法批准命令行会拒绝的内容。
 
 ```bash
 streamlit run src/ui/app.py --server.address localhost
@@ -356,9 +364,13 @@ python -m http.server 8765 --bind 127.0.0.1 --directory outputs/demo
 - **决策阈值 0.2**：沿用原 notebook 的截断值。0.5 时只有 1–2% 的申请人被标记，公平性检查几乎测不出差异。
 - **概念合理性（4.4）**：代码按 `expected_signs` 检查每个系数的符号（如逾期次数应为正、年龄为负），通过 IR 的重命名映射对应 R 中的别名；没有系数的模型（树模型）标为无法验证。
 - **Explainer（4.6–4.7）**：加 `--llm` 时由 LLM 撰写解读。代码校验其中每个数字都必须是报告中的值（同等或更粗的精度，可写成百分比），结论必须与规则结果一致（有失败只能是 fail，有未知项只能是 conditional_pass），否则带错误重试。三次不通过或未配置 LLM 时使用确定性模板，并在报告中注明。
-- **Word 报告（4.8）**：`report.docx` 包含指标、校准、PSI、公平性、系数、规则检查、解读和完整审批记录；关卡 4 会校验它未被修改。
+- **红黄绿评级（4.5）**：每个发现项为红（超出限值）、黄（通过但在 `amber` 预警区间内，或无法验证）或绿，并附建议；报告给出总体评级。阈值在 `validation_policy.json`。
+- **公平性（4.3，fairlearn）**：按 `fairness_attributes` 中每个受保护属性（数值切分或类别）计算 TPR 差、人口均等差、差异影响（按批准率计算，四分之五规则 0.8）和均等几率差。数据中不存在的属性（如 GMSC 的 sex）标为无法验证。
+- **图表与输出**：ROC、校准、分数分布、分组比率和 PSI 图（只用汇总数据）嵌入 Word 报告；`findings.json` 单独列出评级与建议；`--mlflow` 记录指标与产物。
+- **Word 报告（4.8）**：`report.docx` 包含总体评级、指标与图表、校准、PSI、公平性、系数、带评级的规则检查、解读和完整审批记录；关卡 4 会校验它未被修改。
+- 数据没有时间变量，因此无法做时间外（OOT）回测和分时间段指标，报告中作为未知项列出。
 
-Probit 真实结果（R 4.6.2 参考，DeepSeek 解读）：全部规则通过；0.2 阈值下年龄组 TPR 差 0.106；5 个系数符号均符合预期；解读一次通过数字校验，并指出高分段（第 6–9 箱）预测偏高、样本少需人工复核。
+Probit 真实结果（R 4.6.2 参考）：总体 **黄**。AUC、KS、校准、PSI 和 5 个系数符号均为绿；年龄组 TPR 差 0.106、均等几率差 0.106、人口均等差 0.052 落在预警区间；差异影响 0.946（绿）；sex 无法验证。DeepSeek 解读一次通过数字校验，并指出高分段（第 6–9 箱）预测偏高、样本少需人工复核。
 
 ```bash
 python -m src.validate.validate_agent REDEVELOP_REVIEW.json

@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)  # pipeline paths (config/, artifacts/, data/) are relative to the repository root
 
 from src import pipeline  # noqa: E402
+from src.ui import dashboard  # noqa: E402
 
 STEP_LABELS = {"discover": "Discover", "gate1": "Gate 1", "document": "Document", "gate2": "Gate 2",
                "redevelop": "Redevelop", "gate3": "Gate 3", "validate": "Validate", "gate4": "Gate 4"}
@@ -54,15 +55,20 @@ def show_gate1(state: dict) -> None:
     metadata = record["metadata"]
     st.write(f"**{record['model_id']}** · status `{record['status']}` · extraction `{record['extraction_mode']}` · "
              f"provisional risk tier `{record['risk_tier']}`")
-    rows = [[k, ", ".join(map(str, v)) if isinstance(v, list) else v] for k, v in metadata.items()
-            if k not in ("evidence", "unknowns") and v not in (None, [], "")]
-    st.dataframe(pd.DataFrame(rows, columns=["Field", "Extracted value"]), hide_index=True, width="stretch")
+    rows = [[k, ", ".join(map(str, v)) if isinstance(v, list) else str(v if v is not None else ""), ""]
+            for k, v in metadata.items() if k not in ("evidence", "unknowns")]
+    edited = st.data_editor(pd.DataFrame(rows, columns=["Field", "Extracted value", "Correction"]),
+                            hide_index=True, width="stretch", disabled=["Field", "Extracted value"],
+                            key=f"corrections-{state['group']}")
+    st.session_state["corrections"] = {r["Field"]: r["Correction"] for _, r in edited.iterrows()
+                                       if str(r["Correction"] or "").strip()}
     st.caption(f"Fields with source evidence: {', '.join(sorted(metadata['evidence']))}")
     if metadata["unknowns"]:
         st.warning("Unknowns: " + "; ".join(metadata["unknowns"]))
     for warning in record["warnings"]:
         st.error(warning)
-    st.info("Check each field against the source files; record corrections in the notes (the record is not edited).")
+    st.info("Type a fix in the Correction column for any wrong field. The hash-locked record is not edited: "
+            "corrections are stored with your approval and passed to the Document agent.")
 
 
 def show_gate2(state: dict) -> None:
@@ -139,7 +145,8 @@ def review_form(group: str, gate: str) -> None:
         if st.form_submit_button(f"Record {pipeline.GATE_NAMES[gate]} decision"):
             st.session_state["reviewer"] = reviewer
             try:
-                path = pipeline.review(group, reviewer, decision, notes, resolution)
+                corrections = st.session_state.get("corrections") if gate == "gate1" else None
+                path = pipeline.review(group, reviewer, decision, notes, resolution, corrections)
                 st.success(f"Recorded: {path}")
                 st.rerun()
             except (ValueError, OSError, KeyError) as error:
@@ -149,6 +156,11 @@ def review_form(group: str, gate: str) -> None:
 def main() -> None:
     pipeline.load_env()
     st.set_page_config(page_title="Model Risk Factory", layout="wide")
+    with st.sidebar:
+        page = st.radio("View", ["Dashboard", "Gate console"])
+    if page == "Dashboard":
+        dashboard.render()
+        return
     st.title("Agentic Model Risk Factory")
     st.caption("Discover → Document → Redevelop → Validate, with a human gate after each agent. Research use only.")
     groups = list(pipeline.config()["models"])

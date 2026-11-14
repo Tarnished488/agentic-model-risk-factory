@@ -58,6 +58,21 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('done', 'validated_for_research'))
         entry = pipeline.load_registry()['models'][state['model_id']]
         self.assertEqual([h['stage'] for h in entry['history']], ['Staging', 'Validated (research)'])
+        self.render_app()
+
+    def render_app(self):
+        """Smoke test: both UI views render against a finished pipeline without exceptions."""
+        from streamlit.testing.v1 import AppTest
+        script = str(Path(__file__).parents[1] / 'src' / 'ui' / 'app.py')
+        dashboard = AppTest.from_file(script, default_timeout=120).run()
+        self.assertFalse(dashboard.exception, dashboard.exception)
+        self.assertIn('Model Risk Dashboard', [t.value for t in dashboard.title])
+        metrics = {m.label: m.value for m in dashboard.metric}
+        self.assertEqual((metrics['Models in scope'], metrics['Validated (gate 4)']), ('2', '1'))
+        console = AppTest.from_file(script, default_timeout=120).run()
+        console.sidebar.radio[0].set_value('Gate console').run()
+        self.assertFalse(console.exception, console.exception)
+        self.assertIn('Agentic Model Risk Factory', [t.value for t in console.title])
         gates = [e['gate'] for e in pipeline.load_state('gmsc_probit')['history'] if e['event'] == 'gate_decision']
         self.assertEqual(gates, ['gate1', 'gate2', 'gate3', 'gate4'])
 
