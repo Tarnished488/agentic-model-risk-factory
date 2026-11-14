@@ -7,11 +7,15 @@ import math
 import uuid
 from pathlib import Path
 
+import os
+
 import numpy as np
 import pandas as pd
-from src.discover.discover_agent import atomic_json, digest, file_sha256, now
+from src.discover.discover_agent import atomic_json, audit, call_llm, digest, file_sha256, now
 from src.redevelop.parity import auc, ks
 from src.redevelop.redevelop_review import load_validate_input
+from src.validate.explainer import llm_explanation, template_explanation
+from src.validate.report_docx import write_report
 
 DEFAULT_POLICY = Path(__file__).resolve().parents[2] / 'config/validation_policy.json'
 
@@ -26,7 +30,37 @@ def read_policy(path: Path) -> dict:
             raise ValueError(f'Invalid policy field: {k}')
     if not math.isfinite(p['fairness_split']):
         raise ValueError('fairness_split must be finite')
+    if not all(sign in ('+', '-') for sign in p.get('expected_signs', {}).values()):
+        raise ValueError('expected_signs values must be "+" or "-"')
     return p
+
+
+def coefficient_signs(state: dict, ir: dict, policy: dict) -> tuple[dict, list[dict]]:
+    """Conceptual soundness (design doc 4.4): code decides each sign; the explainer only describes it."""
+    path = state.get('coefficients_path')
+    expected = policy.get('expected_signs', {})
+    if not path or not Path(path).is_file():
+        return {}, [{'check': 'coefficient_signs', 'result': 'unverifiable', 'severity': 'medium',
+                     'reason': 'No coefficients in the handoff (e.g. tree models); review drivers via SHAP instead'}]
+    raw_by_alias = {alias: raw for raw, alias in ir.get('rename', {}).get('mapping', {}).items()}
+    coefficients = {}
+    for row in pd.read_csv(path).itertuples(index=False):
+        name = str(row.term).strip('`')
+        if name != '(Intercept)':
+            coefficients[raw_by_alias.get(name, name)] = float(row.Estimate)
+    findings = []
+    for feature in ir['model']['features']:
+        if feature not in expected:
+            continue
+        if feature not in coefficients:
+            findings.append({'check': 'coefficient_sign:' + feature, 'result': 'unverifiable', 'severity': 'medium',
+                             'reason': 'Feature has no coefficient in the rebuilt model'})
+            continue
+        value = coefficients[feature]
+        passed = value > 0 if expected[feature] == '+' else value < 0
+        findings.append({'check': 'coefficient_sign:' + feature, 'result': 'pass' if passed else 'fail',
+                         'severity': 'medium', 'value': value, 'limit': expected[feature]})
+    return coefficients, findings
 
 
 def read_ids(path: Path, column: str) -> pd.DataFrame:
@@ -159,6 +193,8 @@ def evaluate(state: dict, policy: dict) -> dict:
     else:
         findings.append({'check': 'group_fairness', 'result': 'unverifiable', 'severity': 'medium',
                          'reason': 'Configured group column is absent'})
+    coefficients, sign_findings = coefficient_signs(state, ir, policy)
+    findings += sign_findings
     unknowns = ['Business scope, representativeness and policy thresholds require human confirmation.',
                 'Train/holdout PSI is sample comparison, not temporal drift monitoring.',
                 'Group rates are exploratory; decision threshold is illustrative, not a lending policy.',
@@ -169,6 +205,7 @@ def evaluate(state: dict, policy: dict) -> dict:
     if any('before the split' in (i.get('computed_on') or '').lower() for i in ir.get('imputation', [])):
         unknowns.append('Legacy preprocessing may fit imputation before the split; independently review leakage.')
     return {'metrics': metrics, 'train_holdout_psi': distribution, 'groups': groups, 'findings': findings,
+            'coefficients': coefficients,
             'unknowns': unknowns, 'train_rows': len(train), 'raw_rows': len(raw),
             'status': 'needs_attention' if any(f['result'] == 'fail' for f in findings) else 'pending_validation_review'}
 
@@ -185,6 +222,12 @@ def render_report(report: dict) -> tuple[str, str]:
     lines += ['', '## Findings', '']
     lines += [f"- {f['check']}: {f['result']} ({f['severity']})" for f in report['findings']]
     lines += ['', '## Limitations and review actions', ''] + ['- ' + s for s in report['unknowns']]
+    explanation = report.get('explanation')
+    if explanation:
+        lines += ['', f"## Explanation ({report['explainer_mode']}; numbers checked against metrics)", '',
+                  f"Conclusion: {explanation['conclusion']} - {explanation['conclusion_reason']}", '']
+        for section in ('summary', 'performance', 'calibration', 'stability', 'fairness', 'conceptual_soundness'):
+            lines += [f"### {section.replace('_', ' ').title()}", '', explanation[section], '']
     md = '\n'.join(lines) + '\n'
     rows = ''.join(f'<tr><td>{html.escape(k)}</td><td>{v:.6g}</td></tr>' for k, v in report['metrics'].items() if isinstance(v, (int, float)))
     findings = ''.join(f"<li><b>{html.escape(f['check'])}</b> · {f['result']}</li>" for f in report['findings'])
@@ -202,27 +245,49 @@ def render_report(report: dict) -> tuple[str, str]:
     return md, page
 
 
-def run_validation(review_file: Path, output: Path, policy_path: Path = DEFAULT_POLICY) -> Path:
+def explain(report: dict, run_dir: Path, use_llm: bool, caller) -> tuple[dict, str, str | None]:
+    """LLM explanation when enabled; the deterministic template otherwise or if the LLM cannot pass the checks."""
+    if not use_llm:
+        return template_explanation(report).model_dump(), 'template', None
+    base = {'node': 'validate', 'agent': 'explainer', 'model_id': report['model_id'], 'run_id': run_dir.name}
+
+    def log(attempt, outcome, details):
+        audit(run_dir, {**base, 'event': 'llm_attempt', 'attempt': attempt, 'outcome': outcome,
+                        'provider_model': os.environ.get('LLM_MODEL'), **details})
+    try:
+        return llm_explanation(report, caller or call_llm, log).model_dump(), 'llm', None
+    except ValueError as error:
+        # Never block validation on narrative text; the reviewer sees the fallback and why.
+        return template_explanation(report).model_dump(), 'template_after_llm_failure', str(error)[:500]
+
+
+def run_validation(review_file: Path, output: Path, policy_path: Path = DEFAULT_POLICY,
+                   use_llm: bool = False, caller=None) -> Path:
     upstream = load_validate_input(review_file)
     policy = read_policy(policy_path)
     run_dir = output.resolve() / 'runs' / str(uuid.uuid4())
     run_dir.mkdir(parents=True)
-    report = {'schema_version': '1', 'model_id': upstream['model_id'], 'generated_at': now(),
-              'mode': 'deterministic_no_api', 'policy': policy, 'upstream_review_sha256': file_sha256(review_file),
+    report = {'schema_version': '2', 'model_id': upstream['model_id'], 'generated_at': now(),
+              'mode': 'deterministic_metrics', 'policy': policy, 'upstream_review_sha256': file_sha256(review_file),
               **evaluate(upstream, policy)}
     # Detect upstream mutations while computing as well as before computing.
     if load_validate_input(review_file) != upstream:
         raise ValueError('Upstream changed during validation')
+    explanation, explainer_mode, explainer_error = explain(report, run_dir, use_llm, caller)
+    report.update(explanation=explanation, explainer_mode=explainer_mode, explainer_error=explainer_error)
     atomic_json(run_dir / 'metrics.json', report)
     md, page = render_report(report)
     (run_dir / 'report.md').write_text(md, encoding='utf-8')
     (run_dir / 'report.html').write_text(page, encoding='utf-8')
+    write_report(report, explanation, upstream['approvals'], run_dir / 'report.docx')
     state = {**upstream, 'status': report['status'], 'validation_run_id': run_dir.name,
              'redevelop_review_path': str(review_file.resolve()),
              'upstream_review_sha256': report['upstream_review_sha256'],
              'metrics_path': str(run_dir / 'metrics.json'), 'metrics_sha256': digest(report),
              'report_path': str(run_dir / 'report.md'), 'report_sha256': file_sha256(run_dir / 'report.md'),
-             'html_path': str(run_dir / 'report.html')}
+             'html_path': str(run_dir / 'report.html'),
+             'docx_path': str(run_dir / 'report.docx'), 'docx_sha256': file_sha256(run_dir / 'report.docx'),
+             'explainer_mode': explainer_mode, 'explanation_conclusion': explanation['conclusion']}
     atomic_json(run_dir / 'state.json', state)
     return run_dir / 'state.json'
 
@@ -232,9 +297,10 @@ def main():
     p.add_argument('review_file', type=Path)
     p.add_argument('--output', type=Path, default=Path('artifacts/validate'))
     p.add_argument('--policy', type=Path, default=DEFAULT_POLICY)
+    p.add_argument('--llm', action='store_true', help='LLM explainer (needs LLM_BASE_URL, LLM_MODEL, LLM_API_KEY)')
     a = p.parse_args()
     try:
-        path = run_validation(a.review_file, a.output, a.policy)
+        path = run_validation(a.review_file, a.output, a.policy, use_llm=a.llm)
         print(path)
         return 0 if json.loads(path.read_text())['status'] == 'pending_validation_review' else 2
     except (ValueError, KeyError, OSError) as e:

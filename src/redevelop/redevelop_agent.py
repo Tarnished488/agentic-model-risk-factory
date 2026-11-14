@@ -218,9 +218,10 @@ def pytest_failures(output: str) -> str:
 
 
 # ---- LLM steps ----
-def ask_json(model, system: str, payload: dict, caller, log, check=None, attempts: int = 3):
+def ask_json(model, system: str, payload: dict, caller, log, check=None, attempts: int = 3,
+             prompt_version: str = PROMPT_VERSION):
     schema = model.model_json_schema()
-    messages = [{"role": "system", "content": f"Prompt version {PROMPT_VERSION}. " + system
+    messages = [{"role": "system", "content": f"Prompt version {prompt_version}. " + system
                  + " Return only a JSON object matching: " + json.dumps(schema)},
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}]
     for attempt in range(1, attempts + 1):

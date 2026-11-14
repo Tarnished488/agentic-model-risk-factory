@@ -1,14 +1,24 @@
 {
-  "version": "hackathon-v1",
+  "version": "hackathon-v2",
   "description": "Illustrative research thresholds; team review required. Not bank approval or regulatory certification.",
   "min_auc": 0.65,
   "min_ks": 0.2,
   "max_ece": 0.1,
   "max_feature_psi": 0.25,
-  "decision_threshold": 0.5,
+  "decision_threshold": 0.2,
+  "decision_threshold_note": "The legacy notebook's own cut-off; at 0.5 only 1-2% of applicants are flagged and the fairness check measures almost nothing.",
   "min_group_size": 100,
   "min_group_class_size": 20,
   "max_tpr_gap": 0.2,
   "fairness_column": "age",
-  "fairness_split": 40
+  "fairness_split": 40,
+  "expected_signs": {
+    "RevolvingUtilizationOfUnsecuredLines": "+",
+    "NumberOfTime30-59DaysPastDueNotWorse": "+",
+    "NumberOfTime60-89DaysPastDueNotWorse": "+",
+    "NumberOfTimes90DaysLate": "+",
+    "DebtRatio": "+",
+    "age": "-"
+  },
+  "expected_signs_note": "Credit-risk intuition: more utilisation, debt and past-due events raise default risk; older applicants default less in this population. A wrong sign is a conceptual-soundness finding, not proof of error."
 }

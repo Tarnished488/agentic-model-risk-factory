@@ -3,7 +3,7 @@ import argparse
 import json
 import uuid
 from pathlib import Path
-from src.discover.discover_agent import atomic_json, digest, file_sha256, now, output_lock
+from src.discover.discover_agent import atomic_json, audit, digest, file_sha256, now, output_lock
 from src.redevelop.redevelop_review import load_validate_input
 
 
@@ -18,7 +18,8 @@ def verify_validation(state_path: Path):
     report = json.loads(Path(state['metrics_path']).read_text(encoding='utf-8'))
     if (digest(report) != state['metrics_sha256'] or report['model_id'] != state['model_id']
             or report['status'] != state['status']
-            or file_sha256(Path(state['report_path'])) != state['report_sha256']):
+            or file_sha256(Path(state['report_path'])) != state['report_sha256']
+            or ('docx_path' in state and file_sha256(Path(state['docx_path'])) != state['docx_sha256'])):
         raise ValueError('Validation metrics, report or state changed')
     return state, report
 
@@ -44,6 +45,8 @@ def review_validation(state_path: Path, reviewer: str, decision: str, notes: str
         snapshot['snapshot_sha256'] = digest(snapshot)
         path = directory / 'review.json'
         atomic_json(path, snapshot)
+        audit(state_path.resolve().parent, {'node': 'validate', 'event': 'human_review', 'model_id': state['model_id'],
+                                            'output_path': str(path), **approval})
         return path
 
 
