@@ -1,0 +1,15 @@
+# Model risk control ledger theme (see src/ui/style.py for the palette and type scale).
+[theme]
+base = "light"
+primaryColor = "#1F4E8C"
+backgroundColor = "#F5F7F9"
+secondaryBackgroundColor = "#E9EDF1"
+textColor = "#0B1F33"
+font = "sans serif"
+
+[server]
+headless = true
+address = "localhost"
+
+[browser]
+gatherUsageStats = false

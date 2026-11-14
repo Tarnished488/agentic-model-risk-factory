@@ -66,13 +66,14 @@ class PipelineTests(unittest.TestCase):
         script = str(Path(__file__).parents[1] / 'src' / 'ui' / 'app.py')
         dashboard = AppTest.from_file(script, default_timeout=120).run()
         self.assertFalse(dashboard.exception, dashboard.exception)
-        self.assertIn('Model Risk Dashboard', [t.value for t in dashboard.title])
-        metrics = {m.label: m.value for m in dashboard.metric}
-        self.assertEqual((metrics['Models in scope'], metrics['Validated (gate 4)']), ('2', '1'))
+        self.assertIn('Model risk control ledger', [t.value for t in dashboard.title])
+        html = ' '.join(m.value for m in dashboard.markdown)
+        self.assertIn("<b>2</b><span>models in scope</span>", html)
+        self.assertIn("Overall rating", html)
         console = AppTest.from_file(script, default_timeout=120).run()
         console.sidebar.radio[0].set_value('Gate console').run()
         self.assertFalse(console.exception, console.exception)
-        self.assertIn('Agentic Model Risk Factory', [t.value for t in console.title])
+        self.assertIn('Gate console', [t.value for t in console.title])
         gates = [e['gate'] for e in pipeline.load_state('gmsc_probit')['history'] if e['event'] == 'gate_decision']
         self.assertEqual(gates, ['gate1', 'gate2', 'gate3', 'gate4'])
 
