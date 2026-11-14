@@ -53,15 +53,24 @@ class PipelineTests(unittest.TestCase):
         state = pipeline.load_state('gmsc_probit')
         validation = json.loads(Path(state['steps']['validate']['state_path']).read_text(encoding='utf-8'))
         self.assertTrue(Path(validation['docx_path']).is_file())
+        self.assertEqual(pipeline.load_registry()['models'][state['model_id']]['stage'], 'Staging')
         self.approve('gmsc_probit', 'Unknowns accepted for research use')
         self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('done', 'validated_for_research'))
+        entry = pipeline.load_registry()['models'][state['model_id']]
+        self.assertEqual([h['stage'] for h in entry['history']], ['Staging', 'Validated (research)'])
         gates = [e['gate'] for e in pipeline.load_state('gmsc_probit')['history'] if e['event'] == 'gate_decision']
         self.assertEqual(gates, ['gate1', 'gate2', 'gate3', 'gate4'])
 
     def test_rejection_reruns_the_stage_and_clears_later_steps(self):
         quiet = dict(progress=lambda message: None)
         pipeline.run('gmsc_lightgbm', False, **quiet)
-        self.approve('gmsc_lightgbm')
+        with self.assertRaisesRegex(ValueError, 'unknown fields'):
+            pipeline.review('gmsc_lightgbm', 'Reviewer', 'approve', 'Checked', corrections={'colour': 'x'})
+        pipeline.review('gmsc_lightgbm', 'Reviewer', 'approve', 'Checked',
+                        corrections={'output': 'Default probability per applicant'})
+        gate1 = json.loads(Path(pipeline.load_state('gmsc_lightgbm')['steps']['gate1']['review_path'])
+                           .read_text(encoding='utf-8'))
+        self.assertEqual(gate1['approval']['corrections']['output']['corrected'], 'Default probability per applicant')
         pipeline.run('gmsc_lightgbm', False, **quiet)
         first = pipeline.load_state('gmsc_lightgbm')['steps']['document']['state_path']
         pipeline.review('gmsc_lightgbm', 'Reviewer', 'reject', 'Inputs list is wrong')

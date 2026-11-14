@@ -141,7 +141,28 @@ def run(group: str, use_llm: bool, caller=None, progress=print) -> tuple[str, st
         save_state(state)
 
 
-def review(group: str, reviewer: str, decision: str, notes: str, resolution_notes: str = "") -> Path:
+def registry_path() -> Path:
+    return ARTIFACTS / "registry" / "models.json"
+
+
+def load_registry() -> dict:
+    path = registry_path()
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"models": {}}
+
+
+def register(state: dict, stage: str, gate: str, review_path: Path) -> None:
+    """Local model registry (stand-in for MLflow Model Registry): gate approvals move a rebuild's stage."""
+    registry = load_registry()
+    code = json.loads(Path(state["steps"]["redevelop"]["state_path"]).read_text(encoding="utf-8"))
+    entry = registry["models"].setdefault(state["model_id"], {"group": state["group"], "history": []})
+    entry.update(stage=stage, version=code["code_sha256"], code_path=code["generated_code_path"], updated_at=now())
+    entry["history"].append({"stage": stage, "gate": gate, "review_path": str(review_path), "time": now(),
+                             "version": code["code_sha256"]})
+    atomic_json(registry_path(), registry)
+
+
+def review(group: str, reviewer: str, decision: str, notes: str, resolution_notes: str = "",
+           corrections: dict[str, str] | None = None) -> Path:
     """Record a human decision at the gate the pipeline is waiting for."""
     state = load_state(group)
     kind, gate = next_action(state)
@@ -149,7 +170,7 @@ def review(group: str, reviewer: str, decision: str, notes: str, resolution_note
         raise ValueError(f"No gate is waiting for {group} (next action: {kind} {gate})")
     steps = state["steps"]
     if gate == "gate1":
-        path = review_discover(ARTIFACTS / "discover", state["model_id"], reviewer, decision, notes)
+        path = review_discover(ARTIFACTS / "discover", state["model_id"], reviewer, decision, notes, corrections)
     elif gate == "gate2":
         path = review_document(Path(steps["document"]["state_path"]), reviewer, decision, notes, resolution_notes)
     elif gate == "gate3":
@@ -158,6 +179,10 @@ def review(group: str, reviewer: str, decision: str, notes: str, resolution_note
         path = review_validation(Path(steps["validate"]["state_path"]), reviewer, decision, notes, resolution_notes)
     steps[gate] = {"review_path": str(path), "decision": decision, "reviewer": reviewer, "time": now()}
     _event(state, event="gate_decision", gate=gate, decision=decision, reviewer=reviewer)
+    if gate == "gate3" and decision == "approve":
+        register(state, "Staging", gate, path)
+    elif gate == "gate4":
+        register(state, "Validated (research)" if decision == "approve" else "Rejected", gate, path)
     save_state(state)
     return path
 
@@ -190,6 +215,9 @@ def main() -> int:
     gate.add_argument("--decision", choices=["approve", "reject"], required=True)
     gate.add_argument("--notes", required=True)
     gate.add_argument("--resolution-notes", default="")
+    gate.add_argument("--correct", action="append", default=[], metavar="FIELD=VALUE",
+                      help="Gate 1 only: reviewer correction to an extracted field; repeatable")
+    sub.add_parser("registry")
     args = parser.parse_args()
     try:
         if args.command == "status":
@@ -199,8 +227,13 @@ def main() -> int:
             kind, item = run(args.model, args.llm, progress=lambda m: print(m, file=sys.stderr, flush=True))
             print(describe(args.model))
             return 1 if kind == "error" else 0
+        elif args.command == "registry":
+            for model_id, entry in load_registry()["models"].items():
+                print(f"{model_id} ({entry['group']}): {entry['stage']}  version {entry['version'][:12]}  "
+                      f"updated {entry['updated_at']}")
         else:
-            print(review(args.model, args.reviewer, args.decision, args.notes, args.resolution_notes))
+            corrections = dict(item.split("=", 1) for item in args.correct if "=" in item)
+            print(review(args.model, args.reviewer, args.decision, args.notes, args.resolution_notes, corrections))
             print(describe(args.model))
     except (ValueError, OSError, KeyError) as error:
         print(f"Pipeline error: {error}", file=sys.stderr)

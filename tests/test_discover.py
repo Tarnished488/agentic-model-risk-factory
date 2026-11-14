@@ -79,6 +79,15 @@ class DiscoverTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, r'lines 2-2\. The quote must be text copied verbatim'):
             check('Impute absent values')
 
+    def test_documentation_dates_are_a_hint_not_a_warning(self):
+        readme = self.group / 'README.md'
+        readme.write_text('Model notes\n')
+        os.utime(readme, (1_600_000_000, 1_600_000_000))  # 2020: much older than the code
+        record = self.scan().models[0]
+        self.assertIn('File dates: newest code loan/model.R', record.metadata.doc_reason)
+        self.assertIn('may be outdated', record.metadata.doc_reason)
+        self.assertEqual(record.status, 'pending_review')  # a hint must not block gate 1
+
     def test_llm_retries_invalid_json_and_hallucinated_source(self):
         source = Source(source_id='x.R', path='x.R', kind='code', sha256='abc', text='library(lightgbm)')
         bad = Metadata(algorithm='LightGBM', evidence={'algorithm': [

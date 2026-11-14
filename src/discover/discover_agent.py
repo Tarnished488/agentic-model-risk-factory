@@ -421,6 +421,22 @@ def audit(output: Path, event: dict) -> None:
         stream.write(json.dumps({"time": now(), "node": "discover", **event}, ensure_ascii=False) + "\n")
 
 
+def documentation_dates(manifest: list[FileRecord]) -> str | None:
+    """Compare the newest code and documentation file dates: a freshness hint, not evidence."""
+    def newest(extensions):
+        files = [f for f in manifest if Path(f.path).suffix.lower() in extensions]
+        return max(files, key=lambda f: f.modified_at) if files else None
+    code, docs = newest(SOURCE_EXTENSIONS), newest(DOCUMENT_EXTENSIONS - SOURCE_EXTENSIONS)
+    if not code or not docs:
+        return None
+    gap = (datetime.fromisoformat(code.modified_at) - datetime.fromisoformat(docs.modified_at)).days
+    relation = (f"code is {gap} days newer than the documentation, which may be outdated" if gap > 0
+                else "documentation is as new as or newer than the code")
+    return (f"File dates: newest code {code.path} ({code.modified_at[:10]}), newest documentation {docs.path} "
+            f"({docs.modified_at[:10]}); {relation}. File-system dates reset on copy or git checkout, so this "
+            "is a hint for the reviewer, not evidence.")
+
+
 def run_discovery(input_root: Path, output: Path, use_llm: bool = False) -> Inventory:
     root = input_root.resolve()
     output = output.resolve()
@@ -484,6 +500,9 @@ def run_discovery(input_root: Path, output: Path, use_llm: bool = False) -> Inve
                     mode = "offline"
                     status = "needs_attention"
             validate_evidence(metadata, sources)
+            dates = documentation_dates(manifest)
+            if dates:
+                metadata.doc_reason = f"{metadata.doc_reason} {dates}".strip()
             if metadata.language == "mixed":
                 warnings.append("Mixed languages: confirm model grouping")
             if warnings:
@@ -535,6 +554,8 @@ def main() -> int:
     gate.add_argument("--reviewer", required=True)
     gate.add_argument("--decision", choices=["approve", "reject"], required=True)
     gate.add_argument("--notes", required=True)
+    gate.add_argument("--correct", action="append", default=[], metavar="FIELD=VALUE",
+                      help="Reviewer correction to an extracted field; repeatable")
     handoff = sub.add_parser("handoff")
     handoff.add_argument("review_file", type=Path)
     sub.add_parser("schema")
@@ -555,7 +576,8 @@ def main() -> int:
             print(f"Inventory: {args.output / 'inventory.json'}")
             return 1 if any(r.status == "needs_attention" for r in result.models) else 0
         if args.command == "review":
-            print(review(args.output, args.model_id, args.reviewer, args.decision, args.notes))
+            corrections = dict(item.split("=", 1) for item in args.correct if "=" in item)
+            print(review(args.output, args.model_id, args.reviewer, args.decision, args.notes, corrections))
         elif args.command == "handoff":
             print(json.dumps(load_document_input(args.review_file), ensure_ascii=False, indent=2))
         else:

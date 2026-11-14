@@ -255,7 +255,9 @@ def run_document(review_file: Path, output: Path, use_llm=False, caller=None,
                             "For limitations distinguish evidenced limits from unknowns and recommendations. "
                             "If multiple groups exist, do not assume this group is the entire workflow.",
                             {"sources": group, "group_index": group_index + 1, "group_count": len(groups),
-                             "inventory_hints": record.metadata.model_dump(), "human_feedback": feedback},
+                             "inventory_hints": record.metadata.model_dump(), "human_feedback": feedback,
+                             # Gate-1 reviewer fixes override the extracted hints; they are human, not source.
+                             "reviewer_corrections": (state["approvals"][0].get("corrections") or None)},
                             validate_section, budgeted_caller, logger(current_stage), cache_dir)
                         for field in ("claims", "unknowns", "recommendations"):
                             target = getattr(sections[key], field)

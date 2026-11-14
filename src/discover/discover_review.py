@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 from src.discover.discover_agent import (
-    Inventory, Record, atomic_json, audit, digest, file_sha256, now, output_lock,
+    Inventory, Metadata, Record, atomic_json, audit, digest, file_sha256, now, output_lock,
     read_sources, validate_evidence,
 )
 from src.workflow_state import shared_state
@@ -25,9 +25,18 @@ def check_sources(record: Record, root: Path) -> None:
         raise ValueError("Extracted source text changed; rerun Discover")
 
 
-def review(output: Path, model_id: str, reviewer: str, decision: str, notes: str) -> Path:
+CORRECTABLE = set(Metadata.model_fields) - {"evidence", "unknowns"}
+
+
+def review(output: Path, model_id: str, reviewer: str, decision: str, notes: str,
+           corrections: dict[str, str] | None = None) -> Path:
+    """Gate 1. Corrections are the reviewer's field fixes; the hash-locked record itself is never edited."""
     if not reviewer.strip() or not notes.strip() or decision not in {"approve", "reject"}:
         raise ValueError("Review requires a reviewer, notes and approve/reject decision")
+    corrections = {k: str(v).strip() for k, v in (corrections or {}).items() if str(v).strip()}
+    unknown = sorted(set(corrections) - CORRECTABLE)
+    if unknown:
+        raise ValueError(f"Cannot correct unknown fields: {unknown}")
     with output_lock(output):
         inventory = Inventory.model_validate_json((output / "inventory.json").read_text(encoding="utf-8"))
         record = next((r for r in inventory.models if r.model_id == model_id), None)
@@ -38,7 +47,9 @@ def review(output: Path, model_id: str, reviewer: str, decision: str, notes: str
         check_sources(record, Path(inventory.input_root))
         validate_evidence(record.metadata, record.sources)
         approval = {"reviewer": reviewer, "decision": decision, "notes": notes, "time": now(),
-                    "record_sha256": digest(record.model_dump()), "run_id": inventory.run_id}
+                    "record_sha256": digest(record.model_dump()), "run_id": inventory.run_id,
+                    "corrections": {field: {"extracted": getattr(record.metadata, field), "corrected": value}
+                                    for field, value in corrections.items()}}
         # Store each human action immutably; a new discovery run never inherits approval.
         path = output / "reviews" / inventory.run_id / model_id / (str(uuid.uuid4()) + ".json")
         atomic_json(path, {"approval": approval, "inventory_record": record.model_dump(),
