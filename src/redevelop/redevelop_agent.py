@@ -76,6 +76,13 @@ class ModelSpec(StrictModel):
     features: list[str] = Field(min_length=1)
     fitting: str
     evidence: list[Evidence] = Field(min_length=1)
+    target_mapping: dict[str, int] = Field(default_factory=dict)
+
+
+class MigrationSpec(StrictModel):
+    mode: Literal["inference"]
+    assets: list[str] = Field(min_length=1)
+    limitations: list[str] = Field(default_factory=list)
 
 
 class Scoring(StrictModel):
@@ -96,6 +103,7 @@ class IR(StrictModel):
     model: ModelSpec
     scoring: Scoring
     unknowns: list[str] = Field(default_factory=list)
+    migration: MigrationSpec | None = None
 
 
 class CodeDraft(StrictModel):
@@ -127,24 +135,29 @@ def ir_differences(ir: IR, baseline: IR) -> list[str]:
     for label, key in [("filters", lambda v: {(f.column, f.op, str(f.value), f.compare_as) for f in v.filters}),
                        ("imputation", lambda v: {(i.column, i.method, i.value) for i in v.imputation}),
                        ("model", lambda v: (v.model.family, v.model.link, v.model.intercept, v.model.target,
-                                            sorted(v.model.features)))]:
+                                            sorted(v.model.features), v.model.target_mapping)),
+                       ("migration", lambda v: v.migration.model_dump() if v.migration else None)]:
         if key(ir) != key(baseline):
             differences.append(f"{label}: generated {key(ir)} vs baseline {key(baseline)}")
     return differences
 
 
 # ---- generated-code safety: static check + isolated subprocess ----
-ALLOWED_IMPORTS = {"__future__", "argparse", "math", "pathlib", "typing", "numpy", "pandas", "scipy"}
+ALLOWED_IMPORTS = {"__future__", "argparse", "math", "pathlib", "typing", "numpy", "pandas", "scipy", "json"}
+
+TREE_BASELINES = {"gmsc_fastwalker", "gmsc_lightgbm", "german_xgboost"}
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "open", "input", "breakpoint", "globals", "vars"}
 
 
-def check_code(code: str, kind: Literal["model", "tests"] = "model") -> None:
+def check_code(code: str, kind: Literal["model", "tests"] = "model", trusted_tree=False) -> None:
     # shortcut: AST allow-list plus a subprocess without secrets, not an OS sandbox; use a container for untrusted models.
     try:
         tree = ast.parse(code)
     except SyntaxError as error:
         raise CheckError(f"Syntax error line {error.lineno}: {error.msg}") from None
     allowed = ALLOWED_IMPORTS | ({"pytest", "new_model"} if kind == "tests" else set())
+    if trusted_tree:
+        allowed = allowed | {"lightgbm", "xgboost"}
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             names = [alias.name for alias in node.names] if isinstance(node, ast.Import) else [node.module or ""]
@@ -473,9 +486,14 @@ def run_redevelop(state: dict, data_dir: Path, reference_dir: Path, output: Path
 
     baseline_ir = baseline_code = baseline_tests = None
     if baseline:
+        if baseline not in TREE_BASELINES | {"gmsc_probit"}:
+            raise ValueError("Unknown reviewed baseline")
         baseline_ir = IR.model_validate_json((BASELINES / f"{baseline}_ir.json").read_text(encoding="utf-8"))
-        baseline_code = (BASELINES / f"{baseline}.py").read_text(encoding="utf-8")
-        baseline_tests = (BASELINES / f"{baseline}_test.py").read_text(encoding="utf-8")
+        module_name = "tree_score" if baseline in TREE_BASELINES else baseline
+        baseline_code = (BASELINES / f"{module_name}.py").read_text(encoding="utf-8")
+        baseline_tests = (BASELINES / f"{module_name}_test.py").read_text(encoding="utf-8")
+        if baseline in TREE_BASELINES and not offline:
+            raise ValueError("Tree scoring migrations currently require the reviewed offline adapter; LLM generation is not verified")
     elif offline:
         raise ValueError("--offline needs --baseline: the hand-written IR, code and tests stand in for the LLM")
 
@@ -493,6 +511,28 @@ def run_redevelop(state: dict, data_dir: Path, reference_dir: Path, output: Path
         ir = generate_ir(record, state["document_text"], headers, caller, logger("ir"))
     if ir.data.file not in headers:
         raise ValueError(f"IR data file {ir.data.file} is not in {data_dir}")
+    runtime_assets = {}
+    if ir.migration:
+        if tier != ir.migration.mode:
+            raise ValueError("Portable scoring adapters must use inference parity")
+        manifest_path = reference_dir / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest.get("group") != record.group or manifest.get("mode") != "inference":
+            raise ValueError("Portable reference model group or migration mode differs")
+        source_hashes = {f.sha256 for f in record.source_files}
+        if manifest["source_sha256"] not in source_hashes or manifest["data_sha256"] != file_sha256(data_dir / ir.data.file):
+            raise ValueError("Reference source or data differs from approved model input")
+        for name in ir.migration.assets:
+            path = (reference_dir / name).resolve()
+            if not path.is_relative_to(reference_dir.resolve()) or file_sha256(path) != manifest["files"][name]:
+                raise ValueError("Portable reference asset changed: " + name)
+            runtime_assets[str(path)] = file_sha256(path)
+        for name in ("train_ids.csv", "holdout_predictions.csv"):
+            path = reference_dir / name
+            if file_sha256(path) != manifest["files"][name]:
+                raise ValueError("Reference split or predictions changed: " + name)
+            runtime_assets[str(path.resolve())] = file_sha256(path)
+        runtime_assets[str(manifest_path.resolve())] = file_sha256(manifest_path)
     columns = headers[ir.data.file]
     atomic_json(run_dir / "ir.json", ir.model_dump())
     differences = ir_differences(ir, baseline_ir) if baseline_ir else None
@@ -512,7 +552,7 @@ def run_redevelop(state: dict, data_dir: Path, reference_dir: Path, output: Path
             # 3.2 code generation (repairs the previous code when feedback exists)
             draft = baseline_code if offline else generate_code(ir, terms, columns, code, feedback, caller,
                                                                  logger("codegen"))
-            check_code(draft)
+            check_code(draft, trusted_tree=bool(offline and baseline in TREE_BASELINES))
             code = draft
             (round_dir / "new_model.py").write_text(code, encoding="utf-8")
             # 3.4 sandbox: unit tests on synthetic data, then the real run
@@ -537,6 +577,9 @@ def run_redevelop(state: dict, data_dir: Path, reference_dir: Path, output: Path
             break
 
     final_code = round_dir / "new_model.py"
+    for path, expected in runtime_assets.items():
+        if file_sha256(Path(path)) != expected:
+            raise ValueError("Runtime reference asset changed during reconstruction")
     final = {"model_id": record.model_id, "redevelop_run_id": run_id, "run_dir": str(run_dir.resolve()),
              "mode": "offline" if offline else "llm", "prompt_version": PROMPT_VERSION, "tier": tier, "time": now(),
              "ir_path": str((run_dir / "ir.json").resolve()), "ir_sha256": digest(ir.model_dump()),
@@ -551,6 +594,8 @@ def run_redevelop(state: dict, data_dir: Path, reference_dir: Path, output: Path
              "difference_report_path": None, "approvals": state.get("approvals", []),
              "document_review_path": state.get("document_review_path"),
              "document_run_id": state.get("document_run_id"), "document_sha256": state.get("document_sha256")}
+    final["runtime_assets_sha256"] = runtime_assets
+    final["migration_scope"] = "inference: Python preprocessing and scoring with R learned parameters" if ir.migration else "reestimation"
     if final["status"] == "needs_attention":
         (run_dir / "difference_report.md").write_text(difference_report(record.model_id, payload["history"]),
                                                        encoding="utf-8")
