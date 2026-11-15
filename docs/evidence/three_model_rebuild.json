@@ -1,0 +1,2730 @@
+{
+  "base_revision": "d3bc286",
+  "scope": "Hand-written inference migration: R learned parameters, Python raw preprocessing/scoring; no API or Python re-training",
+  "human_signoff": "pending; gates 1–3 in rehearsal are technical checks, gate 4 unapproved",
+  "results": {
+    "gmsc_fastwalker": {
+      "model_id": "MODEL-08CB8AC41630",
+      "next_action": [
+        "await",
+        "gate4"
+      ],
+      "error": null,
+      "scope": "inference migration; Python preprocessing/scoring, R learned parameters; not LLM generated",
+      "human_review": "pending — rehearsal gates are explicitly technical checks",
+      "parity": {
+        "round": 1,
+        "time": "2026-11-15T15:14:40.661565+00:00",
+        "tier": "inference",
+        "passed": true,
+        "metrics": {
+          "rows": 120000,
+          "max_abs_diff": 5.551115123125783e-16,
+          "mean_abs_diff": 5.3794996524488455e-17,
+          "spearman": 1.0,
+          "auc_reference": 0.858676027594554,
+          "auc_candidate": 0.858676027594554,
+          "ks_reference": 0.568754616656856,
+          "ks_candidate": 0.568754616656856,
+          "auc_diff": 0.0,
+          "ks_diff": 0.0
+        },
+        "checks": [
+          {
+            "metric": "max_abs_diff",
+            "value": 5.551115123125783e-16,
+            "op": "<=",
+            "limit": 1e-06,
+            "passed": true
+          }
+        ],
+        "row_counts": {
+          "train_rows": 30000,
+          "holdout_rows": 120000,
+          "filtered_rows": 150000,
+          "migration_mode": "inference; R learned parameters, Python preprocessing and scoring"
+        },
+        "code_sha256": "10f49db51ee029c76e5b9f38519a997bfb2049f2b61792e69bbcb4ef73f1c38a"
+      },
+      "runtime_asset_hashes": {
+        "preprocessing.json": "197a1ac2fb49836311b0382bbc1c38d21816bf567efcb339d3ddf03dceff5584",
+        "model.json": "df3b2c75c1ae69ca1b16c16f1b663a9a9107da7b79da00692772bb60a0569b8b",
+        "train_ids.csv": "6324b6d1d62cc2af101a3b15ec06cdddc67ad93d7e7afc10db0880bdf085e91d",
+        "holdout_predictions.csv": "278a1dfe484f985ff2f539f07dbf15567a0395954a0d79bef7baa3c6b14b2af8",
+        "manifest.json": "5e8fa27cdb62aae2d4d717f3c36666460e21ccc46e98a0da6d7b1bfa4c2347bb"
+      },
+      "validation": {
+        "schema_version": "2",
+        "model_id": "MODEL-08CB8AC41630",
+        "generated_at": "2026-11-15T15:14:40.685937+00:00",
+        "mode": "deterministic_metrics",
+        "policy": {
+          "version": "hackathon-v3",
+          "description": "Illustrative research thresholds; team review required. Not bank approval or regulatory certification.",
+          "min_auc": 0.65,
+          "min_ks": 0.2,
+          "max_ece": 0.1,
+          "max_feature_psi": 0.25,
+          "decision_threshold": 0.2,
+          "decision_threshold_note": "The legacy notebook's own cut-off; at 0.5 only 1-2% of applicants are flagged and the fairness check measures almost nothing.",
+          "min_group_size": 100,
+          "min_group_class_size": 20,
+          "max_tpr_gap": 0.2,
+          "max_demographic_parity_difference": 0.1,
+          "min_disparate_impact": 0.8,
+          "max_equalized_odds_difference": 0.2,
+          "fairness_note": "Disparate impact uses the favourable outcome (not flagged, i.e. approved); 0.8 is the four-fifths rule.",
+          "fairness_column": "age",
+          "fairness_split": 40,
+          "fairness_attributes": [
+            {
+              "column": "age",
+              "split": 40
+            },
+            {
+              "column": "sex"
+            }
+          ],
+          "fairness_attributes_note": "split: numeric column cut into two groups; no split: categorical. Attributes absent from a dataset are reported as unverifiable.",
+          "amber": {
+            "holdout_auc": 0.7,
+            "holdout_ks": 0.3,
+            "calibration_ece": 0.05,
+            "train_holdout_psi": 0.1,
+            "group_tpr_gap": 0.1,
+            "demographic_parity_difference": 0.05,
+            "disparate_impact": 0.9,
+            "equalized_odds_difference": 0.1
+          },
+          "amber_note": "Red = fails the limit above. Amber = passes but inside the warning band, or unverifiable. Green = clear pass.",
+          "expected_signs": {
+            "RevolvingUtilizationOfUnsecuredLines": "+",
+            "NumberOfTime30-59DaysPastDueNotWorse": "+",
+            "NumberOfTime60-89DaysPastDueNotWorse": "+",
+            "NumberOfTimes90DaysLate": "+",
+            "DebtRatio": "+",
+            "age": "-"
+          },
+          "expected_signs_note": "Credit-risk intuition: more utilisation, debt and past-due events raise default risk; older applicants default less in this population. A wrong sign is a conceptual-soundness finding, not proof of error."
+        },
+        "upstream_review_sha256": "06b68e078a8b1b6aeed8694cb7fcb97744038dad16ac630afe58f7bf7076cef2",
+        "metrics": {
+          "rows": 120000,
+          "events": 8062,
+          "event_rate": 0.06718333333333333,
+          "auc": 0.858676027594554,
+          "gini": 0.7173520551891079,
+          "ks": 0.568754616656856,
+          "brier": 0.05008008447000594,
+          "constant_rate_brier": 0.06266973305555555,
+          "log_loss": 0.18214391082333514,
+          "ece": 0.006621413050520492,
+          "calibration": [
+            {
+              "bin": 0,
+              "count": 103719,
+              "mean_probability": 0.02742502673854533,
+              "observed_rate": 0.029348528234942488
+            },
+            {
+              "bin": 1,
+              "count": 6227,
+              "mean_probability": 0.14324589902194682,
+              "observed_rate": 0.1674963867030673
+            },
+            {
+              "bin": 2,
+              "count": 3123,
+              "mean_probability": 0.24689165453164263,
+              "observed_rate": 0.27153378162023695
+            },
+            {
+              "bin": 3,
+              "count": 2288,
+              "mean_probability": 0.3464408697520486,
+              "observed_rate": 0.3291083916083916
+            },
+            {
+              "bin": 4,
+              "count": 1639,
+              "mean_probability": 0.44682588920437927,
+              "observed_rate": 0.3971934106162294
+            },
+            {
+              "bin": 5,
+              "count": 1194,
+              "mean_probability": 0.549507869890349,
+              "observed_rate": 0.5293132328308208
+            },
+            {
+              "bin": 6,
+              "count": 845,
+              "mean_probability": 0.647154846312774,
+              "observed_rate": 0.5349112426035503
+            },
+            {
+              "bin": 7,
+              "count": 567,
+              "mean_probability": 0.7482483591771999,
+              "observed_rate": 0.63668430335097
+            },
+            {
+              "bin": 8,
+              "count": 321,
+              "mean_probability": 0.8414731684657497,
+              "observed_rate": 0.6666666666666666
+            },
+            {
+              "bin": 9,
+              "count": 77,
+              "mean_probability": 0.9320581007352142,
+              "observed_rate": 0.8311688311688312
+            }
+          ]
+        },
+        "train_holdout_psi": {
+          "RevolvingUtilizationOfUnsecuredLines": 0.0006861094003910926,
+          "age": 0.00047622979322043925,
+          "NumberOfTime30-59DaysPastDueNotWorse": 1.925112265722032e-05,
+          "DebtRatio": 0.00041294734154596793,
+          "MonthlyIncome": 0.0002927599345920098,
+          "NumberOfOpenCreditLinesAndLoans": 0.0004021678756952645,
+          "NumberOfTimes90DaysLate": 1.73278012690934e-05,
+          "NumberRealEstateLoansOrLines": 0.0001349309658058338,
+          "NumberOfTime60-89DaysPastDueNotWorse": 1.73278012690934e-05,
+          "NumberOfDependents": 7.269504044344645e-05
+        },
+        "groups": [
+          {
+            "attribute": "age",
+            "group": "age < 40",
+            "rows": 25703,
+            "events": 2726,
+            "sufficient": true,
+            "selection_rate": 0.14651986149476715,
+            "approval_rate": 0.8534801385052329,
+            "tpr": 0.5531914893617021,
+            "fpr": 0.09827218522870697
+          },
+          {
+            "attribute": "age",
+            "group": "age >= 40",
+            "rows": 94297,
+            "events": 5336,
+            "sufficient": true,
+            "selection_rate": 0.06668292734657519,
+            "approval_rate": 0.9333170726534248,
+            "tpr": 0.4623313343328336,
+            "fpr": 0.04295140567214847
+          }
+        ],
+        "fairness": {
+          "age": {
+            "group_tpr_gap": 0.09086015502886857,
+            "demographic_parity_difference": 0.07983693414819196,
+            "disparate_impact": 0.9144589373885392,
+            "equalized_odds_difference": 0.09086015502886857
+          }
+        },
+        "findings": [
+          {
+            "check": "holdout_auc",
+            "result": "pass",
+            "severity": "high",
+            "value": 0.858676027594554,
+            "limit": 0.65,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "holdout_ks",
+            "result": "pass",
+            "severity": "high",
+            "value": 0.568754616656856,
+            "limit": 0.2,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "calibration_ece",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.006621413050520492,
+            "limit": 0.1,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:RevolvingUtilizationOfUnsecuredLines",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0006861094003910926,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:age",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.00047622979322043925,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfTime30-59DaysPastDueNotWorse",
+            "result": "pass",
+            "severity": "medium",
+            "value": 1.925112265722032e-05,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:DebtRatio",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.00041294734154596793,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:MonthlyIncome",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0002927599345920098,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfOpenCreditLinesAndLoans",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0004021678756952645,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfTimes90DaysLate",
+            "result": "pass",
+            "severity": "medium",
+            "value": 1.73278012690934e-05,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberRealEstateLoansOrLines",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0001349309658058338,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfTime60-89DaysPastDueNotWorse",
+            "result": "pass",
+            "severity": "medium",
+            "value": 1.73278012690934e-05,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfDependents",
+            "result": "pass",
+            "severity": "medium",
+            "value": 7.269504044344645e-05,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "age_group_tpr_gap",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.09086015502886857,
+            "limit": 0.2,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "age_demographic_parity_difference",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.07983693414819196,
+            "limit": 0.1,
+            "rating": "amber",
+            "recommendation": "Review flag-rate differences across groups; document justification."
+          },
+          {
+            "check": "age_disparate_impact",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.9144589373885392,
+            "limit": 0.8,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "age_equalized_odds_difference",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.09086015502886857,
+            "limit": 0.2,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "sex_group_fairness",
+            "result": "unverifiable",
+            "severity": "medium",
+            "reason": "Sensitive attribute 'sex' is absent from this dataset",
+            "rating": "amber",
+            "recommendation": "Supply the missing input or document why this check cannot apply."
+          },
+          {
+            "check": "coefficient_signs",
+            "result": "unverifiable",
+            "severity": "medium",
+            "reason": "No coefficients in the handoff (e.g. tree models); review drivers via SHAP instead",
+            "rating": "amber",
+            "recommendation": "Supply the missing input or document why this check cannot apply."
+          }
+        ],
+        "overall_rating": "amber",
+        "coefficients": {},
+        "curves": {
+          "roc": [
+            {
+              "fpr": 0.0,
+              "tpr": 0.0
+            },
+            {
+              "fpr": 0.0,
+              "tpr": 0.00012403870007442322
+            },
+            {
+              "fpr": 0.003823545176794297,
+              "tpr": 0.09575787645745473
+            },
+            {
+              "fpr": 0.008826314566992443,
+              "tpr": 0.1751426445050856
+            },
+            {
+              "fpr": 0.014427629580660723,
+              "tpr": 0.2462168196477301
+            },
+            {
+              "fpr": 0.02117243474066001,
+              "tpr": 0.3014140411808484
+            },
+            {
+              "fpr": 0.02823884650431489,
+              "tpr": 0.3521458695112875
+            },
+            {
+              "fpr": 0.035617931354857156,
+              "tpr": 0.3985363433391218
+            },
+            {
+              "fpr": 0.04323822115814111,
+              "tpr": 0.44157777226494666
+            },
+            {
+              "fpr": 0.05115331701477604,
+              "tpr": 0.48052592408831557
+            },
+            {
+              "fpr": 0.05956868981043077,
+              "tpr": 0.5125279087075167
+            },
+            {
+              "fpr": 0.06822526755882721,
+              "tpr": 0.5411808484247085
+            },
+            {
+              "fpr": 0.07718558487734281,
+              "tpr": 0.5656164723393698
+            },
+            {
+              "fpr": 0.08614590219585842,
+              "tpr": 0.5900520962540312
+            },
+            {
+              "fpr": 0.09532062391681109,
+              "tpr": 0.6115107913669064
+            },
+            {
+              "fpr": 0.10475441762404188,
+              "tpr": 0.6293723641776234
+            },
+            {
+              "fpr": 0.11424181243188193,
+              "tpr": 0.6464897047878938
+            },
+            {
+              "fpr": 0.1235773374546624,
+              "tpr": 0.6657157032994294
+            },
+            {
+              "fpr": 0.1333506047990852,
+              "tpr": 0.6788638055073183
+            },
+            {
+              "fpr": 0.14296306884168022,
+              "tpr": 0.6942446043165468
+            },
+            {
+              "fpr": 0.15253086530043417,
+              "tpr": 0.7102455966261474
+            },
+            {
+              "fpr": 0.16239346781253908,
+              "tpr": 0.722153311833292
+            },
+            {
+              "fpr": 0.1721667351569619,
+              "tpr": 0.7353014140411809
+            },
+            {
+              "fpr": 0.18198467008522576,
+              "tpr": 0.7478293227486976
+            },
+            {
+              "fpr": 0.1918830066644035,
+              "tpr": 0.7592408831555445
+            },
+            {
+              "fpr": 0.20187961192803158,
+              "tpr": 0.7692880178615729
+            },
+            {
+              "fpr": 0.21201021994318284,
+              "tpr": 0.7774745720664847
+            },
+            {
+              "fpr": 0.2219800246565063,
+              "tpr": 0.7878938228727363
+            },
+            {
+              "fpr": 0.23204809805428006,
+              "tpr": 0.7969486479781692
+            },
+            {
+              "fpr": 0.24218763958619952,
+              "tpr": 0.8050111634830067
+            },
+            {
+              "fpr": 0.25230038056781434,
+              "tpr": 0.8134457950880675
+            },
+            {
+              "fpr": 0.26254712430095234,
+              "tpr": 0.820019846192012
+            },
+            {
+              "fpr": 0.2727938680340903,
+              "tpr": 0.8265938972959563
+            },
+            {
+              "fpr": 0.28299594418338725,
+              "tpr": 0.8337881419002728
+            },
+            {
+              "fpr": 0.2933052225339027,
+              "tpr": 0.8394939221036963
+            },
+            {
+              "fpr": 0.3036859690185639,
+              "tpr": 0.8442073927065245
+            },
+            {
+              "fpr": 0.31394164626847004,
+              "tpr": 0.8506574051103944
+            },
+            {
+              "fpr": 0.3242419911022173,
+              "tpr": 0.8564872240138923
+            },
+            {
+              "fpr": 0.3345691364862692,
+              "tpr": 0.861944926817167
+            },
+            {
+              "fpr": 0.3447980131858708,
+              "tpr": 0.8687670553212602
+            },
+            {
+              "fpr": 0.3551698261537637,
+              "tpr": 0.8736045646241627
+            },
+            {
+              "fpr": 0.36557737318872946,
+              "tpr": 0.8779459191267676
+            },
+            {
+              "fpr": 0.3760027872572317,
+              "tpr": 0.8820391962292236
+            },
+            {
+              "fpr": 0.38634779967481997,
+              "tpr": 0.8872488216323493
+            },
+            {
+              "fpr": 0.39674641319301757,
+              "tpr": 0.8917142148350286
+            },
+            {
+              "fpr": 0.40716289374475156,
+              "tpr": 0.8959315306375589
+            },
+            {
+              "fpr": 0.4175883078132538,
+              "tpr": 0.9000248077400149
+            },
+            {
+              "fpr": 0.42799585484821956,
+              "tpr": 0.9043661622426197
+            },
+            {
+              "fpr": 0.4384838035340992,
+              "tpr": 0.9075911684445547
+            },
+            {
+              "fpr": 0.4488556165019922,
+              "tpr": 0.9124286777474572
+            },
+            {
+              "fpr": 0.45935249870464007,
+              "tpr": 0.9155296452493178
+            },
+            {
+              "fpr": 0.4697957798066787,
+              "tpr": 0.9193748449516249
+            },
+            {
+              "fpr": 0.4802837284925584,
+              "tpr": 0.9225998511535599
+            },
+            {
+              "fpr": 0.4906555414604513,
+              "tpr": 0.9274373604564624
+            },
+            {
+              "fpr": 0.5012238917972449,
+              "tpr": 0.9295460183577277
+            },
+            {
+              "fpr": 0.511729707516661,
+              "tpr": 0.9325229471595138
+            },
+            {
+              "fpr": 0.5223069913702229,
+              "tpr": 0.9345075663607045
+            },
+            {
+              "fpr": 0.532812807089639,
+              "tpr": 0.9374844951624907
+            },
+            {
+              "fpr": 0.5433722239096643,
+              "tpr": 0.9397171917638303
+            },
+            {
+              "fpr": 0.5538959066626168,
+              "tpr": 0.9424460431654677
+            },
+            {
+              "fpr": 0.5644195894155694,
+              "tpr": 0.9451748945671049
+            },
+            {
+              "fpr": 0.5750236738194358,
+              "tpr": 0.9467873976680724
+            },
+            {
+              "fpr": 0.5855920241562294,
+              "tpr": 0.9488960555693376
+            },
+            {
+              "fpr": 0.5961425074594865,
+              "tpr": 0.9512527908707517
+            },
+            {
+              "fpr": 0.6067197913130483,
+              "tpr": 0.9532374100719424
+            },
+            {
+              "fpr": 0.6173060086833783,
+              "tpr": 0.9550979905730588
+            },
+            {
+              "fpr": 0.6278654255034036,
+              "tpr": 0.9573306871743984
+            },
+            {
+              "fpr": 0.6384516428737337,
+              "tpr": 0.9591912676755148
+            },
+            {
+              "fpr": 0.649091461344673,
+              "tpr": 0.9603076159761845
+            },
+            {
+              "fpr": 0.6596776787150029,
+              "tpr": 0.9621681964773009
+            },
+            {
+              "fpr": 0.6702549625685648,
+              "tpr": 0.9641528156784916
+            },
+            {
+              "fpr": 0.6808858475227358,
+              "tpr": 0.9653932026792359
+            },
+            {
+              "fpr": 0.6915077989601387,
+              "tpr": 0.9667576283800545
+            },
+            {
+              "fpr": 0.7021118833640051,
+              "tpr": 0.9683701314810221
+            },
+            {
+              "fpr": 0.712698100734335,
+              "tpr": 0.9702307119821384
+            },
+            {
+              "fpr": 0.7232843181046651,
+              "tpr": 0.9720912924832548
+            },
+            {
+              "fpr": 0.7338884025085315,
+              "tpr": 0.9737037955842223
+            },
+            {
+              "fpr": 0.7444478193285569,
+              "tpr": 0.9759364921855619
+            },
+            {
+              "fpr": 0.7550429702156551,
+              "tpr": 0.9776730339866038
+            },
+            {
+              "fpr": 0.7656381211027533,
+              "tpr": 0.9794095757876458
+            },
+            {
+              "fpr": 0.7762243384730834,
+              "tpr": 0.9812701562887621
+            },
+            {
+              "fpr": 0.7868462899104861,
+              "tpr": 0.9826345819895808
+            },
+            {
+              "fpr": 0.7974950418981936,
+              "tpr": 0.9836268915901761
+            },
+            {
+              "fpr": 0.808134860369133,
+              "tpr": 0.9847432398908459
+            },
+            {
+              "fpr": 0.8187925458736086,
+              "tpr": 0.9856115107913669
+            },
+            {
+              "fpr": 0.8294680984116207,
+              "tpr": 0.986231704291739
+            },
+            {
+              "fpr": 0.8401704514999375,
+              "tpr": 0.9864797816918879
+            },
+            {
+              "fpr": 0.8508013364541085,
+              "tpr": 0.9877201686926321
+            },
+            {
+              "fpr": 0.861405420857975,
+              "tpr": 0.9893326717935996
+            },
+            {
+              "fpr": 0.8720273722953777,
+              "tpr": 0.9906970974944183
+            },
+            {
+              "fpr": 0.8827029248333899,
+              "tpr": 0.9913172909947904
+            },
+            {
+              "fpr": 0.8933427433043292,
+              "tpr": 0.9924336392954601
+            },
+            {
+              "fpr": 0.9040361628758777,
+              "tpr": 0.9928057553956835
+            },
+            {
+              "fpr": 0.9146759813468169,
+              "tpr": 0.9939221036963533
+            },
+            {
+              "fpr": 0.9253426003680609,
+              "tpr": 0.9946663358967998
+            },
+            {
+              "fpr": 0.9359288177383909,
+              "tpr": 0.9965269163979161
+            },
+            {
+              "fpr": 0.9466133037931712,
+              "tpr": 0.9970230711982139
+            },
+            {
+              "fpr": 0.9572977898479516,
+              "tpr": 0.9975192259985115
+            },
+            {
+              "fpr": 0.9679822759027319,
+              "tpr": 0.9980153807988092
+            },
+            {
+              "fpr": 0.9786667619575122,
+              "tpr": 0.9985115355991069
+            },
+            {
+              "fpr": 0.9893601815290607,
+              "tpr": 0.9988836516993302
+            },
+            {
+              "fpr": 1.0,
+              "tpr": 1.0
+            }
+          ],
+          "histogram_edges": [
+            0.0,
+            0.05,
+            0.1,
+            0.15000000000000002,
+            0.2,
+            0.25,
+            0.30000000000000004,
+            0.35000000000000003,
+            0.4,
+            0.45,
+            0.5,
+            0.55,
+            0.6000000000000001,
+            0.65,
+            0.7000000000000001,
+            0.75,
+            0.8,
+            0.8500000000000001,
+            0.9,
+            0.9500000000000001,
+            1.0
+          ],
+          "histogram_good": [
+            86162,
+            14513,
+            3117,
+            2067,
+            1298,
+            977,
+            881,
+            654,
+            567,
+            421,
+            292,
+            270,
+            231,
+            162,
+            121,
+            85,
+            66,
+            41,
+            11,
+            2
+          ],
+          "histogram_bad": [
+            1650,
+            1394,
+            548,
+            495,
+            438,
+            410,
+            409,
+            344,
+            322,
+            329,
+            309,
+            323,
+            234,
+            218,
+            180,
+            181,
+            136,
+            78,
+            47,
+            17
+          ]
+        },
+        "unknowns": [
+          "Business scope, representativeness and policy thresholds require human confirmation.",
+          "Train/holdout PSI is sample comparison, not temporal drift monitoring.",
+          "Group rates are exploratory; decision threshold is illustrative, not a lending policy.",
+          "Coverage matches IR filters; appropriateness of those exclusions requires review.",
+          "No production data, external validation or regulatory compliance certification.",
+          "No time variable in the data, so out-of-time back-testing and per-period metrics are not possible.",
+          "Original probability column 2 was good: this adapter explicitly returns bad.",
+          "Original CV index and pre-CV preprocessing retained; review resampling design.",
+          "Inference migration preserves R learned parameters; Python retraining and LLM code generation were not tested."
+        ],
+        "train_rows": 30000,
+        "raw_rows": 150000,
+        "status": "pending_validation_review",
+        "explanation": {
+          "summary": "Overall rating amber. Holdout AUC 0.859, KS 0.569 and ECE 0.0066 on 120000 rows. All rule checks with a verdict passed.",
+          "performance": "AUC 0.859 (Gini 0.717) and KS 0.569 measure ranking power; Brier 0.0501 versus 0.0627 for a constant prediction.",
+          "calibration": "Expected calibration error is 0.0066; see the calibration table for each bin.",
+          "stability": "Train/holdout PSI per feature: RevolvingUtilizationOfUnsecuredLines 0.0007, age 0.0005, NumberOfTime30-59DaysPastDueNotWorse 0.0000, DebtRatio 0.0004, MonthlyIncome 0.0003, NumberOfOpenCreditLinesAndLoans 0.0004, NumberOfTimes90DaysLate 0.0000, NumberRealEstateLoansOrLines 0.0001, NumberOfTime60-89DaysPastDueNotWorse 0.0000, NumberOfDependents 0.0001. This compares two samples of one split, not drift over time.",
+          "fairness": "age < 40: TPR 0.553, FPR 0.098, flag rate 0.147; age >= 40: TPR 0.462, FPR 0.043, flag rate 0.067. age: disparate impact 0.914, demographic parity difference 0.080, equalized odds difference 0.091",
+          "conceptual_soundness": "No coefficients were available for a sign check.",
+          "limitations": [
+            "Business scope, representativeness and policy thresholds require human confirmation.",
+            "Train/holdout PSI is sample comparison, not temporal drift monitoring.",
+            "Group rates are exploratory; decision threshold is illustrative, not a lending policy.",
+            "Coverage matches IR filters; appropriateness of those exclusions requires review.",
+            "No production data, external validation or regulatory compliance certification.",
+            "No time variable in the data, so out-of-time back-testing and per-period metrics are not possible.",
+            "Original probability column 2 was good: this adapter explicitly returns bad.",
+            "Original CV index and pre-CV preprocessing retained; review resampling design.",
+            "Inference migration preserves R learned parameters; Python retraining and LLM code generation were not tested.",
+            "Unverifiable: sex_group_fairness",
+            "Unverifiable: coefficient_signs"
+          ],
+          "recommendations": [
+            "Human reviewer to confirm business scope, thresholds and the listed unknowns."
+          ],
+          "conclusion": "conditional_pass",
+          "conclusion_reason": "Derived from the rule results: no failed checks; open items remain."
+        },
+        "explainer_mode": "template",
+        "explainer_error": null
+      },
+      "report": "./gmsc_fastwalker/report.html"
+    },
+    "gmsc_lightgbm": {
+      "model_id": "MODEL-D05BB473A58E",
+      "next_action": [
+        "await",
+        "gate4"
+      ],
+      "error": null,
+      "scope": "inference migration; Python preprocessing/scoring, R learned parameters; not LLM generated",
+      "human_review": "pending — rehearsal gates are explicitly technical checks",
+      "parity": {
+        "round": 1,
+        "time": "2026-11-15T15:14:45.018921+00:00",
+        "tier": "inference",
+        "passed": true,
+        "metrics": {
+          "rows": 45000,
+          "max_abs_diff": 5.551115123125783e-16,
+          "mean_abs_diff": 5.730245560460942e-17,
+          "spearman": 1.0,
+          "auc_reference": 0.8691237748260409,
+          "auc_candidate": 0.8691237748260409,
+          "ks_reference": 0.5785273365989224,
+          "ks_candidate": 0.5785273365989224,
+          "auc_diff": 0.0,
+          "ks_diff": 0.0
+        },
+        "checks": [
+          {
+            "metric": "max_abs_diff",
+            "value": 5.551115123125783e-16,
+            "op": "<=",
+            "limit": 1e-06,
+            "passed": true
+          }
+        ],
+        "row_counts": {
+          "train_rows": 105000,
+          "holdout_rows": 45000,
+          "filtered_rows": 150000,
+          "migration_mode": "inference; R learned parameters, Python preprocessing and scoring"
+        },
+        "code_sha256": "10f49db51ee029c76e5b9f38519a997bfb2049f2b61792e69bbcb4ef73f1c38a"
+      },
+      "runtime_asset_hashes": {
+        "preprocessing.json": "8579522e88fb4c6fb2408e5e803a212e0ea5c6c14317c84ecef432c7eee95f7d",
+        "model.txt": "c7c70d03f3cd0580529fee4e98c0adf0a92f0c4afd8f355d44eb0e6b8350e0d2",
+        "train_ids.csv": "5668c5c7e1c262da2cf974127eb866e0b7fcc4fd0f8f0914f14d3d7dae4df10f",
+        "holdout_predictions.csv": "ccfe117849b13dc79603f0dfe66fcb9bcfd60d7c7036eeadf2f62bcd2bf9ad80",
+        "manifest.json": "572e040a7c14f7868796e9bfe456f8915f97192a885a241760d63c799d1f43d7"
+      },
+      "validation": {
+        "schema_version": "2",
+        "model_id": "MODEL-D05BB473A58E",
+        "generated_at": "2026-11-15T15:14:45.041217+00:00",
+        "mode": "deterministic_metrics",
+        "policy": {
+          "version": "hackathon-v3",
+          "description": "Illustrative research thresholds; team review required. Not bank approval or regulatory certification.",
+          "min_auc": 0.65,
+          "min_ks": 0.2,
+          "max_ece": 0.1,
+          "max_feature_psi": 0.25,
+          "decision_threshold": 0.2,
+          "decision_threshold_note": "The legacy notebook's own cut-off; at 0.5 only 1-2% of applicants are flagged and the fairness check measures almost nothing.",
+          "min_group_size": 100,
+          "min_group_class_size": 20,
+          "max_tpr_gap": 0.2,
+          "max_demographic_parity_difference": 0.1,
+          "min_disparate_impact": 0.8,
+          "max_equalized_odds_difference": 0.2,
+          "fairness_note": "Disparate impact uses the favourable outcome (not flagged, i.e. approved); 0.8 is the four-fifths rule.",
+          "fairness_column": "age",
+          "fairness_split": 40,
+          "fairness_attributes": [
+            {
+              "column": "age",
+              "split": 40
+            },
+            {
+              "column": "sex"
+            }
+          ],
+          "fairness_attributes_note": "split: numeric column cut into two groups; no split: categorical. Attributes absent from a dataset are reported as unverifiable.",
+          "amber": {
+            "holdout_auc": 0.7,
+            "holdout_ks": 0.3,
+            "calibration_ece": 0.05,
+            "train_holdout_psi": 0.1,
+            "group_tpr_gap": 0.1,
+            "demographic_parity_difference": 0.05,
+            "disparate_impact": 0.9,
+            "equalized_odds_difference": 0.1
+          },
+          "amber_note": "Red = fails the limit above. Amber = passes but inside the warning band, or unverifiable. Green = clear pass.",
+          "expected_signs": {
+            "RevolvingUtilizationOfUnsecuredLines": "+",
+            "NumberOfTime30-59DaysPastDueNotWorse": "+",
+            "NumberOfTime60-89DaysPastDueNotWorse": "+",
+            "NumberOfTimes90DaysLate": "+",
+            "DebtRatio": "+",
+            "age": "-"
+          },
+          "expected_signs_note": "Credit-risk intuition: more utilisation, debt and past-due events raise default risk; older applicants default less in this population. A wrong sign is a conceptual-soundness finding, not proof of error."
+        },
+        "upstream_review_sha256": "057237997e9638253d8108d026a9a25adbe3251a1067a49ec5296390c857c036",
+        "metrics": {
+          "rows": 45000,
+          "events": 3013,
+          "event_rate": 0.06695555555555556,
+          "auc": 0.8691237748260409,
+          "gini": 0.7382475496520817,
+          "ks": 0.5785273365989224,
+          "brier": 0.048671679012397405,
+          "constant_rate_brier": 0.062472509135802476,
+          "log_loss": 0.17601328594493046,
+          "ece": 0.001997910589788693,
+          "calibration": [
+            {
+              "bin": 0,
+              "count": 37161,
+              "mean_probability": 0.024680113983839708,
+              "observed_rate": 0.024407308737655068
+            },
+            {
+              "bin": 1,
+              "count": 3543,
+              "mean_probability": 0.14030663842085986,
+              "observed_rate": 0.13265594129268982
+            },
+            {
+              "bin": 2,
+              "count": 1486,
+              "mean_probability": 0.24617161096595036,
+              "observed_rate": 0.24226110363391656
+            },
+            {
+              "bin": 3,
+              "count": 1111,
+              "mean_probability": 0.34591543021498233,
+              "observed_rate": 0.33663366336633666
+            },
+            {
+              "bin": 4,
+              "count": 673,
+              "mean_probability": 0.4457443735216686,
+              "observed_rate": 0.4101040118870728
+            },
+            {
+              "bin": 5,
+              "count": 474,
+              "mean_probability": 0.5480153623570965,
+              "observed_rate": 0.5527426160337553
+            },
+            {
+              "bin": 6,
+              "count": 374,
+              "mean_probability": 0.6461591453117923,
+              "observed_rate": 0.6283422459893048
+            },
+            {
+              "bin": 7,
+              "count": 162,
+              "mean_probability": 0.7371151140648502,
+              "observed_rate": 0.7222222222222222
+            },
+            {
+              "bin": 8,
+              "count": 16,
+              "mean_probability": 0.8272458468584019,
+              "observed_rate": 0.75
+            }
+          ]
+        },
+        "train_holdout_psi": {
+          "RevolvingUtilizationOfUnsecuredLines": 0.0003218152249164619,
+          "age": 0.00018940276112400505,
+          "NumberOfTime30-59DaysPastDueNotWorse": 9.838433671259723e-05,
+          "DebtRatio": 0.0001609785213125113,
+          "MonthlyIncome": 0.0003092907513188392,
+          "NumberOfOpenCreditLinesAndLoans": 0.0002727439745904541,
+          "NumberOfTimes90DaysLate": 5.379457865159388e-06,
+          "NumberRealEstateLoansOrLines": 5.9345949417156684e-05,
+          "NumberOfTime60-89DaysPastDueNotWorse": 5.379457865159388e-06,
+          "NumberOfDependents": 0.0001316112033602844
+        },
+        "groups": [
+          {
+            "attribute": "age",
+            "group": "age < 40",
+            "rows": 9559,
+            "events": 997,
+            "sufficient": true,
+            "selection_rate": 0.1697876346898211,
+            "approval_rate": 0.830212365310179,
+            "tpr": 0.6098294884653962,
+            "fpr": 0.11854706844195281
+          },
+          {
+            "attribute": "age",
+            "group": "age >= 40",
+            "rows": 35441,
+            "events": 2016,
+            "sufficient": true,
+            "selection_rate": 0.07542112242882537,
+            "approval_rate": 0.9245788775711746,
+            "tpr": 0.5099206349206349,
+            "fpr": 0.049214659685863874
+          }
+        ],
+        "fairness": {
+          "age": {
+            "group_tpr_gap": 0.09990885354476131,
+            "demographic_parity_difference": 0.09436651226099574,
+            "disparate_impact": 0.897935682341249,
+            "equalized_odds_difference": 0.09990885354476131
+          }
+        },
+        "findings": [
+          {
+            "check": "holdout_auc",
+            "result": "pass",
+            "severity": "high",
+            "value": 0.8691237748260409,
+            "limit": 0.65,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "holdout_ks",
+            "result": "pass",
+            "severity": "high",
+            "value": 0.5785273365989224,
+            "limit": 0.2,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "calibration_ece",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.001997910589788693,
+            "limit": 0.1,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:RevolvingUtilizationOfUnsecuredLines",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0003218152249164619,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:age",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.00018940276112400505,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfTime30-59DaysPastDueNotWorse",
+            "result": "pass",
+            "severity": "medium",
+            "value": 9.838433671259723e-05,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:DebtRatio",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0001609785213125113,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:MonthlyIncome",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0003092907513188392,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfOpenCreditLinesAndLoans",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0002727439745904541,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfTimes90DaysLate",
+            "result": "pass",
+            "severity": "medium",
+            "value": 5.379457865159388e-06,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberRealEstateLoansOrLines",
+            "result": "pass",
+            "severity": "medium",
+            "value": 5.9345949417156684e-05,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfTime60-89DaysPastDueNotWorse",
+            "result": "pass",
+            "severity": "medium",
+            "value": 5.379457865159388e-06,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:NumberOfDependents",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0001316112033602844,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "age_group_tpr_gap",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.09990885354476131,
+            "limit": 0.2,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "age_demographic_parity_difference",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.09436651226099574,
+            "limit": 0.1,
+            "rating": "amber",
+            "recommendation": "Review flag-rate differences across groups; document justification."
+          },
+          {
+            "check": "age_disparate_impact",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.897935682341249,
+            "limit": 0.8,
+            "rating": "amber",
+            "recommendation": "Approval-rate ratio is near or below the four-fifths rule; justify or mitigate."
+          },
+          {
+            "check": "age_equalized_odds_difference",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.09990885354476131,
+            "limit": 0.2,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "sex_group_fairness",
+            "result": "unverifiable",
+            "severity": "medium",
+            "reason": "Sensitive attribute 'sex' is absent from this dataset",
+            "rating": "amber",
+            "recommendation": "Supply the missing input or document why this check cannot apply."
+          },
+          {
+            "check": "coefficient_signs",
+            "result": "unverifiable",
+            "severity": "medium",
+            "reason": "No coefficients in the handoff (e.g. tree models); review drivers via SHAP instead",
+            "rating": "amber",
+            "recommendation": "Supply the missing input or document why this check cannot apply."
+          }
+        ],
+        "overall_rating": "amber",
+        "coefficients": {},
+        "curves": {
+          "roc": [
+            {
+              "fpr": 0.0,
+              "tpr": 0.0
+            },
+            {
+              "fpr": 0.0,
+              "tpr": 0.00033189512114171923
+            },
+            {
+              "fpr": 0.003477266773048801,
+              "tpr": 0.10089611682708265
+            },
+            {
+              "fpr": 0.008073927644270847,
+              "tpr": 0.18619316296050448
+            },
+            {
+              "fpr": 0.013789982613666135,
+              "tpr": 0.2558911384002655
+            },
+            {
+              "fpr": 0.020601614785528855,
+              "tpr": 0.3103219382675075
+            },
+            {
+              "fpr": 0.027365613165979946,
+              "tpr": 0.36541652837703287
+            },
+            {
+              "fpr": 0.034629766356253124,
+              "tpr": 0.41354132094258217
+            },
+            {
+              "fpr": 0.042036820920761185,
+              "tpr": 0.4596747427812811
+            },
+            {
+              "fpr": 0.0503965513135018,
+              "tpr": 0.4925323597743113
+            },
+            {
+              "fpr": 0.058613380332007525,
+              "tpr": 0.5273813474941919
+            },
+            {
+              "fpr": 0.06740181484745278,
+              "tpr": 0.5542648523066711
+            },
+            {
+              "fpr": 0.07638078452854455,
+              "tpr": 0.5784931961500166
+            },
+            {
+              "fpr": 0.08512158525257818,
+              "tpr": 0.6060404912047793
+            },
+            {
+              "fpr": 0.0941958225164932,
+              "tpr": 0.6289412545635579
+            },
+            {
+              "fpr": 0.10369876390311286,
+              "tpr": 0.6458679057417855
+            },
+            {
+              "fpr": 0.1133207897682616,
+              "tpr": 0.6611350813143047
+            },
+            {
+              "fpr": 0.12291899873770452,
+              "tpr": 0.6767341520079655
+            },
+            {
+              "fpr": 0.13232667254150093,
+              "tpr": 0.69498838367076
+            },
+            {
+              "fpr": 0.14206778288517874,
+              "tpr": 0.7085960836375705
+            },
+            {
+              "fpr": 0.15204706218591468,
+              "tpr": 0.7188848323929639
+            },
+            {
+              "fpr": 0.16174053873818087,
+              "tpr": 0.7331563226020578
+            },
+            {
+              "fpr": 0.1715292828732703,
+              "tpr": 0.7461002323265848
+            },
+            {
+              "fpr": 0.18155619596541786,
+              "tpr": 0.7557251908396947
+            },
+            {
+              "fpr": 0.1913687569962131,
+              "tpr": 0.76833720544308
+            },
+            {
+              "fpr": 0.20156238835830137,
+              "tpr": 0.7756388981081979
+            },
+            {
+              "fpr": 0.2116845690332722,
+              "tpr": 0.7839362761367408
+            },
+            {
+              "fpr": 0.22152094695977326,
+              "tpr": 0.7962163956189844
+            },
+            {
+              "fpr": 0.2315002262605092,
+              "tpr": 0.8065051443743777
+            },
+            {
+              "fpr": 0.24171767451830328,
+              "tpr": 0.8134749419183538
+            },
+            {
+              "fpr": 0.25181603829756827,
+              "tpr": 0.8221042150680385
+            },
+            {
+              "fpr": 0.2619382189725391,
+              "tpr": 0.8304015930965815
+            },
+            {
+              "fpr": 0.2721080334389216,
+              "tpr": 0.838035180882841
+            },
+            {
+              "fpr": 0.2823016648010098,
+              "tpr": 0.8453368735479588
+            },
+            {
+              "fpr": 0.2925191130588039,
+              "tpr": 0.8523066710919349
+            },
+            {
+              "fpr": 0.3025460261509515,
+              "tpr": 0.8619316296050448
+            },
+            {
+              "fpr": 0.31293019267868627,
+              "tpr": 0.8665781613010288
+            },
+            {
+              "fpr": 0.3229571057708338,
+              "tpr": 0.8762031198141388
+            },
+            {
+              "fpr": 0.3331745540286279,
+              "tpr": 0.8831729173581149
+            },
+            {
+              "fpr": 0.34351108676495107,
+              "tpr": 0.8884832392963823
+            },
+            {
+              "fpr": 0.3537999857098626,
+              "tpr": 0.8944573514769333
+            },
+            {
+              "fpr": 0.3641365184461857,
+              "tpr": 0.8997676734152008
+            },
+            {
+              "fpr": 0.3744968680782147,
+              "tpr": 0.9047461002323266
+            },
+            {
+              "fpr": 0.38476195012742037,
+              "tpr": 0.9110521075340192
+            },
+            {
+              "fpr": 0.3951937504465668,
+              "tpr": 0.9150348489877199
+            },
+            {
+              "fpr": 0.40560173387000736,
+              "tpr": 0.9193494855625622
+            },
+            {
+              "fpr": 0.41610498487627123,
+              "tpr": 0.9223365416528377
+            },
+            {
+              "fpr": 0.42658441898682925,
+              "tpr": 0.9256554928642549
+            },
+            {
+              "fpr": 0.4371353037845047,
+              "tpr": 0.9279787587122469
+            },
+            {
+              "fpr": 0.44771000547788603,
+              "tpr": 0.9299701294390973
+            },
+            {
+              "fpr": 0.4582370733798557,
+              "tpr": 0.932625290408231
+            },
+            {
+              "fpr": 0.4687641412818253,
+              "tpr": 0.9352804513773647
+            },
+            {
+              "fpr": 0.47945792745373567,
+              "tpr": 0.9356123464985064
+            },
+            {
+              "fpr": 0.48998499535570533,
+              "tpr": 0.9382675074676402
+            },
+            {
+              "fpr": 0.5005120632576749,
+              "tpr": 0.940922668436774
+            },
+            {
+              "fpr": 0.5110391311596446,
+              "tpr": 0.9435778294059077
+            },
+            {
+              "fpr": 0.521613832853026,
+              "tpr": 0.945569200132758
+            },
+            {
+              "fpr": 0.5321170838592898,
+              "tpr": 0.9485562562230335
+            },
+            {
+              "fpr": 0.5426441517612595,
+              "tpr": 0.9512114171921673
+            },
+            {
+              "fpr": 0.5532664872460523,
+              "tpr": 0.9525389976767341
+            },
+            {
+              "fpr": 0.5637697382523162,
+              "tpr": 0.9555260537670096
+            },
+            {
+              "fpr": 0.5744397075285207,
+              "tpr": 0.9561898440092931
+            },
+            {
+              "fpr": 0.5850144092219021,
+              "tpr": 0.9581812147361434
+            },
+            {
+              "fpr": 0.5955652940195775,
+              "tpr": 0.9605044805841354
+            },
+            {
+              "fpr": 0.6062114464000762,
+              "tpr": 0.9615001659475606
+            },
+            {
+              "fpr": 0.6167861480934576,
+              "tpr": 0.9634915366744109
+            },
+            {
+              "fpr": 0.6273132159954271,
+              "tpr": 0.9661466976435447
+            },
+            {
+              "fpr": 0.6380070021673375,
+              "tpr": 0.9664785927646864
+            },
+            {
+              "fpr": 0.6485817038607188,
+              "tpr": 0.9684699634915367
+            },
+            {
+              "fpr": 0.6591802224498059,
+              "tpr": 0.9701294390972452
+            },
+            {
+              "fpr": 0.6697549241431872,
+              "tpr": 0.9721208098240955
+            },
+            {
+              "fpr": 0.6804010765236859,
+              "tpr": 0.9731164951875207
+            },
+            {
+              "fpr": 0.6909757782170672,
+              "tpr": 0.975107865914371
+            },
+            {
+              "fpr": 0.7016457474932717,
+              "tpr": 0.9757716561566545
+            },
+            {
+              "fpr": 0.7122680829780647,
+              "tpr": 0.9770992366412213
+            },
+            {
+              "fpr": 0.7229856860456808,
+              "tpr": 0.9770992366412213
+            },
+            {
+              "fpr": 0.7336794722175911,
+              "tpr": 0.9774311317623631
+            },
+            {
+              "fpr": 0.7443256245980899,
+              "tpr": 0.9784268171257883
+            },
+            {
+              "fpr": 0.7550194107700002,
+              "tpr": 0.97875871224693
+            },
+            {
+              "fpr": 0.7655464786719699,
+              "tpr": 0.9814138732160638
+            },
+            {
+              "fpr": 0.7761688141567628,
+              "tpr": 0.9827414537006306
+            },
+            {
+              "fpr": 0.7867911496415557,
+              "tpr": 0.9840690341851974
+            },
+            {
+              "fpr": 0.7974611189177603,
+              "tpr": 0.9847328244274809
+            },
+            {
+              "fpr": 0.8081310881939648,
+              "tpr": 0.9853966146697644
+            },
+            {
+              "fpr": 0.8187296067830518,
+              "tpr": 0.9870560902754729
+            },
+            {
+              "fpr": 0.8293043084764332,
+              "tpr": 0.9890474610023232
+            },
+            {
+              "fpr": 0.8399980946483435,
+              "tpr": 0.989379356123465
+            },
+            {
+              "fpr": 0.8506204301331365,
+              "tpr": 0.9907069366080319
+            },
+            {
+              "fpr": 0.8612903994093409,
+              "tpr": 0.9913707268503154
+            },
+            {
+              "fpr": 0.8719603686855455,
+              "tpr": 0.9920345170925987
+            },
+            {
+              "fpr": 0.8826541548574559,
+              "tpr": 0.9923664122137404
+            },
+            {
+              "fpr": 0.8933003072379546,
+              "tpr": 0.9933620975771656
+            },
+            {
+              "fpr": 0.9039940934098649,
+              "tpr": 0.9936939926983074
+            },
+            {
+              "fpr": 0.9146402457903637,
+              "tpr": 0.9946896780617325
+            },
+            {
+              "fpr": 0.925334031962274,
+              "tpr": 0.9950215731828742
+            },
+            {
+              "fpr": 0.9359325505513612,
+              "tpr": 0.9966810487885828
+            },
+            {
+              "fpr": 0.9466501536189773,
+              "tpr": 0.9966810487885828
+            },
+            {
+              "fpr": 0.9573439397908876,
+              "tpr": 0.9970129439097245
+            },
+            {
+              "fpr": 0.9680139090670922,
+              "tpr": 0.997676734152008
+            },
+            {
+              "fpr": 0.9786600614475909,
+              "tpr": 0.9986724195154332
+            },
+            {
+              "fpr": 0.9893300307237954,
+              "tpr": 0.9993362097577165
+            },
+            {
+              "fpr": 1.0,
+              "tpr": 1.0
+            }
+          ],
+          "histogram_edges": [
+            0.0,
+            0.05,
+            0.1,
+            0.15000000000000002,
+            0.2,
+            0.25,
+            0.30000000000000004,
+            0.35000000000000003,
+            0.4,
+            0.45,
+            0.5,
+            0.55,
+            0.6000000000000001,
+            0.65,
+            0.7000000000000001,
+            0.75,
+            0.8,
+            0.8500000000000001,
+            0.9,
+            0.9500000000000001,
+            1.0
+          ],
+          "histogram_good": [
+            31130,
+            5124,
+            2022,
+            1051,
+            661,
+            465,
+            421,
+            316,
+            231,
+            166,
+            126,
+            86,
+            75,
+            64,
+            34,
+            11,
+            4,
+            0,
+            0,
+            0
+          ],
+          "histogram_bad": [
+            520,
+            387,
+            261,
+            209,
+            176,
+            184,
+            196,
+            178,
+            140,
+            136,
+            123,
+            139,
+            135,
+            100,
+            82,
+            35,
+            10,
+            2,
+            0,
+            0
+          ]
+        },
+        "unknowns": [
+          "Business scope, representativeness and policy thresholds require human confirmation.",
+          "Train/holdout PSI is sample comparison, not temporal drift monitoring.",
+          "Group rates are exploratory; decision threshold is illustrative, not a lending policy.",
+          "Coverage matches IR filters; appropriateness of those exclusions requires review.",
+          "No production data, external validation or regulatory compliance certification.",
+          "No time variable in the data, so out-of-time back-testing and per-period metrics are not possible.",
+          "Original notebook recomputes means within the scoring batch, so scores can depend on batch composition.",
+          "Age-zero correction is applied to training only, as in the original.",
+          "Inference migration preserves R learned parameters; Python retraining and LLM code generation were not tested."
+        ],
+        "train_rows": 105000,
+        "raw_rows": 150000,
+        "status": "pending_validation_review",
+        "explanation": {
+          "summary": "Overall rating amber. Holdout AUC 0.869, KS 0.579 and ECE 0.0020 on 45000 rows. All rule checks with a verdict passed.",
+          "performance": "AUC 0.869 (Gini 0.738) and KS 0.579 measure ranking power; Brier 0.0487 versus 0.0625 for a constant prediction.",
+          "calibration": "Expected calibration error is 0.0020; see the calibration table for each bin.",
+          "stability": "Train/holdout PSI per feature: RevolvingUtilizationOfUnsecuredLines 0.0003, age 0.0002, NumberOfTime30-59DaysPastDueNotWorse 0.0001, DebtRatio 0.0002, MonthlyIncome 0.0003, NumberOfOpenCreditLinesAndLoans 0.0003, NumberOfTimes90DaysLate 0.0000, NumberRealEstateLoansOrLines 0.0001, NumberOfTime60-89DaysPastDueNotWorse 0.0000, NumberOfDependents 0.0001. This compares two samples of one split, not drift over time.",
+          "fairness": "age < 40: TPR 0.610, FPR 0.119, flag rate 0.170; age >= 40: TPR 0.510, FPR 0.049, flag rate 0.075. age: disparate impact 0.898, demographic parity difference 0.094, equalized odds difference 0.100",
+          "conceptual_soundness": "No coefficients were available for a sign check.",
+          "limitations": [
+            "Business scope, representativeness and policy thresholds require human confirmation.",
+            "Train/holdout PSI is sample comparison, not temporal drift monitoring.",
+            "Group rates are exploratory; decision threshold is illustrative, not a lending policy.",
+            "Coverage matches IR filters; appropriateness of those exclusions requires review.",
+            "No production data, external validation or regulatory compliance certification.",
+            "No time variable in the data, so out-of-time back-testing and per-period metrics are not possible.",
+            "Original notebook recomputes means within the scoring batch, so scores can depend on batch composition.",
+            "Age-zero correction is applied to training only, as in the original.",
+            "Inference migration preserves R learned parameters; Python retraining and LLM code generation were not tested.",
+            "Unverifiable: sex_group_fairness",
+            "Unverifiable: coefficient_signs"
+          ],
+          "recommendations": [
+            "Human reviewer to confirm business scope, thresholds and the listed unknowns."
+          ],
+          "conclusion": "conditional_pass",
+          "conclusion_reason": "Derived from the rule results: no failed checks; open items remain."
+        },
+        "explainer_mode": "template",
+        "explainer_error": null
+      },
+      "report": "./gmsc_lightgbm/report.html"
+    },
+    "german_xgboost": {
+      "model_id": "MODEL-F2425A9248B3",
+      "next_action": [
+        "await",
+        "gate4"
+      ],
+      "error": null,
+      "scope": "inference migration; Python preprocessing/scoring, R learned parameters; not LLM generated",
+      "human_review": "pending — rehearsal gates are explicitly technical checks",
+      "parity": {
+        "round": 1,
+        "time": "2026-11-15T15:14:47.824259+00:00",
+        "tier": "inference",
+        "passed": true,
+        "metrics": {
+          "rows": 200,
+          "max_abs_diff": 2.9802322942806825e-08,
+          "mean_abs_diff": 5.960464662634057e-09,
+          "spearman": 1.0,
+          "auc_reference": 0.7271428571428571,
+          "auc_candidate": 0.7271428571428571,
+          "ks_reference": 0.36904761904761907,
+          "ks_candidate": 0.36904761904761907,
+          "auc_diff": 0.0,
+          "ks_diff": 0.0
+        },
+        "checks": [
+          {
+            "metric": "max_abs_diff",
+            "value": 2.9802322942806825e-08,
+            "op": "<=",
+            "limit": 1e-06,
+            "passed": true
+          }
+        ],
+        "row_counts": {
+          "train_rows": 800,
+          "holdout_rows": 200,
+          "filtered_rows": 1000,
+          "migration_mode": "inference; R learned parameters, Python preprocessing and scoring"
+        },
+        "code_sha256": "10f49db51ee029c76e5b9f38519a997bfb2049f2b61792e69bbcb4ef73f1c38a"
+      },
+      "runtime_asset_hashes": {
+        "preprocessing.json": "5d1bb6b6cdee0a47d362523a406f5c413f81a3b43bdbad19a81de6e35378c26d",
+        "model.json": "478d72b57941fe966da7ea52710689c68f4a5af68151de8f5857d75e061a61fb",
+        "train_ids.csv": "7627d9c5beb2bbfdf7f65e7e5180921008f13567b4874c60ae5d1003b532108c",
+        "holdout_predictions.csv": "3618e1012f0b63862b7fe434bf156d923cd2a137af5251e3fbc0dedcd738aca8",
+        "manifest.json": "ee4722c626c3e74b16efa1a8d566184304405bd11a1ae220f02294f23ad8fa41"
+      },
+      "validation": {
+        "schema_version": "2",
+        "model_id": "MODEL-F2425A9248B3",
+        "generated_at": "2026-11-15T15:14:47.833334+00:00",
+        "mode": "deterministic_metrics",
+        "policy": {
+          "version": "hackathon-v3-german",
+          "description": "Illustrative research thresholds; team review required. Not bank approval or regulatory certification.",
+          "min_auc": 0.65,
+          "min_ks": 0.2,
+          "max_ece": 0.1,
+          "max_feature_psi": 0.25,
+          "decision_threshold": 0.2,
+          "decision_threshold_note": "The legacy notebook's own cut-off; at 0.5 only 1-2% of applicants are flagged and the fairness check measures almost nothing.",
+          "min_group_size": 100,
+          "min_group_class_size": 20,
+          "max_tpr_gap": 0.2,
+          "max_demographic_parity_difference": 0.1,
+          "min_disparate_impact": 0.8,
+          "max_equalized_odds_difference": 0.2,
+          "fairness_note": "Disparate impact uses the favourable outcome (not flagged, i.e. approved); 0.8 is the four-fifths rule.",
+          "fairness_column": "Age",
+          "fairness_split": 40,
+          "fairness_attributes": [
+            {
+              "column": "Age",
+              "split": 40
+            },
+            {
+              "column": "Sex"
+            }
+          ],
+          "fairness_attributes_note": "split: numeric column cut into two groups; no split: categorical. Attributes absent from a dataset are reported as unverifiable.",
+          "amber": {
+            "holdout_auc": 0.7,
+            "holdout_ks": 0.3,
+            "calibration_ece": 0.05,
+            "train_holdout_psi": 0.1,
+            "group_tpr_gap": 0.1,
+            "demographic_parity_difference": 0.05,
+            "disparate_impact": 0.9,
+            "equalized_odds_difference": 0.1
+          },
+          "amber_note": "Red = fails the limit above. Amber = passes but inside the warning band, or unverifiable. Green = clear pass.",
+          "expected_signs": {},
+          "expected_signs_note": "Credit-risk intuition: more utilisation, debt and past-due events raise default risk; older applicants default less in this population. A wrong sign is a conceptual-soundness finding, not proof of error."
+        },
+        "upstream_review_sha256": "f0c8d2c9c29539c806370db1df2889c5d4cd2cb1f4029a7fe0577d4f58c8d434",
+        "metrics": {
+          "rows": 200,
+          "events": 60,
+          "event_rate": 0.3,
+          "auc": 0.7271428571428571,
+          "gini": 0.4542857142857142,
+          "ks": 0.36904761904761907,
+          "brier": 0.19469925709998429,
+          "constant_rate_brier": 0.21,
+          "log_loss": 0.5721690470662144,
+          "ece": 0.09126952320337298,
+          "calibration": [
+            {
+              "bin": 0,
+              "count": 20,
+              "mean_probability": 0.0759069591760635,
+              "observed_rate": 0.1
+            },
+            {
+              "bin": 1,
+              "count": 50,
+              "mean_probability": 0.15336692214012143,
+              "observed_rate": 0.16
+            },
+            {
+              "bin": 2,
+              "count": 25,
+              "mean_probability": 0.2479358983039856,
+              "observed_rate": 0.24
+            },
+            {
+              "bin": 3,
+              "count": 15,
+              "mean_probability": 0.3475702325503031,
+              "observed_rate": 0.2
+            },
+            {
+              "bin": 4,
+              "count": 10,
+              "mean_probability": 0.46035261154174806,
+              "observed_rate": 0.3
+            },
+            {
+              "bin": 5,
+              "count": 32,
+              "mean_probability": 0.5555034130811691,
+              "observed_rate": 0.34375
+            },
+            {
+              "bin": 6,
+              "count": 23,
+              "mean_probability": 0.641412924165311,
+              "observed_rate": 0.4782608695652174
+            },
+            {
+              "bin": 7,
+              "count": 21,
+              "mean_probability": 0.7418363349778312,
+              "observed_rate": 0.6666666666666666
+            },
+            {
+              "bin": 8,
+              "count": 4,
+              "mean_probability": 0.8294358402490616,
+              "observed_rate": 0.5
+            }
+          ]
+        },
+        "train_holdout_psi": {
+          "Age": 0.021772439650506882,
+          "Job": 0.008478121062350338,
+          "Housing": 0.029445357636073085,
+          "Saving accounts": 0.014488288724347941,
+          "Checking account": 0.006731351855854047,
+          "Credit amount": 0.0587449193460339,
+          "Duration": 0.03666368746382419,
+          "Purpose": 0.022428271936844865
+        },
+        "groups": [
+          {
+            "attribute": "Age",
+            "group": "Age < 40",
+            "rows": 138,
+            "events": 46,
+            "sufficient": true,
+            "selection_rate": 0.7028985507246377,
+            "approval_rate": 0.2971014492753623,
+            "tpr": 0.8478260869565217,
+            "fpr": 0.6304347826086957
+          },
+          {
+            "attribute": "Age",
+            "group": "Age >= 40",
+            "rows": 62,
+            "events": 14,
+            "sufficient": false,
+            "selection_rate": 0.532258064516129,
+            "approval_rate": 0.467741935483871,
+            "tpr": 0.7857142857142857,
+            "fpr": 0.4583333333333333
+          },
+          {
+            "attribute": "Sex",
+            "group": "female",
+            "rows": 65,
+            "events": 22,
+            "sufficient": false,
+            "selection_rate": 0.5692307692307692,
+            "approval_rate": 0.4307692307692308,
+            "tpr": 0.7272727272727273,
+            "fpr": 0.4883720930232558
+          },
+          {
+            "attribute": "Sex",
+            "group": "male",
+            "rows": 135,
+            "events": 38,
+            "sufficient": true,
+            "selection_rate": 0.6888888888888889,
+            "approval_rate": 0.3111111111111111,
+            "tpr": 0.8947368421052632,
+            "fpr": 0.6082474226804123
+          }
+        ],
+        "fairness": {},
+        "findings": [
+          {
+            "check": "holdout_auc",
+            "result": "pass",
+            "severity": "high",
+            "value": 0.7271428571428571,
+            "limit": 0.65,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "holdout_ks",
+            "result": "pass",
+            "severity": "high",
+            "value": 0.36904761904761907,
+            "limit": 0.2,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "calibration_ece",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.09126952320337298,
+            "limit": 0.1,
+            "rating": "amber",
+            "recommendation": "Recalibrate on a holdout (e.g. isotonic or Platt) and review sparse high-score bins."
+          },
+          {
+            "check": "train_holdout_psi:Age",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.021772439650506882,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:Job",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.008478121062350338,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:Housing",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.029445357636073085,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:Saving accounts",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.014488288724347941,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:Checking account",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.006731351855854047,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:Credit amount",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.0587449193460339,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:Duration",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.03666368746382419,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "train_holdout_psi:Purpose",
+            "result": "pass",
+            "severity": "medium",
+            "value": 0.022428271936844865,
+            "limit": 0.25,
+            "rating": "green",
+            "recommendation": "No action; keep under periodic monitoring."
+          },
+          {
+            "check": "Age_group_tpr_gap",
+            "result": "unverifiable",
+            "severity": "medium",
+            "reason": "Fewer than two groups, or a group below the minimum size or class support",
+            "rating": "amber",
+            "recommendation": "Supply the missing input or document why this check cannot apply."
+          },
+          {
+            "check": "Sex_group_tpr_gap",
+            "result": "unverifiable",
+            "severity": "medium",
+            "reason": "Fewer than two groups, or a group below the minimum size or class support",
+            "rating": "amber",
+            "recommendation": "Supply the missing input or document why this check cannot apply."
+          },
+          {
+            "check": "coefficient_signs",
+            "result": "unverifiable",
+            "severity": "medium",
+            "reason": "No coefficients in the handoff (e.g. tree models); review drivers via SHAP instead",
+            "rating": "amber",
+            "recommendation": "Supply the missing input or document why this check cannot apply."
+          }
+        ],
+        "overall_rating": "amber",
+        "coefficients": {},
+        "curves": {
+          "roc": [
+            {
+              "fpr": 0.0,
+              "tpr": 0.0
+            },
+            {
+              "fpr": 0.007142857142857143,
+              "tpr": 0.0
+            },
+            {
+              "fpr": 0.007142857142857143,
+              "tpr": 0.016666666666666666
+            },
+            {
+              "fpr": 0.014285714285714285,
+              "tpr": 0.03333333333333333
+            },
+            {
+              "fpr": 0.014285714285714285,
+              "tpr": 0.06666666666666667
+            },
+            {
+              "fpr": 0.02142857142857143,
+              "tpr": 0.08333333333333333
+            },
+            {
+              "fpr": 0.02142857142857143,
+              "tpr": 0.11666666666666667
+            },
+            {
+              "fpr": 0.02142857142857143,
+              "tpr": 0.15
+            },
+            {
+              "fpr": 0.02142857142857143,
+              "tpr": 0.18333333333333332
+            },
+            {
+              "fpr": 0.03571428571428571,
+              "tpr": 0.18333333333333332
+            },
+            {
+              "fpr": 0.04285714285714286,
+              "tpr": 0.2
+            },
+            {
+              "fpr": 0.05,
+              "tpr": 0.21666666666666667
+            },
+            {
+              "fpr": 0.05,
+              "tpr": 0.25
+            },
+            {
+              "fpr": 0.05714285714285714,
+              "tpr": 0.26666666666666666
+            },
+            {
+              "fpr": 0.07142857142857142,
+              "tpr": 0.26666666666666666
+            },
+            {
+              "fpr": 0.07857142857142857,
+              "tpr": 0.2833333333333333
+            },
+            {
+              "fpr": 0.07857142857142857,
+              "tpr": 0.31666666666666665
+            },
+            {
+              "fpr": 0.08571428571428572,
+              "tpr": 0.3333333333333333
+            },
+            {
+              "fpr": 0.08571428571428572,
+              "tpr": 0.36666666666666664
+            },
+            {
+              "fpr": 0.09285714285714286,
+              "tpr": 0.38333333333333336
+            },
+            {
+              "fpr": 0.10714285714285714,
+              "tpr": 0.38333333333333336
+            },
+            {
+              "fpr": 0.11428571428571428,
+              "tpr": 0.4
+            },
+            {
+              "fpr": 0.12142857142857143,
+              "tpr": 0.4166666666666667
+            },
+            {
+              "fpr": 0.1357142857142857,
+              "tpr": 0.4166666666666667
+            },
+            {
+              "fpr": 0.1357142857142857,
+              "tpr": 0.45
+            },
+            {
+              "fpr": 0.15,
+              "tpr": 0.45
+            },
+            {
+              "fpr": 0.16428571428571428,
+              "tpr": 0.45
+            },
+            {
+              "fpr": 0.17142857142857143,
+              "tpr": 0.4666666666666667
+            },
+            {
+              "fpr": 0.17857142857142858,
+              "tpr": 0.48333333333333334
+            },
+            {
+              "fpr": 0.19285714285714287,
+              "tpr": 0.48333333333333334
+            },
+            {
+              "fpr": 0.20714285714285716,
+              "tpr": 0.48333333333333334
+            },
+            {
+              "fpr": 0.20714285714285716,
+              "tpr": 0.5166666666666667
+            },
+            {
+              "fpr": 0.21428571428571427,
+              "tpr": 0.5333333333333333
+            },
+            {
+              "fpr": 0.22142857142857142,
+              "tpr": 0.55
+            },
+            {
+              "fpr": 0.22857142857142856,
+              "tpr": 0.5666666666666667
+            },
+            {
+              "fpr": 0.2357142857142857,
+              "tpr": 0.5833333333333334
+            },
+            {
+              "fpr": 0.24285714285714285,
+              "tpr": 0.6
+            },
+            {
+              "fpr": 0.25,
+              "tpr": 0.6166666666666667
+            },
+            {
+              "fpr": 0.2642857142857143,
+              "tpr": 0.6166666666666667
+            },
+            {
+              "fpr": 0.2714285714285714,
+              "tpr": 0.6333333333333333
+            },
+            {
+              "fpr": 0.2857142857142857,
+              "tpr": 0.6333333333333333
+            },
+            {
+              "fpr": 0.3,
+              "tpr": 0.6333333333333333
+            },
+            {
+              "fpr": 0.30714285714285716,
+              "tpr": 0.65
+            },
+            {
+              "fpr": 0.3142857142857143,
+              "tpr": 0.6666666666666666
+            },
+            {
+              "fpr": 0.32142857142857145,
+              "tpr": 0.6833333333333333
+            },
+            {
+              "fpr": 0.3357142857142857,
+              "tpr": 0.6833333333333333
+            },
+            {
+              "fpr": 0.35,
+              "tpr": 0.6833333333333333
+            },
+            {
+              "fpr": 0.36428571428571427,
+              "tpr": 0.6833333333333333
+            },
+            {
+              "fpr": 0.37142857142857144,
+              "tpr": 0.7
+            },
+            {
+              "fpr": 0.38571428571428573,
+              "tpr": 0.7
+            },
+            {
+              "fpr": 0.4,
+              "tpr": 0.7
+            },
+            {
+              "fpr": 0.4142857142857143,
+              "tpr": 0.7
+            },
+            {
+              "fpr": 0.42142857142857143,
+              "tpr": 0.7166666666666667
+            },
+            {
+              "fpr": 0.42857142857142855,
+              "tpr": 0.7333333333333333
+            },
+            {
+              "fpr": 0.44285714285714284,
+              "tpr": 0.7333333333333333
+            },
+            {
+              "fpr": 0.45,
+              "tpr": 0.75
+            },
+            {
+              "fpr": 0.45714285714285713,
+              "tpr": 0.7666666666666667
+            },
+            {
+              "fpr": 0.4714285714285714,
+              "tpr": 0.7666666666666667
+            },
+            {
+              "fpr": 0.4785714285714286,
+              "tpr": 0.7833333333333333
+            },
+            {
+              "fpr": 0.4928571428571429,
+              "tpr": 0.7833333333333333
+            },
+            {
+              "fpr": 0.5,
+              "tpr": 0.8
+            },
+            {
+              "fpr": 0.5142857142857142,
+              "tpr": 0.8
+            },
+            {
+              "fpr": 0.5214285714285715,
+              "tpr": 0.8166666666666667
+            },
+            {
+              "fpr": 0.5357142857142857,
+              "tpr": 0.8166666666666667
+            },
+            {
+              "fpr": 0.55,
+              "tpr": 0.8166666666666667
+            },
+            {
+              "fpr": 0.5642857142857143,
+              "tpr": 0.8166666666666667
+            },
+            {
+              "fpr": 0.5714285714285714,
+              "tpr": 0.8333333333333334
+            },
+            {
+              "fpr": 0.5857142857142857,
+              "tpr": 0.8333333333333334
+            },
+            {
+              "fpr": 0.5857142857142857,
+              "tpr": 0.8666666666666667
+            },
+            {
+              "fpr": 0.6,
+              "tpr": 0.8666666666666667
+            },
+            {
+              "fpr": 0.6142857142857143,
+              "tpr": 0.8666666666666667
+            },
+            {
+              "fpr": 0.6285714285714286,
+              "tpr": 0.8666666666666667
+            },
+            {
+              "fpr": 0.6357142857142857,
+              "tpr": 0.8833333333333333
+            },
+            {
+              "fpr": 0.65,
+              "tpr": 0.8833333333333333
+            },
+            {
+              "fpr": 0.6642857142857143,
+              "tpr": 0.8833333333333333
+            },
+            {
+              "fpr": 0.6785714285714286,
+              "tpr": 0.8833333333333333
+            },
+            {
+              "fpr": 0.6857142857142857,
+              "tpr": 0.9
+            },
+            {
+              "fpr": 0.7,
+              "tpr": 0.9
+            },
+            {
+              "fpr": 0.7071428571428572,
+              "tpr": 0.9166666666666666
+            },
+            {
+              "fpr": 0.7142857142857143,
+              "tpr": 0.9333333333333333
+            },
+            {
+              "fpr": 0.7214285714285714,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.7357142857142858,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.75,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.7642857142857142,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.7785714285714286,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.7928571428571428,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.8071428571428572,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.8214285714285714,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.8357142857142857,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.85,
+              "tpr": 0.95
+            },
+            {
+              "fpr": 0.8571428571428571,
+              "tpr": 0.9666666666666667
+            },
+            {
+              "fpr": 0.8714285714285714,
+              "tpr": 0.9666666666666667
+            },
+            {
+              "fpr": 0.8857142857142857,
+              "tpr": 0.9666666666666667
+            },
+            {
+              "fpr": 0.9,
+              "tpr": 0.9666666666666667
+            },
+            {
+              "fpr": 0.9142857142857143,
+              "tpr": 0.9666666666666667
+            },
+            {
+              "fpr": 0.9214285714285714,
+              "tpr": 0.9833333333333333
+            },
+            {
+              "fpr": 0.9357142857142857,
+              "tpr": 0.9833333333333333
+            },
+            {
+              "fpr": 0.95,
+              "tpr": 0.9833333333333333
+            },
+            {
+              "fpr": 0.9642857142857143,
+              "tpr": 0.9833333333333333
+            },
+            {
+              "fpr": 0.9714285714285714,
+              "tpr": 1.0
+            },
+            {
+              "fpr": 0.9857142857142858,
+              "tpr": 1.0
+            },
+            {
+              "fpr": 1.0,
+              "tpr": 1.0
+            }
+          ],
+          "histogram_edges": [
+            0.0,
+            0.05,
+            0.1,
+            0.15000000000000002,
+            0.2,
+            0.25,
+            0.30000000000000004,
+            0.35000000000000003,
+            0.4,
+            0.45,
+            0.5,
+            0.55,
+            0.6000000000000001,
+            0.65,
+            0.7000000000000001,
+            0.75,
+            0.8,
+            0.8500000000000001,
+            0.9,
+            0.9500000000000001,
+            1.0
+          ],
+          "histogram_good": [
+            0,
+            18,
+            22,
+            20,
+            10,
+            9,
+            7,
+            5,
+            3,
+            4,
+            11,
+            10,
+            9,
+            3,
+            6,
+            1,
+            2,
+            0,
+            0,
+            0
+          ],
+          "histogram_bad": [
+            0,
+            2,
+            3,
+            5,
+            2,
+            4,
+            2,
+            1,
+            0,
+            3,
+            5,
+            6,
+            6,
+            5,
+            6,
+            8,
+            2,
+            0,
+            0,
+            0
+          ]
+        },
+        "unknowns": [
+          "Business scope, representativeness and policy thresholds require human confirmation.",
+          "Train/holdout PSI is sample comparison, not temporal drift monitoring.",
+          "Group rates are exploratory; decision threshold is illustrative, not a lending policy.",
+          "Coverage matches IR filters; appropriateness of those exclusions requires review.",
+          "No production data, external validation or regulatory compliance certification.",
+          "No time variable in the data, so out-of-time back-testing and per-period metrics are not possible.",
+          "High-loan quantile is calculated before splitting in the original; review preprocessing look-ahead.",
+          "SMOTE is preserved in R training, not applied to held-out Python scoring.",
+          "Original reported AUC used the wrong event direction; bad is explicitly mapped to 1.",
+          "Inference migration preserves R learned parameters; Python retraining and LLM code generation were not tested."
+        ],
+        "train_rows": 800,
+        "raw_rows": 1000,
+        "status": "pending_validation_review",
+        "explanation": {
+          "summary": "Overall rating amber. Holdout AUC 0.727, KS 0.369 and ECE 0.0913 on 200 rows. All rule checks with a verdict passed.",
+          "performance": "AUC 0.727 (Gini 0.454) and KS 0.369 measure ranking power; Brier 0.1947 versus 0.2100 for a constant prediction.",
+          "calibration": "Expected calibration error is 0.0913; see the calibration table for each bin.",
+          "stability": "Train/holdout PSI per feature: Age 0.0218, Job 0.0085, Housing 0.0294, Saving accounts 0.0145, Checking account 0.0067, Credit amount 0.0587, Duration 0.0367, Purpose 0.0224. This compares two samples of one split, not drift over time.",
+          "fairness": "Age < 40: TPR 0.848, FPR 0.630, flag rate 0.703; Age >= 40: TPR 0.786, FPR 0.458, flag rate 0.532; female: TPR 0.727, FPR 0.488, flag rate 0.569; male: TPR 0.895, FPR 0.608, flag rate 0.689",
+          "conceptual_soundness": "No coefficients were available for a sign check.",
+          "limitations": [
+            "Business scope, representativeness and policy thresholds require human confirmation.",
+            "Train/holdout PSI is sample comparison, not temporal drift monitoring.",
+            "Group rates are exploratory; decision threshold is illustrative, not a lending policy.",
+            "Coverage matches IR filters; appropriateness of those exclusions requires review.",
+            "No production data, external validation or regulatory compliance certification.",
+            "No time variable in the data, so out-of-time back-testing and per-period metrics are not possible.",
+            "High-loan quantile is calculated before splitting in the original; review preprocessing look-ahead.",
+            "SMOTE is preserved in R training, not applied to held-out Python scoring.",
+            "Original reported AUC used the wrong event direction; bad is explicitly mapped to 1.",
+            "Inference migration preserves R learned parameters; Python retraining and LLM code generation were not tested.",
+            "Unverifiable: Age_group_tpr_gap",
+            "Unverifiable: Sex_group_tpr_gap",
+            "Unverifiable: coefficient_signs"
+          ],
+          "recommendations": [
+            "Human reviewer to confirm business scope, thresholds and the listed unknowns."
+          ],
+          "conclusion": "conditional_pass",
+          "conclusion_reason": "Derived from the rule results: no failed checks; open items remain."
+        },
+        "explainer_mode": "template",
+        "explainer_error": null
+      },
+      "report": "./german_xgboost/report.html"
+    }
+  },
+  "source_hashes": {
+    "src/redevelop/baselines/tree_score_test.py": "981e2809624f41d74e33e42483f88ef4267214e39e9585f4fac3f2b80b059394",
+    "src/redevelop/baselines/tree_score.py": "0fa8433a9e164d1b8bcd9bddd80ed8247fb0ce0850f4dfd8d20e1c2776737c97",
+    "src/redevelop/baselines/gmsc_probit_ir.json": "24fa921d7ea9332efb772c70a66433ca253ad5ab5acb93ec1486eb6832d0688e",
+    "src/redevelop/baselines/gmsc_lightgbm_ir.json": "07a848a68af30738b56f1ef219b7b19b2193314c4fb060d017fe45c176fec525",
+    "src/redevelop/baselines/gmsc_fastwalker_ir.json": "da4fa9cc24dc325f7eb108d4a0cba9099eecb7525d0ffb91807ac54de17eab6c",
+    "src/redevelop/baselines/german_xgboost_ir.json": "7438c40e7658996c2dd3e7bc79a8079e1718764cb95e1c6266326c131913eb9b",
+    "scripts/export_scoring_references.R": "103758271a08124af2affb6ae96937987949499d5f9934f5a8bc73647e37dfe9",
+    "scripts/prepare_scoring_references.py": "143ca69670ca1953e8ae2ad623f0e2a60a81e59d3accb4a26adada075d64dd0f",
+    "src/validate/validate_agent.py": "3dd33741515117cbe18efa9a38df8a3777cada06b1f5b5c37ef50cfe5cda9671",
+    "src/redevelop/redevelop_agent.py": "3e45bf9bcd553d4242a0e380a7cbf08c713526b7314e471f77c2729e60ceeb59"
+  }
+}
