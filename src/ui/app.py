@@ -102,6 +102,7 @@ def show_gate3(state: dict) -> None:
     style.kpi_strip([("rebuild mode", redevelop["mode"]), ("retries", str(redevelop["retry_count"])),
                      ("parity rounds", str(len(history))),
                      ("IR differences", str(len(redevelop["ir_differences_from_baseline"] or [])))])
+    st.caption("Migration scope: " + redevelop.get("migration_scope", "reestimation"))
     if redevelop["ir_differences_from_baseline"]:
         st.warning("IR differs from the reviewed baseline (resolution notes required):")
         for item in redevelop["ir_differences_from_baseline"]:
