@@ -191,6 +191,7 @@ def parity_tab(rows: list[dict]) -> None:
         differences = len(row["redevelop"]["ir_differences_from_baseline"] or [])
         st.markdown(f"**{esc(row['group'])}** · {esc(row['redevelop']['mode'])} rebuild · "
                     f"{row['redevelop']['retry_count']} retries · {differences} IR differences from the reviewed baseline")
+        st.caption("Migration scope: " + row['redevelop'].get('migration_scope', 'reestimation'))
         st.dataframe(frame.style.format({"Max prediction diff": "{:.2e}", "Max coefficient diff": "{:.2e}"},
                                         na_rep=""), hide_index=True, width="stretch")
 
