@@ -162,12 +162,20 @@ def register(state: dict, stage: str, gate: str, review_path: Path) -> None:
 
 
 def review(group: str, reviewer: str, decision: str, notes: str, resolution_notes: str = "",
-           corrections: dict[str, str] | None = None) -> Path:
-    """Record a human decision at the gate the pipeline is waiting for."""
+           corrections: dict[str, str] | None = None, return_to_review1: bool = False, issue: str = "") -> Path:
+    """Record a human decision at the gate the pipeline is waiting for.
+
+    return_to_review1: a gate 3/4 rejection whose root cause is the approved document reopens gate 2 (Review 1)
+    with the named issue, instead of rerunning the same stage on the same document.
+    """
     state = load_state(group)
     kind, gate = next_action(state)
     if kind != "await":
         raise ValueError(f"No gate is waiting for {group} (next action: {kind} {gate})")
+    if return_to_review1 and (decision != "reject" or gate not in ("gate3", "gate4")):
+        raise ValueError("Return to Review 1 is only a gate 3 or gate 4 rejection")
+    if return_to_review1 and not issue.strip():
+        raise ValueError("Return to Review 1 needs the issue: which point of the approved document looks wrong")
     steps = state["steps"]
     if gate == "gate1":
         path = review_discover(ARTIFACTS / "discover", state["model_id"], reviewer, decision, notes, corrections)
@@ -183,6 +191,13 @@ def review(group: str, reviewer: str, decision: str, notes: str, resolution_note
         register(state, "Staging", gate, path)
     elif gate == "gate4":
         register(state, "Validated (research)" if decision == "approve" else "Rejected", gate, path)
+    if return_to_review1:
+        _clear_from(state, "gate2")  # the rebuild came from the document under question, so it is redone too
+        state["review1_issue"] = {"from_gate": gate, "issue": issue, "reviewer": reviewer,
+                                  "review_path": str(path), "time": now()}
+        _event(state, event="returned_to_review1", gate=gate, issue=issue, review_path=str(path))
+    elif gate == "gate2" and decision == "approve":
+        state.pop("review1_issue", None)
     save_state(state)
     return path
 
@@ -217,6 +232,9 @@ def main() -> int:
     gate.add_argument("--resolution-notes", default="")
     gate.add_argument("--correct", action="append", default=[], metavar="FIELD=VALUE",
                       help="Gate 1 only: reviewer correction to an extracted field; repeatable")
+    gate.add_argument("--return-to-review1", action="store_true",
+                      help="Gate 3/4 rejection only: the approved document is wrong; reopen gate 2")
+    gate.add_argument("--issue", default="", help="With --return-to-review1: the point Review 1 must check")
     sub.add_parser("registry")
     args = parser.parse_args()
     try:
@@ -233,7 +251,8 @@ def main() -> int:
                       f"updated {entry['updated_at']}")
         else:
             corrections = dict(item.split("=", 1) for item in args.correct if "=" in item)
-            print(review(args.model, args.reviewer, args.decision, args.notes, args.resolution_notes, corrections))
+            print(review(args.model, args.reviewer, args.decision, args.notes, args.resolution_notes, corrections,
+                         args.return_to_review1, args.issue))
             print(describe(args.model))
     except (ValueError, OSError, KeyError) as error:
         print(f"Pipeline error: {error}", file=sys.stderr)

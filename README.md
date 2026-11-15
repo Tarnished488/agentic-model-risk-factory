@@ -58,7 +58,7 @@ tests/                         # python -m unittest
 
 ## 端到端流水线与审批界面
 
-每个模型一份状态文件（`artifacts/pipeline/<模型组>.json`）。`run` 依次执行各节点，遇到人工关卡就停；`review` 记录该关卡的决定；再次 `run` 继续。驳回会重跑该关卡之前的节点，并清除其后所有步骤，旧批准不能被复用。任何节点出错都会停下并记录原因，不会跳过。`config/pipeline.json` 中 `redevelop` 为 `null` 的模型在关卡 2 后结束（只出文档，不重构）。
+每个模型一份状态文件（`artifacts/pipeline/<模型组>.json`）。`run` 依次执行各节点，遇到人工关卡就停；`review` 记录该关卡的决定；再次 `run` 继续。驳回会重跑该关卡之前的节点，并清除其后所有步骤，旧批准不能被复用。关卡 3、4 驳回时若根源是已批准文档对原模型的理解有误，可选择退回审核 1（UI 勾选，或 CLI `--return-to-review1 --issue "问题点"`）：重新打开关卡 2 并置顶显示问题点，批准后 Redevelop 按修正后的文档重跑，退回事件记入 history。任何节点出错都会停下并记录原因，不会跳过。`config/pipeline.json` 中 `redevelop` 为 `null` 的模型在关卡 2 后结束（只出文档，不重构）。
 
 ```bash
 python -m src.pipeline status

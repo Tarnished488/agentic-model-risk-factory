@@ -100,6 +100,32 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'No gate is waiting'):
             self.approve('gmsc_lightgbm')
 
+    def test_review2_can_return_to_review1(self):
+        quiet = dict(progress=lambda message: None)
+        for _ in range(2):
+            pipeline.run('gmsc_probit', False, **quiet)
+            self.approve('gmsc_probit', 'Offline draft checked by hand')
+        self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('await', 'gate3'))
+        with self.assertRaisesRegex(ValueError, 'only a gate 3 or gate 4 rejection'):
+            pipeline.review('gmsc_probit', 'Reviewer', 'approve', 'Fine', return_to_review1=True, issue='x')
+        with self.assertRaisesRegex(ValueError, 'needs the issue'):
+            pipeline.review('gmsc_probit', 'Reviewer', 'reject', 'Rows differ', return_to_review1=True)
+        first = pipeline.load_state('gmsc_probit')['steps']['redevelop']['state_path']
+        pipeline.review('gmsc_probit', 'Reviewer', 'reject', 'Rows differ', return_to_review1=True,
+                        issue='Past-due filter in the document')
+        state = pipeline.load_state('gmsc_probit')
+        self.assertEqual(pipeline.next_action(state), ('await', 'gate2'))
+        self.assertEqual(state['review1_issue']['issue'], 'Past-due filter in the document')
+        self.assertEqual(state['history'][-1]['event'], 'returned_to_review1')
+        from streamlit.testing.v1 import AppTest
+        console = AppTest.from_file(str(Path(__file__).parents[1] / 'src' / 'ui' / 'app.py'), default_timeout=120).run()
+        console.sidebar.radio[0].set_value('Gate console').run()
+        self.assertTrue(any('Past-due filter' in w.value for w in console.warning), console.exception)
+        self.approve('gmsc_probit', 'Filter wording fixed in the draft')
+        self.assertNotIn('review1_issue', pipeline.load_state('gmsc_probit'))
+        self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('await', 'gate3'))
+        self.assertNotEqual(pipeline.load_state('gmsc_probit')['steps']['redevelop']['state_path'], first)
+
     def test_stage_failure_is_reported_not_skipped(self):
         quiet = dict(progress=lambda message: None)
         with patch.object(pipeline, 'run_discovery', side_effect=ValueError('scan broke')):

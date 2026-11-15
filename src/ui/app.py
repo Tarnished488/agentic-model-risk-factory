@@ -78,6 +78,10 @@ def show_gate2(state: dict) -> None:
     document = read_json(state["steps"]["document"]["state_path"])
     report = read_json(document["consistency_report_path"])
     counts = pd.Series([i["result"] for i in report["items"]]).value_counts().to_dict()
+    if state.get("review1_issue"):
+        returned = state["review1_issue"]
+        st.warning(f"Returned to Review 1 from {STEP_LABELS[returned['from_gate']]} by {returned['reviewer']}: "
+                   f"{returned['issue']}. Check this point first; Redevelop reruns after approval.")
     style.note("Read the draft against the source. The self-check can be lenient, so do not rely on it alone. "
                "You may edit the draft file before approving; edits, offline drafts or unconfirmed claims need "
                "resolution notes.")
@@ -116,6 +120,8 @@ def show_gate3(state: dict) -> None:
     if redevelop.get("difference_report_path"):
         st.error("Retries exhausted.")
         st.markdown(Path(redevelop["difference_report_path"]).read_text(encoding="utf-8"))
+    with st.expander("Approved document from Review 1 (compare with the IR and the legacy source)"):
+        st.markdown(read_json(state["steps"]["gate2"]["review_path"])["approved_document_text"])
     for label, key, language in [("IR", "ir_path", "json"), ("Generated tests", "tests_path", "python"),
                                  ("Generated model code", "generated_code_path", "python")]:
         if redevelop.get(key):
@@ -156,11 +162,18 @@ def review_form(group: str, gate: str) -> None:
         notes = st.text_area("Review notes", placeholder="What you checked and what you found")
         resolution = st.text_area("Resolution notes", disabled=gate == "gate1",
                                   placeholder="How each open item, edit or limitation is resolved")
+        back, issue = False, ""
+        if gate in ("gate3", "gate4"):
+            back = st.checkbox("Reject because the approved document misreads the legacy model: return to "
+                               "Review 1 (reopens Gate 2, then Redevelop reruns)")
+            issue = st.text_input("Issue for Review 1", placeholder="Which point of the document looks wrong, "
+                                  "and the evidence (parity term, IR field, source line)")
         if st.form_submit_button(f"Record decision for {STEP_LABELS[gate]}", type="primary"):
             st.session_state["reviewer"] = reviewer
             try:
                 corrections = st.session_state.get("corrections") if gate == "gate1" else None
-                path = pipeline.review(group, reviewer, decision, notes, resolution, corrections)
+                path = pipeline.review(group, reviewer, decision, notes, resolution, corrections,
+                                       return_to_review1=back, issue=issue)
                 st.success(f"Recorded: {path}")
                 st.rerun()
             except (ValueError, OSError, KeyError) as error:
