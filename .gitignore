@@ -22,3 +22,5 @@ artifacts/document/
 
 # Exported dashboards are reproducible; aggregate evidence lives in docs/evidence.
 outputs/
+# Fetch original fastwalker source locally until redistribution terms are verified.
+legacy_models/gmsc_fastwalker/original.ipynb

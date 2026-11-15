@@ -1,0 +1,4 @@
+-r requirements.txt
+# Optional native inference engines for portable R-trained tree models.
+lightgbm>=4.6,<5
+xgboost>=3.2,<4

@@ -1,0 +1,97 @@
+{
+  "ir_version": "1",
+  "model_id": "MODEL-D05BB473A58E",
+  "source_id": "gmsc_lightgbm/original.ipynb#cell=3",
+  "data": {
+    "file": "cs-training.csv",
+    "row_id": "Unnamed: 0",
+    "evidence": [
+      {
+        "source_id": "gmsc_lightgbm/original.ipynb#cell=3",
+        "line_start": 6,
+        "line_end": 6,
+        "quote": "read.csv(\"/kaggle/input/GiveMeSomeCredit/cs-training.csv\")"
+      }
+    ]
+  },
+  "rename": {
+    "mapping": {},
+    "evidence": [
+      {
+        "source_id": "gmsc_lightgbm/original.ipynb#cell=3",
+        "line_start": 10,
+        "line_end": 10,
+        "quote": "select(-X)"
+      }
+    ]
+  },
+  "filters": [],
+  "imputation": [],
+  "split": {
+    "method": "Fixed R 70/30 labelled split added for independent validation",
+    "reproduce_with": "train_ids.csv, never redraw",
+    "evidence": [
+      {
+        "source_id": "gmsc_lightgbm/original.ipynb#cell=3",
+        "line_start": 6,
+        "line_end": 6,
+        "quote": "TrainingData <- read.csv"
+      }
+    ]
+  },
+  "model": {
+    "type": "lightgbm",
+    "family": "binomial",
+    "link": "logistic",
+    "intercept": false,
+    "target": "SeriousDlqin2yrs",
+    "features": [
+      "RevolvingUtilizationOfUnsecuredLines",
+      "age",
+      "NumberOfTime30-59DaysPastDueNotWorse",
+      "DebtRatio",
+      "MonthlyIncome",
+      "NumberOfOpenCreditLinesAndLoans",
+      "NumberOfTimes90DaysLate",
+      "NumberRealEstateLoansOrLines",
+      "NumberOfTime60-89DaysPastDueNotWorse",
+      "NumberOfDependents"
+    ],
+    "fitting": "Learned by the original R training workflow; Python inference only",
+    "evidence": [
+      {
+        "source_id": "gmsc_lightgbm/original.ipynb#cell=5",
+        "line_start": 21,
+        "line_end": 21,
+        "quote": "bst <- lightgbm("
+      }
+    ],
+    "target_mapping": {}
+  },
+  "scoring": {
+    "output": "Bad-event probability; original output/event-direction defects explicitly corrected",
+    "rounding": "none",
+    "evidence": [
+      {
+        "source_id": "gmsc_lightgbm/original.ipynb#cell=7",
+        "line_start": 56,
+        "line_end": 56,
+        "quote": "pred <- predict(bst, test$data)"
+      }
+    ]
+  },
+  "unknowns": [
+    "Business use, ownership and operational risk tier require review."
+  ],
+  "migration": {
+    "mode": "inference",
+    "assets": [
+      "preprocessing.json",
+      "model.txt"
+    ],
+    "limitations": [
+      "Original notebook recomputes means within the scoring batch, so scores can depend on batch composition.",
+      "Age-zero correction is applied to training only, as in the original."
+    ]
+  }
+}

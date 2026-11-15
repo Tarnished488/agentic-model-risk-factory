@@ -103,4 +103,20 @@ class ValidationTests(unittest.TestCase):
         review=self.root/'not-approved.json';review.write_text('{}')
         with self.assertRaises((ValueError,KeyError)):run_validation(review,self.root/'output')
 
+    def test_raw_categorical_targets_are_mapped_and_unknown_values_rejected(self):
+        raw=pd.read_csv(self.state['data_path']);raw['target']=raw.target.map({0:'good',1:'bad'})
+        raw.to_csv(self.state['data_path'],index=False)
+        ir=json.loads(Path(self.state['ir_path']).read_text());ir['model']['target_mapping']={'good':0,'bad':1}
+        atomic_json(Path(self.state['ir_path']),ir)
+        self.assertEqual(evaluate(self.state,self.policy)['metrics']['events'],100)
+        raw.loc[399,'target']='unknown';raw.to_csv(self.state['data_path'],index=False)
+        with self.assertRaisesRegex(ValueError,'Unknown raw target'):evaluate(self.state,self.policy)
+
+    def test_categorical_distribution_shift_is_checked_instead_of_dropped(self):
+        raw=pd.read_csv(self.state['data_path']);raw['feature']=['a']*200+['b']*200
+        raw.to_csv(self.state['data_path'],index=False)
+        report=evaluate(self.state,self.policy)
+        self.assertGreater(report['train_holdout_psi']['feature'],.25)
+        self.assertEqual(next(f for f in report['findings'] if f['check']=='train_holdout_psi:feature')['result'],'fail')
+
 if __name__=='__main__':unittest.main()

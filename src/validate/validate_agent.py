@@ -158,7 +158,13 @@ def evaluate(state: dict, policy: dict) -> dict:
     expected = set(raw.index[eligible])
     if train_ids | holdout_ids != expected:
         raise ValueError('Split does not cover exactly the IR-eligible population')
-    yraw = pd.to_numeric(raw.loc[predictions.row_id, target], errors='raise').to_numpy(float)
+    original_labels = raw.loc[predictions.row_id, target]
+    mapping = ir['model'].get('target_mapping')
+    if mapping:
+        original_labels = original_labels.map(mapping)
+        if original_labels.isna().any():
+            raise ValueError('Unknown raw target category')
+    yraw = pd.to_numeric(original_labels, errors='raise').to_numpy(float)
     yreported = pd.to_numeric(predictions.label, errors='raise').to_numpy(float)
     if not np.isfinite(yraw).all() or not np.array_equal(yraw, yreported) or not set(yraw) <= {0, 1}:
         raise ValueError('Prediction labels do not match raw binary labels')
@@ -175,7 +181,16 @@ def evaluate(state: dict, policy: dict) -> dict:
     for feature in ir['model']['features']:
         if feature not in raw:
             raise ValueError(f'Model feature absent from raw data: {feature}')
-        value = psi(raw.loc[train.row_id, feature], raw.loc[predictions.row_id, feature])
+        numeric = pd.to_numeric(raw[feature], errors='coerce')
+        if numeric.notna().sum() < raw[feature].notna().sum():
+            a = raw.loc[train.row_id, feature].fillna('__MISSING__').astype(str)
+            b = raw.loc[predictions.row_id, feature].fillna('__MISSING__').astype(str)
+            levels = sorted(set(a) | set(b))
+            pa = (a.value_counts().reindex(levels, fill_value=0).to_numpy()+.5)/(len(a)+.5*len(levels))
+            pb = (b.value_counts().reindex(levels, fill_value=0).to_numpy()+.5)/(len(b)+.5*len(levels))
+            value = float(np.sum((pb-pa)*np.log(pb/pa)))
+        else:
+            value = psi(raw.loc[train.row_id, feature], raw.loc[predictions.row_id, feature])
         distribution[feature] = value
         if value is not None:
             check('train_holdout_psi:' + feature, value <= policy['max_feature_psi'], value, policy['max_feature_psi'], 'medium')
@@ -191,6 +206,9 @@ def evaluate(state: dict, policy: dict) -> dict:
                 'No production data, external validation or regulatory compliance certification.',
                 'No time variable in the data, so out-of-time back-testing and per-period metrics are not possible.']
     unknowns += fairness_unknowns
+    if ir.get('migration'):
+        unknowns += ir['migration']['limitations']
+        unknowns.append('Inference migration preserves R learned parameters; Python retraining and LLM code generation were not tested.')
     if any('before the split' in (i.get('computed_on') or '').lower() for i in ir.get('imputation', [])):
         unknowns.append('Legacy preprocessing may fit imputation before the split; independently review leakage.')
     overall_rating = annotate(findings, policy)

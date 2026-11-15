@@ -1,5 +1,5 @@
 {
-  "description": "Per-model pipeline settings. redevelop null means the model stops after gate 2 (documented, not rebuilt). validation_policy defaults to config/validation_policy.json.",
+  "description": "Probit: Python re-estimation. Three tree models: reviewed Python preprocessing/scoring with R learned parameters (inference parity). Explicit human gates remain.",
   "legacy_root": "legacy_models",
   "models": {
     "gmsc_probit": {
@@ -10,7 +10,30 @@
         "baseline": "gmsc_probit"
       }
     },
-    "gmsc_lightgbm": {"redevelop": null},
-    "german_xgboost": {"redevelop": null}
+    "gmsc_lightgbm": {
+      "redevelop": {
+        "data": "data/GiveMeSomeCredit",
+        "reference": "data/reference/gmsc_lightgbm_labelled",
+        "tier": "inference",
+        "baseline": "gmsc_lightgbm"
+      }
+    },
+    "german_xgboost": {
+      "redevelop": {
+        "data": "data/GermanCredit",
+        "reference": "data/reference/german_xgboost",
+        "tier": "inference",
+        "baseline": "german_xgboost"
+      },
+      "validation_policy": "config/german_validation_policy.json"
+    },
+    "gmsc_fastwalker": {
+      "redevelop": {
+        "data": "data/GiveMeSomeCredit",
+        "reference": "data/reference/gmsc_fastwalker",
+        "tier": "inference",
+        "baseline": "gmsc_fastwalker"
+      }
+    }
   }
 }

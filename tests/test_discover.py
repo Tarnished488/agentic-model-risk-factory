@@ -169,9 +169,12 @@ class DiscoverTests(unittest.TestCase):
         self.assertEqual(len(record.metadata.training_stages), 2)
         self.assertEqual(record.metadata.inputs, [])  # No raw dataset header supplied.
         self.assertEqual(record.status, 'pending_review')
-        self.assertEqual([m.group for m in result.models], ['german_xgboost', 'gmsc_lightgbm', 'gmsc_probit'])
-        self.assertTrue(all(m.status == 'pending_review' for m in result.models))
-        self.assertEqual([m.metadata.algorithm for m in result.models], ['XGBoost', 'LightGBM', 'Probit GLM'])
+        self.assertEqual([m.group for m in result.models], ['german_xgboost', 'gmsc_fastwalker', 'gmsc_lightgbm', 'gmsc_probit'])
+        self.assertTrue(all(m.status == 'pending_review' for m in result.models if m.group != 'gmsc_fastwalker'))
+        fastwalker = next(m for m in result.models if m.group == 'gmsc_fastwalker')
+        fetched = (Path(__file__).parents[1] / 'legacy_models/gmsc_fastwalker/original.ipynb').is_file()
+        self.assertEqual(fastwalker.status, 'pending_review' if fetched else 'needs_attention')
+        self.assertEqual([m.metadata.algorithm for m in result.models if m.group != 'gmsc_fastwalker'], ['XGBoost', 'LightGBM', 'Probit GLM'])
 
     def test_call_audit_includes_usage_and_request_hash(self):
         source = Source(source_id='x.R', path='x.R', kind='code', sha256='abc', text='library(lightgbm)')

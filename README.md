@@ -16,7 +16,7 @@ python -m unittest -v
 
 Windows 激活命令为 `.venv\Scripts\activate`。离线模式无需 API 密钥，不执行 R、不训练模型。示例已包含下载的完整 Notebook 代码和来源记录，移除了历史输出和执行计数。它是 Apache 2.0 授权的第三方示例，归原作者 brynning 所有，详见 `THIRD_PARTY_NOTICES.md`。
 
-预期识别一个业务模型工作流、R、LightGBM、`SeriousDlqin2yrs` 和两次训练调用。原始数据尚未加入，离线扫描的 `inputs` 保持空列表并列为待确认事项。算法识别等静态规则主要针对本次 R 样例，语义更复杂的源码使用 LLM 模式并人工核对。
+LightGBM 示例应识别出 R、LightGBM、`SeriousDlqin2yrs` 和两次训练调用。原始数据尚未加入，离线扫描的 `inputs` 保持空列表并列为待确认事项。算法识别等静态规则主要针对本次 R 样例，语义更复杂的源码使用 LLM 模式并人工核对。
 
 ## 代码结构
 
@@ -248,7 +248,7 @@ python -m src.discover.discover_agent scan --mlflow
 
 已实现 Discover 扫描、离线提取、可配置 LLM 提取、Pydantic 与证据校验、初步文档和风险状态、CLI 人工审核、版本校验及 Document 交接接口。本次无 API 演示未调用真实 LLM；模拟响应测试不作为真实服务联调证据。MLflow 为可选跟踪，不是演示必需项。
 
-Document、Redevelop、Validate 和 CLI 审核均已实现。LangGraph / Streamlit 尚未接入。下方无 API 指南提供数据下载、R 参考导出和真实 Probit 重建路径。
+Document、Redevelop、Validate 和 CLI 审核均已实现。Streamlit 审批界面已接入；LangGraph 未使用，由可恢复状态机调度。下方无 API 指南提供数据下载、R 参考导出和真实 Probit 重建路径。
 
 ## 测试
 
@@ -329,7 +329,7 @@ state = load_redevelop_input(Path("DOCUMENT_REVIEW.json"))
 
 ### 流程对照和验证
 
-完整差异与实现边界见 [流程对照记录](docs/flow_alignment.md)。当前审核通过 CLI 执行，Redevelop / Validate 已实现；LangGraph interrupt、Streamlit 表格审核和 Monitor 尚未实现。本次演示没有真实 LLM 联调。
+完整差异与实现边界见 [流程对照记录](docs/flow_alignment.md)。当前审核通过 CLI 执行，Redevelop / Validate 已实现；LangGraph interrupt 和 Monitor 尚未实现；Streamlit 审批已接入。本次演示没有真实 LLM 联调。
 
 ```bash
 python -m unittest -v
@@ -383,3 +383,10 @@ python -m scripts.evidence_pack VALIDATION_STATE.json --output outputs/demo
 每次 Validate 保存 metrics.json、report.md、report.html、report.docx、state.json。规则失败进入 needs_attention，不能批准，需修复并重跑；规则通过进入 pending_validation_review。关卡 4 批准仅标记 validated_for_research，不等于银行投产批准。策略阈值在 [config/validation_policy.json](config/validation_policy.json)，为演示规则，需要团队事先确认，不能当作 SS1/23 的强制数值。
 
 本地原始数据、逐行预测、R 日志和审核身份均不纳入发布证据包。汇总 JSON / HTML 保留聚合指标与摘要。第三方镜像来源已记录，尚未与 Kaggle 官方下载做逐字节认证。训练/留出 PSI 不是时间漂移监控；年龄分组通过不代表全面公平或合规。
+
+
+## Three additional Python scoring migrations
+
+GBM, LightGBM and German XGBoost now continue through Redevelop, inference parity and Validate. Python reconstructs preprocessing from raw data and scores portable R-trained parameters; these are hand-written, no-API **inference migrations**, not Python re-estimation or LLM-generated code. The three real runs passed parity and remain amber pending independent review.
+
+See [scope, reproduction and limitations](docs/three_model_rebuild.md) and [aggregate evidence](docs/evidence/three_model_rebuild.json). Install requirements-trees.txt for the optional native backends. All learned models and row-level files remain local.
