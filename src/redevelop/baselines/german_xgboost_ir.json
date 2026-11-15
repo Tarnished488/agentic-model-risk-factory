@@ -1,0 +1,99 @@
+{
+  "ir_version": "1",
+  "model_id": "MODEL-F2425A9248B3",
+  "source_id": "german_xgboost/original.ipynb#cell=10",
+  "data": {
+    "file": "german_credit_data.csv",
+    "row_id": "Unnamed: 0",
+    "evidence": [
+      {
+        "source_id": "german_xgboost/original.ipynb#cell=10",
+        "line_start": 2,
+        "line_end": 2,
+        "quote": "DATA_PATH <-"
+      }
+    ]
+  },
+  "rename": {
+    "mapping": {},
+    "evidence": [
+      {
+        "source_id": "german_xgboost/original.ipynb#cell=12",
+        "line_start": 8,
+        "line_end": 8,
+        "quote": "rename(default = risk)"
+      }
+    ]
+  },
+  "filters": [],
+  "imputation": [],
+  "split": {
+    "method": "Original 80/20 stratified",
+    "reproduce_with": "train_ids.csv, never redraw",
+    "evidence": [
+      {
+        "source_id": "german_xgboost/original.ipynb#cell=35",
+        "line_start": 2,
+        "line_end": 2,
+        "quote": "initial_split("
+      }
+    ]
+  },
+  "model": {
+    "type": "xgboost",
+    "family": "binomial",
+    "link": "logistic",
+    "intercept": false,
+    "target": "Risk",
+    "features": [
+      "Age",
+      "Job",
+      "Housing",
+      "Saving accounts",
+      "Checking account",
+      "Credit amount",
+      "Duration",
+      "Purpose"
+    ],
+    "fitting": "Learned by the original R training workflow; Python inference only",
+    "evidence": [
+      {
+        "source_id": "german_xgboost/original.ipynb#cell=39",
+        "line_start": 14,
+        "line_end": 14,
+        "quote": "xgb_spec <- boost_tree("
+      }
+    ],
+    "target_mapping": {
+      "good": 0,
+      "bad": 1
+    }
+  },
+  "scoring": {
+    "output": "Bad-event probability; original output/event-direction defects explicitly corrected",
+    "rounding": "none",
+    "evidence": [
+      {
+        "source_id": "german_xgboost/original.ipynb#cell=45",
+        "line_start": 9,
+        "line_end": 9,
+        "quote": "pred_xgb  <- get_preds("
+      }
+    ]
+  },
+  "unknowns": [
+    "Business use, ownership and operational risk tier require review."
+  ],
+  "migration": {
+    "mode": "inference",
+    "assets": [
+      "preprocessing.json",
+      "model.json"
+    ],
+    "limitations": [
+      "High-loan quantile is calculated before splitting in the original; review preprocessing look-ahead.",
+      "SMOTE is preserved in R training, not applied to held-out Python scoring.",
+      "Original reported AUC used the wrong event direction; bad is explicitly mapped to 1."
+    ]
+  }
+}
