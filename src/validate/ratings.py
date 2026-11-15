@@ -19,13 +19,14 @@ RECOMMENDATIONS = {
     "disparate_impact": "Approval-rate ratio is near or below the four-fifths rule; justify or mitigate.",
     "equalized_odds_difference": "Review TPR/FPR differences across groups; consider threshold or model changes.",
     "coefficient_sign": "Review this feature's direction with the business; a wrong sign suggests misspecification.",
+    "score_direction": "AUC is below 0.5, so scores likely point at the wrong class: check the probability column and event level (1 - AUC is the corrected value) before reading other findings.",
 }
 
 
 def family(check: str) -> str | None:
     if check.startswith("coefficient_sign"):
         return "coefficient_sign"
-    return next((name for name, _, _ in FAMILIES if name in check), None)
+    return next((name for name, _, _ in FAMILIES if name in check), check if check in RECOMMENDATIONS else None)
 
 
 def rate(finding: dict, amber: dict) -> str:

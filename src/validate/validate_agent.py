@@ -168,6 +168,8 @@ def evaluate(state: dict, policy: dict) -> dict:
     def check(name, passed, value, limit, severity='high'):
         findings.append({'check': name, 'result': 'pass' if passed else 'fail',
                          'severity': severity, 'value': value, 'limit': limit})
+    # AUC below 0.5 means the scores rank the wrong class (wrong probability column or event level).
+    check('score_direction', metrics['auc'] >= 0.5, metrics['auc'], 0.5)
     check('holdout_auc', metrics['auc'] >= policy['min_auc'], metrics['auc'], policy['min_auc'])
     check('holdout_ks', metrics['ks'] >= policy['min_ks'], metrics['ks'], policy['min_ks'])
     check('calibration_ece', metrics['ece'] <= policy['max_ece'], metrics['ece'], policy['max_ece'], 'medium')

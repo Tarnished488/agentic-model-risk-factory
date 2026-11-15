@@ -92,6 +92,9 @@ class ExplainerTests(unittest.TestCase):
         findings = [{'check': 'coefficient_sign:age', 'result': 'fail', 'value': 0.1}]
         self.assertEqual(annotate(findings, self.policy), 'red')
         self.assertIn('direction', findings[0]['recommendation'])
+        inverted = [{'check': 'score_direction', 'result': 'fail', 'value': 0.27, 'limit': 0.5}]
+        self.assertEqual(annotate(inverted, self.policy), 'red')
+        self.assertIn('wrong class', inverted[0]['recommendation'])
 
     def test_fairlearn_metrics_use_approval_for_disparate_impact(self):
         from src.validate.fairness import fairness_audit
