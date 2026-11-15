@@ -1,0 +1,97 @@
+{
+  "ir_version": "1",
+  "model_id": "MODEL-08CB8AC41630",
+  "source_id": "gmsc_fastwalker/original.ipynb#cell=3",
+  "data": {
+    "file": "cs-training.csv",
+    "row_id": "Unnamed: 0",
+    "evidence": [
+      {
+        "source_id": "gmsc_fastwalker/original.ipynb#cell=3",
+        "line_start": 1,
+        "line_end": 1,
+        "quote": "read_csv('../input/cs-training.csv')"
+      }
+    ]
+  },
+  "rename": {
+    "mapping": {},
+    "evidence": [
+      {
+        "source_id": "gmsc_fastwalker/original.ipynb#cell=3",
+        "line_start": 1,
+        "line_end": 1,
+        "quote": "rename(Id = X1)"
+      }
+    ]
+  },
+  "filters": [],
+  "imputation": [],
+  "split": {
+    "method": "Original 30,000-row sample, remaining labelled rows held out",
+    "reproduce_with": "train_ids.csv, never redraw",
+    "evidence": [
+      {
+        "source_id": "gmsc_fastwalker/original.ipynb#cell=7",
+        "line_start": 2,
+        "line_end": 2,
+        "quote": "sample_n(30000)"
+      }
+    ]
+  },
+  "model": {
+    "type": "gbm",
+    "family": "binomial",
+    "link": "logistic",
+    "intercept": false,
+    "target": "SeriousDlqin2yrs",
+    "features": [
+      "RevolvingUtilizationOfUnsecuredLines",
+      "age",
+      "NumberOfTime30-59DaysPastDueNotWorse",
+      "DebtRatio",
+      "MonthlyIncome",
+      "NumberOfOpenCreditLinesAndLoans",
+      "NumberOfTimes90DaysLate",
+      "NumberRealEstateLoansOrLines",
+      "NumberOfTime60-89DaysPastDueNotWorse",
+      "NumberOfDependents"
+    ],
+    "fitting": "Learned by the original R training workflow; Python inference only",
+    "evidence": [
+      {
+        "source_id": "gmsc_fastwalker/original.ipynb#cell=17",
+        "line_start": 5,
+        "line_end": 5,
+        "quote": "method='gbm'"
+      }
+    ],
+    "target_mapping": {}
+  },
+  "scoring": {
+    "output": "Bad-event probability; original output/event-direction defects explicitly corrected",
+    "rounding": "none",
+    "evidence": [
+      {
+        "source_id": "gmsc_fastwalker/original.ipynb#cell=20",
+        "line_start": 1,
+        "line_end": 1,
+        "quote": "predict(fit.gbm,te1,type='prob')"
+      }
+    ]
+  },
+  "unknowns": [
+    "Business use, ownership and operational risk tier require review."
+  ],
+  "migration": {
+    "mode": "inference",
+    "assets": [
+      "preprocessing.json",
+      "model.json"
+    ],
+    "limitations": [
+      "Original probability column 2 was good: this adapter explicitly returns bad.",
+      "Original CV index and pre-CV preprocessing retained; review resampling design."
+    ]
+  }
+}
