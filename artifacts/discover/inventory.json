@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "run_id": "d8c0f101-8e20-409a-b400-5913d1a4cd7d",
-  "generated_at": "2026-11-13T16:20:32.823452+00:00",
+  "run_id": "4184e0a2-c776-4d0a-954d-7d1e682ddfd6",
+  "generated_at": "2026-11-15T19:44:01.843381+00:00",
   "input_root": "legacy_models",
   "models": [
     {
@@ -673,22 +673,14 @@
         "name": "Credit Risk Prediction with XGBoost + SHAP in R",
         "business_type": "credit",
         "language": "R",
-        "algorithm": "XGBoost (with logistic regression and random forest comparison)",
+        "algorithm": "XGBoost",
         "dataset": "German Credit Risk (kabure/german-credit-data-with-risk)",
         "data_references": [
-          "german_credit_data.csv",
-          "/kaggle/input/datasets/kabure/german-credit-data-with-risk/german_credit_data.csv"
+          "german_credit_data.csv from Kaggle dataset kabure/german-credit-data-with-risk",
+          "UCI ML Repository German Credit dataset originally compiled by Prof. Hans Hofmann (1994)"
         ],
         "inputs": [
-          "credit_amount",
-          "duration",
-          "age",
-          "job",
-          "housing",
-          "saving_accounts",
-          "checking_account",
-          "purpose",
-          "sex"
+          "german_credit_data.csv"
         ],
         "derived_features": [
           "monthly_payment",
@@ -701,14 +693,14 @@
           "owns_home"
         ],
         "target": "default (good/bad)",
-        "output": "Predicted default probability and risk tiers (Low/Medium/High)",
+        "output": "Predicted default probability and risk tier (Low/Medium/High Risk)",
         "training_stages": [
           "Logistic Regression tuning",
           "Random Forest tuning",
           "XGBoost tuning",
-          "Finalize and fit final logistic regression",
-          "Finalize and fit final random forest",
-          "Finalize and fit final XGBoost"
+          "Final fit of Logistic Regression on full training set",
+          "Final fit of Random Forest on full training set",
+          "Final fit of XGBoost on full training set"
         ],
         "packages": [
           "tidyverse",
@@ -737,30 +729,30 @@
         "declared_version": null,
         "use_in_decisions": "research",
         "doc_status": "needs_review",
-        "doc_reason": "Notebook claims production-oriented pipeline and deployment recommendations, but no business owner, approved model risk tier or trained model artifact is confirmed; content requires human review.",
+        "doc_reason": "Notebook claims production orientation and business recommendations, but business owner, operational scope and approved model risk tier remain unconfirmed; no trained model file supplied. File dates: newest code german_xgboost/original.ipynb (2026-11-13), newest documentation german_xgboost/DATA_README.md (2026-11-13); documentation is as new as or newer than the code. File-system dates reset on copy or git checkout, so this is a hint for the reviewer, not evidence.",
         "evidence": {
           "name": [
             {
-              "source_id": "german_xgboost/source.json",
+              "source_id": "german_xgboost/original.ipynb#cell=1",
               "line_start": 2,
               "line_end": 2,
-              "quote": "\"title\": \"Credit Risk Prediction with XGBoost + SHAP in R\","
+              "quote": "Credit Risk Modeling with Explainable AI: XGBoost + SHAP in R"
             }
           ],
           "business_type": [
             {
-              "source_id": "german_xgboost/DATA_README.md",
+              "source_id": "german_xgboost/original.ipynb#cell=2",
               "line_start": 1,
               "line_end": 1,
-              "quote": "# German Credit Risk input (XGBoost + SHAP)"
+              "quote": "This notebook builds a **complete, production-oriented credit risk pipeline** from raw data to explainable predictions"
             }
           ],
           "language": [
             {
-              "source_id": "german_xgboost/DATA_README.md",
-              "line_start": 3,
-              "line_end": 3,
-              "quote": "This example contains the original R Notebook and its provenance."
+              "source_id": "german_xgboost/original.ipynb#cell=7",
+              "line_start": 2,
+              "line_end": 2,
+              "quote": "library(tidyverse)"
             }
           ],
           "algorithm": [
@@ -776,67 +768,79 @@
               "source_id": "german_xgboost/source.json",
               "line_start": 9,
               "line_end": 9,
-              "quote": "\"dataset\": \"German Credit Risk (kabure/german-credit-data-with-risk)\","
+              "quote": "\"dataset\": \"German Credit Risk (kabure/german-credit-data-with-risk)\""
             }
           ],
           "data_references": [
-            {
-              "source_id": "german_xgboost/original.ipynb#cell=10",
-              "line_start": 2,
-              "line_end": 2,
-              "quote": "DATA_PATH <- \"/kaggle/input/datasets/kabure/german-credit-data-with-risk/german_credit_data.csv\""
-            },
             {
               "source_id": "german_xgboost/DATA_README.md",
               "line_start": 3,
               "line_end": 3,
               "quote": "Download german_credit_data.csv from the dataset page under its applicable terms."
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=4",
+              "line_start": 19,
+              "line_end": 19,
+              "quote": "Originally compiled by Prof. Hans Hofmann, UCI ML Repository (1994)"
             }
           ],
           "inputs": [
             {
-              "source_id": "german_xgboost/original.ipynb#cell=9",
-              "line_start": 11,
-              "line_end": 15,
-              "quote": "| Rows | 1,000 applicants |\n| Features | 9 predictors |\n| Target | `Risk` — `good` / `bad` |\n| Class balance | ~70% good / 30% bad (moderately imbalanced) |\n| Missing values | Present in `Saving accounts` and `Checking account` |"
+              "source_id": "german_xgboost/original.ipynb#cell=10",
+              "line_start": 2,
+              "line_end": 2,
+              "quote": "DATA_PATH <- \"/kaggle/input/datasets/kabure/german-credit-data-with-risk/german_credit_data.csv\""
             }
           ],
           "derived_features": [
             {
-              "source_id": "german_xgboost/original.ipynb#cell=32",
-              "line_start": 18,
-              "line_end": 25,
-              "quote": "| `monthly_payment` | `credit_amount / duration` | Monthly repayment burden |\n| `high_loan_flag` | 1 if amount > 75th percentile | Binary flag for large loans |\n| `long_loan_flag` | 1 if duration > 24 months | Binary flag for long commitments |\n| `amount_x_duration` | `credit_amount × duration` | Compound financial stress interaction |\n| `young_borrower` | 1 if age < 30 | Higher-risk demographic flag |\n| `senior_borrower` | 1 if age ≥ 50 | Lower-risk demographic flag |\n| `skilled_worker` | 1 if job ∈ {skilled, highly skilled} | Employment quality signal |\n| `owns_home` | 1 if housing = \"own\" | Stability / collateral proxy |"
+              "source_id": "german_xgboost/original.ipynb#cell=33",
+              "line_start": 20,
+              "line_end": 27,
+              "quote": "monthly_payment   = credit_amount / duration,"
             }
           ],
           "target": [
             {
-              "source_id": "german_xgboost/original.ipynb#cell=9",
-              "line_start": 13,
-              "line_end": 13,
-              "quote": "| Target | `Risk` — `good` / `bad` |"
+              "source_id": "german_xgboost/original.ipynb#cell=12",
+              "line_start": 11,
+              "line_end": 11,
+              "quote": "default = factor(default, levels = c(\"good\", \"bad\"))"
             }
           ],
           "output": [
             {
               "source_id": "german_xgboost/original.ipynb#cell=75",
-              "line_start": 8,
-              "line_end": 12,
-              "quote": "| Tier | Threshold | Business action |\n|---|---|---|\n| 🟢 **Low Risk** | < 30% | Auto-approve — acceptable loss rate |\n| 🟡 **Medium Risk** | 30% – 60% | Request additional documentation before decision |\n| 🔴 **High Risk** | > 60% | Mandatory human review (required by GDPR Art. 22) |"
+              "line_start": 6,
+              "line_end": 6,
+              "quote": "Raw predicted probabilities need to be translated into actionable business decisions. We define three risk tiers based on the XGBoost predicted default probability:"
             }
           ],
           "training_stages": [
             {
-              "source_id": "german_xgboost/original.ipynb#cell=38",
-              "line_start": 12,
-              "line_end": 16,
-              "quote": "| Model | Why we include it |\n|---|---|\n| **Logistic Regression** | Fully interpretable; coefficients have direct probabilistic meaning; required as a regulatory baseline by some EU financial authorities |\n| **Random Forest** | Handles non-linear relationships and feature interactions; robust to outliers; good feature importance |\n| **XGBoost** | Typically best raw performance; used as the source model for SHAP explainability |"
+              "source_id": "german_xgboost/original.ipynb#cell=40",
+              "line_start": 5,
+              "line_end": 9,
+              "quote": "log_res <- tune_grid("
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=41",
+              "line_start": 6,
+              "line_end": 10,
+              "quote": "rf_res <- tune_grid("
+            },
+            {
+              "source_id": "german_xgboost/original.ipynb#cell=42",
+              "line_start": 8,
+              "line_end": 12,
+              "quote": "xgb_res <- tune_grid("
             },
             {
               "source_id": "german_xgboost/original.ipynb#cell=43",
               "line_start": 3,
               "line_end": 5,
-              "quote": "final_log_fit <- fit(finalize_workflow(log_wf, select_best(log_res, metric = \"roc_auc\")), data = train)\nfinal_rf_fit  <- fit(finalize_workflow(rf_wf,  select_best(rf_res,  metric = \"roc_auc\")), data = train)\nfinal_xgb_fit <- fit(finalize_workflow(xgb_wf, select_best(xgb_res, metric = \"roc_auc\")), data = train)"
+              "quote": "final_log_fit <- fit(finalize_workflow(log_wf, select_best(log_res, metric = \"roc_auc\")), data = train)"
             }
           ],
           "packages": [
@@ -844,30 +848,431 @@
               "source_id": "german_xgboost/original.ipynb#cell=6",
               "line_start": 15,
               "line_end": 22,
-              "quote": "install_if_missing(c(\n  \"tidyverse\", \"ggplot2\", \"patchwork\", \"scales\",\n  \"ggcorrplot\", \"viridis\",\n  \"tidymodels\", \"recipes\", \"parsnip\", \"workflows\",\n  \"tune\", \"yardstick\", \"rsample\", \"dials\", \"hardhat\",\n  \"ranger\", \"xgboost\", \"glmnet\",\n  \"themis\", \"shapviz\", \"vip\"\n))"
+              "quote": "install_if_missing(c("
             }
           ],
           "use_in_decisions": [
+            {
+              "source_id": "german_xgboost/source.json",
+              "line_start": 11,
+              "line_end": 11,
+              "quote": "Author attribution is distinct from business model ownership."
+            },
             {
               "source_id": "german_xgboost/DATA_README.md",
               "line_start": 5,
               "line_end": 5,
               "quote": "No trained model file or reference predictions have been supplied."
-            },
+            }
+          ],
+          "doc_status": [
             {
-              "source_id": "german_xgboost/source.json",
-              "line_start": 11,
-              "line_end": 11,
-              "quote": "\"note\": \"Author attribution is distinct from business model ownership. Target meaning must be checked against the official data dictionary.\""
+              "source_id": "german_xgboost/DATA_README.md",
+              "line_start": 5,
+              "line_end": 5,
+              "quote": "Business owner, operational scope and approved model risk tier remain unconfirmed."
             }
           ]
         },
         "unknowns": [
           "Business owner",
+          "Declared version",
           "Operational scope",
           "Approved model risk tier",
-          "Model deployment status",
-          "Dataset license/terms for reuse"
+          "Model training and performance claims not independently validated"
+        ]
+      },
+      "risk_tier": "low",
+      "risk_reason": "Provisional project rule for research; human confirmation required.",
+      "risk_provisional": true,
+      "extraction_mode": "llm",
+      "status": "pending_review",
+      "warnings": []
+    },
+    {
+      "model_id": "MODEL-7E3E6E53F1FE",
+      "group": "gmsc_gbm",
+      "source_files": [
+        {
+          "path": "gmsc_gbm/DATA_README.md",
+          "sha256": "90b102e2330f2acde8642c438d6557aa392e26aecedb1d2e841587bc637b0d96",
+          "size_bytes": 1119,
+          "modified_at": "2026-11-15T19:16:51.438453+00:00"
+        },
+        {
+          "path": "gmsc_gbm/original.ipynb",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "size_bytes": 6142,
+          "modified_at": "2026-11-15T19:16:32.188660+00:00"
+        },
+        {
+          "path": "gmsc_gbm/source.json",
+          "sha256": "cf29a86656484effb6ed00106e36457f3cf780b1b2cd1bd1a4a322534800c89e",
+          "size_bytes": 644,
+          "modified_at": "2026-11-15T19:16:51.346327+00:00"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "gmsc_gbm/DATA_README.md",
+          "path": "gmsc_gbm/DATA_README.md",
+          "kind": "document",
+          "sha256": "90b102e2330f2acde8642c438d6557aa392e26aecedb1d2e841587bc637b0d96",
+          "text": "# Give Me Some Credit input (caret GBM)\n\nThis example contains the original R Notebook and its provenance. It uses the same competition data as gmsc_probit and gmsc_lightgbm: download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page under its applicable terms. Keep borrower-level data local. Discover reads CSV headers only and does not run R or train models. The Notebook reads ../input/ paths, which must be adapted when later running it locally.\n\nThe notebook recodes SeriousDlqin2yrs to good/bad, samples 30,000 training rows with set.seed(7), and preprocesses with a recipes pipeline (mean imputation, centring, scaling, zero-variance removal) prepared on that sample. It builds five folds with caret::createFolds and passes them to trainControl(index = ...), then fits one caret GBM (tuneLength 3, metric Kappa). The random forest cells are kept as Markdown and do not run. The submission writes column 2 of predict(type = \"prob\"). No trained model file or reference predictions have been supplied. Business owner, operational scope and approved model risk tier remain unconfirmed.\n",
+          "language_hint": null
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=1",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "library(pacman)\np_load(plyr,tidyverse,skimr,recipes,rsample,caret,doParallel)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=2",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "list.files('../input')",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=3",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "tr = read_csv('../input/cs-training.csv') %>% rename(Id = X1)\nte = read_csv('../input/cs-test.csv') %>% rename(Id = X1)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=4",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "skim_to_list(tr)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=5",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "markdown",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "#### simple model",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=6",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "data_prep = function(x) x %>% select_all(tolower) %>% \nrename(target=seriousdlqin2yrs) %>% \nmutate(target = as.character(target),\n       target = recode(target,'0'='good','1'='bad')) %>% \nmutate(target = as.factor(target))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=7",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "set.seed(7)\ntr = data_prep(tr) %>% sample_n(30000)\nte = data_prep(te)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=8",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "names(tr)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=9",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "rec<-recipe(~.,data=tr) %>% \nadd_role(id,new_role='id variable') %>% \nadd_role(target,new_role = 'outcome') %>% \nadd_role(-id,-target,new_role='predictor') %>% \nstep_meanimpute(all_predictors()) %>% \nstep_center(all_predictors()) %>% \nstep_scale(all_predictors()) %>% \nstep_zv(all_predictors()) %>% \nprep(retain=T)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=10",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "tr1 = juice(rec)\nte1 = bake(rec,te)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=11",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "set.seed(3)\nkfold = createFolds(tr1$target,k=5)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=12",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "markdown",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "ranger::ranger에서 \n1. target은 숫자형이면 에러남  즉, 0/1 은 'good'/'bad'로 바꿔줘야 함  \n2. predict에서 type='prob' 쓰려면 trainControl에서 classProbs=TRUE 지정해줘야 함  \n3. variable importance 쓰려면 importance='impurity' 등으로 지정해 줘야 함 ",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=13",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "ctrl = trainControl(index=kfold,classProbs=TRUE)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=14",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "tr2<-rename(tr1,num3059 = `numberoftime30-59dayspastduenotworse`,\n           num6089 = `numberoftime60-89dayspastduenotworse`)\n\nte2<-rename(te1,num3059 = `numberoftime30-59dayspastduenotworse`,\n           num6089 = `numberoftime60-89dayspastduenotworse`)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=15",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "count(tr2,target)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=16",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "markdown",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "registerDoParallel(4)\n\nfit.rf = train(target~.,data=select(tr1,-id),\n           method='ranger',\n           num.trees=300,\n           trControl=ctrl,\n           tuneLength=3,\n           importance='impurity',\n           metric='Kappa')\nprint('rf done')\nfit.gbm = train(target~.,data=select(tr1,-id),\n               method='gbm',\n               trControl=ctrl,\n               tuneLength=3,\n               verbose=FALSE,\n               metric='Kappa')\nprint('gbm done')\n\nstopImplicitCluster()",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=17",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "cl <- makePSOCKcluster(5)\nregisterDoParallel(cl)\n\nfit.gbm = train(target~.,data=select(tr1,-id),\n               method='gbm',\n               trControl=ctrl,\n               tuneLength=3,\n               verbose=FALSE,\n               metric='Kappa')\n\nstopCluster(cl)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=18",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "markdown",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "rsmp = resamples(list(rf=fit.rf,gbm=fit.gbm))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=19",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "markdown",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "summary(rsmp)",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=20",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "pred_prob = predict(fit.gbm,te1,type='prob')",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=21",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "gmc_sumit<-data_frame(Id=te1$id,Probability=pred_prob[,2]) %>% \nmutate(Probability=as.double(Probability),\n      Id = as.integer(Id))",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/original.ipynb#cell=22",
+          "path": "gmsc_gbm/original.ipynb",
+          "kind": "code",
+          "sha256": "8fc9eb658cdce649100b048ea851bb41e7132009db212fea96513c2540fa6222",
+          "text": "write_csv(gmc_sumit,'gbm_summit.csv')",
+          "language_hint": "R"
+        },
+        {
+          "source_id": "gmsc_gbm/source.json",
+          "path": "gmsc_gbm/source.json",
+          "kind": "document",
+          "sha256": "cf29a86656484effb6ed00106e36457f3cf780b1b2cd1bd1a4a322534800c89e",
+          "text": "{\n  \"title\": \"give me credit\",\n  \"author\": \"fastwalker\",\n  \"url\": \"https://www.kaggle.com/code/fastwalker/give-me-credit\",\n  \"notebook_version\": 13,\n  \"license\": \"Apache-2.0\",\n  \"retrieved_on\": \"2026-11-15\",\n  \"changes\": \"None; notebook stored as downloaded from the source page.\",\n  \"dataset\": \"Give Me Some Credit\",\n  \"dataset_url\": \"https://www.kaggle.com/competitions/GiveMeSomeCredit/data\",\n  \"note\": \"Author attribution is distinct from business model ownership. Target meaning must be checked against the official data dictionary. Version number taken from the team's model trial report; the page view did not display it.\"\n}\n",
+          "language_hint": null
+        }
+      ],
+      "metadata": {
+        "name": "Give Me Some Credit input (caret GBM)",
+        "business_type": "credit",
+        "language": "R",
+        "algorithm": "caret GBM (gradient boosting, method='gbm')",
+        "dataset": "Give Me Some Credit",
+        "data_references": [
+          "cs-training.csv",
+          "cs-test.csv",
+          "Data Dictionary.xls"
+        ],
+        "inputs": [
+          "cs-training.csv",
+          "cs-test.csv"
+        ],
+        "derived_features": [
+          "target recoded from SeriousDlqin2yrs to good/bad factor",
+          "recipe preprocessing: mean imputation, centring, scaling, zero-variance removal",
+          "renamed columns num3059 and num6089"
+        ],
+        "target": "SeriousDlqin2yrs recoded to good/bad",
+        "output": "gbm_summit.csv with Id and Probability",
+        "training_stages": [
+          "recipe prep on 30,000-row sample",
+          "5-fold CV createFolds",
+          "caret::train GBM with tuneLength 3, metric Kappa"
+        ],
+        "packages": [
+          "pacman",
+          "plyr",
+          "tidyverse",
+          "skimr",
+          "recipes",
+          "rsample",
+          "caret",
+          "doParallel"
+        ],
+        "business_owner": null,
+        "declared_version": null,
+        "use_in_decisions": "research",
+        "doc_status": "needs_review",
+        "doc_reason": "Business owner, operational scope and approved model risk tier remain unconfirmed; target meaning must be checked against official data dictionary. File dates: newest code gmsc_gbm/original.ipynb (2026-11-15), newest documentation gmsc_gbm/DATA_README.md (2026-11-15); documentation is as new as or newer than the code. File-system dates reset on copy or git checkout, so this is a hint for the reviewer, not evidence.",
+        "evidence": {
+          "name": [
+            {
+              "source_id": "gmsc_gbm/DATA_README.md",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "# Give Me Some Credit input (caret GBM)"
+            }
+          ],
+          "business_type": [
+            {
+              "source_id": "gmsc_gbm/DATA_README.md",
+              "line_start": 3,
+              "line_end": 3,
+              "quote": "It uses the same competition data as gmsc_probit and gmsc_lightgbm: download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page"
+            }
+          ],
+          "language": [
+            {
+              "source_id": "gmsc_gbm/original.ipynb#cell=1",
+              "line_start": 1,
+              "line_end": 2,
+              "quote": "library(pacman)\np_load(plyr,tidyverse,skimr,recipes,rsample,caret,doParallel)"
+            }
+          ],
+          "algorithm": [
+            {
+              "source_id": "gmsc_gbm/original.ipynb#cell=17",
+              "line_start": 4,
+              "line_end": 9,
+              "quote": "fit.gbm = train(target~.,data=select(tr1,-id),\n               method='gbm',\n               trControl=ctrl,\n               tuneLength=3,\n               verbose=FALSE,\n               metric='Kappa')"
+            }
+          ],
+          "dataset": [
+            {
+              "source_id": "gmsc_gbm/source.json",
+              "line_start": 9,
+              "line_end": 9,
+              "quote": "\"dataset\": \"Give Me Some Credit\","
+            }
+          ],
+          "data_references": [
+            {
+              "source_id": "gmsc_gbm/DATA_README.md",
+              "line_start": 3,
+              "line_end": 3,
+              "quote": "download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page"
+            }
+          ],
+          "inputs": [
+            {
+              "source_id": "gmsc_gbm/original.ipynb#cell=3",
+              "line_start": 1,
+              "line_end": 2,
+              "quote": "tr = read_csv('../input/cs-training.csv') %>% rename(Id = X1)\nte = read_csv('../input/cs-test.csv') %>% rename(Id = X1)"
+            }
+          ],
+          "derived_features": [
+            {
+              "source_id": "gmsc_gbm/original.ipynb#cell=9",
+              "line_start": 5,
+              "line_end": 8,
+              "quote": "step_meanimpute(all_predictors()) %>% \nstep_center(all_predictors()) %>% \nstep_scale(all_predictors()) %>% \nstep_zv(all_predictors()) %>%"
+            }
+          ],
+          "target": [
+            {
+              "source_id": "gmsc_gbm/original.ipynb#cell=6",
+              "line_start": 2,
+              "line_end": 4,
+              "quote": "rename(target=seriousdlqin2yrs) %>% \nmutate(target = as.character(target),\n       target = recode(target,'0'='good','1'='bad')) %>% "
+            }
+          ],
+          "output": [
+            {
+              "source_id": "gmsc_gbm/original.ipynb#cell=22",
+              "line_start": 1,
+              "line_end": 1,
+              "quote": "write_csv(gmc_sumit,'gbm_summit.csv')"
+            }
+          ],
+          "training_stages": [
+            {
+              "source_id": "gmsc_gbm/original.ipynb#cell=11",
+              "line_start": 1,
+              "line_end": 2,
+              "quote": "set.seed(3)\nkfold = createFolds(tr1$target,k=5)"
+            },
+            {
+              "source_id": "gmsc_gbm/original.ipynb#cell=17",
+              "line_start": 4,
+              "line_end": 9,
+              "quote": "fit.gbm = train(target~.,data=select(tr1,-id),\n               method='gbm',\n               trControl=ctrl,\n               tuneLength=3,\n               verbose=FALSE,\n               metric='Kappa')"
+            }
+          ],
+          "packages": [
+            {
+              "source_id": "gmsc_gbm/original.ipynb#cell=1",
+              "line_start": 2,
+              "line_end": 2,
+              "quote": "p_load(plyr,tidyverse,skimr,recipes,rsample,caret,doParallel)"
+            }
+          ],
+          "use_in_decisions": [
+            {
+              "source_id": "gmsc_gbm/DATA_README.md",
+              "line_start": 5,
+              "line_end": 5,
+              "quote": "The submission writes column 2 of predict(type = \"prob\"). No trained model file or reference predictions have been supplied."
+            }
+          ],
+          "doc_status": [
+            {
+              "source_id": "gmsc_gbm/DATA_README.md",
+              "line_start": 5,
+              "line_end": 5,
+              "quote": "Business owner, operational scope and approved model risk tier remain unconfirmed."
+            }
+          ]
+        },
+        "unknowns": [
+          "business owner",
+          "declared model version",
+          "operational scope",
+          "approved model risk tier"
         ]
       },
       "risk_tier": "low",
@@ -986,28 +1391,21 @@
           "Data Dictionary.xls"
         ],
         "inputs": [
-          "SeriousDlqin2yrs",
-          "age",
-          "MonthlyIncome",
-          "DebtRatio",
-          "NumberOfTime30.59DaysPastDueNotWorse",
-          "NumberOfTime60.89DaysPastDueNotWorse",
-          "NumberOfTimes90DaysLate"
+          "cs-training.csv",
+          "cs-test.csv"
         ],
         "derived_features": [
-          "TotalPastDue",
-          "DebtRatio1000",
-          "subtract transformations (var_minus_mean)",
-          "divide transformations (var_divided_by_mean)",
-          "log transformations (log_var)",
-          "square transformations (var_squared)",
-          "pairwise multiply/subtract/divide/add combinations"
+          "TotalPastDue = NumberOfTime30.59DaysPastDueNotWorse + NumberOfTime60.89DaysPastDueNotWorse + NumberOfTimes90DaysLate",
+          "DebtRatio1000 = ifelse(MonthlyIncome < 1000, NA, DebtRatio)",
+          "age outliers set to mean of nonzero ages",
+          "subtract mean, divide by mean, log, and square transformations of each variable",
+          "pairwise multiply, subtract, divide, and add combinations of variables"
         ],
         "target": "SeriousDlqin2yrs",
-        "output": "LGBM_Summit.csv",
+        "output": "LGBM_Summit.csv with Id and Probability",
         "training_stages": [
-          "Stage 1: LightGBM on engineered features (750 rounds)",
-          "Stage 2: LightGBM on top 100 features from stage 1 importance with bagging (1000 rounds)"
+          "First LightGBM model on engineered features",
+          "Second LightGBM model on top 100 features selected from first model importances"
         ],
         "packages": [
           "dplyr",
@@ -1017,7 +1415,7 @@
         "declared_version": null,
         "use_in_decisions": "research",
         "doc_status": "needs_review",
-        "doc_reason": "Documentation is a Kaggle notebook with unverified claim of Top1 leaderboard placement; real-world approval, business ownership and model risk tier are unconfirmed, so content requires human review.",
+        "doc_reason": "Notebook describes a Kaggle competition workflow; business owner, operational scope, and approved model risk tier are unconfirmed, and business use cannot be inferred from competition claims. File dates: newest code gmsc_lightgbm/original.ipynb (2026-11-13), newest documentation gmsc_lightgbm/DATA_README.md (2026-11-13); documentation is as new as or newer than the code. File-system dates reset on copy or git checkout, so this is a hint for the reviewer, not evidence.",
         "evidence": {
           "name": [
             {
@@ -1031,8 +1429,14 @@
             {
               "source_id": "gmsc_lightgbm/source.json",
               "line_start": 9,
-              "line_end": 10,
+              "line_end": 9,
               "quote": "\"dataset\": \"Give Me Some Credit\","
+            },
+            {
+              "source_id": "gmsc_lightgbm/original.ipynb#cell=5",
+              "line_start": 2,
+              "line_end": 2,
+              "quote": "sparse_matrix <- model.matrix.lm(SeriousDlqin2yrs ~ ., TrainingData, na.action = \"na.pass\")"
             }
           ],
           "language": [
@@ -1045,10 +1449,10 @@
           ],
           "algorithm": [
             {
-              "source_id": "gmsc_lightgbm/original.ipynb#cell=5",
-              "line_start": 21,
-              "line_end": 26,
-              "quote": "bst <- lightgbm("
+              "source_id": "gmsc_lightgbm/original.ipynb#cell=1",
+              "line_start": 3,
+              "line_end": 3,
+              "quote": "It implements a simple LGBM model that is trained upon, where the top 100 features is selected, and then a new LGBM model is trained using these features only."
             }
           ],
           "dataset": [
@@ -1064,42 +1468,66 @@
               "source_id": "gmsc_lightgbm/DATA_README.md",
               "line_start": 3,
               "line_end": 3,
-              "quote": "Download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page"
+              "quote": "Download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page under its applicable terms."
             }
           ],
           "inputs": [
             {
               "source_id": "gmsc_lightgbm/original.ipynb#cell=3",
-              "line_start": 16,
-              "line_end": 18,
-              "quote": "TrainingData <- TrainingData %>% mutate(TotalPastDue = NumberOfTime30.59DaysPastDueNotWorse + \n                                          NumberOfTime60.89DaysPastDueNotWorse + NumberOfTimes90DaysLate,\n                                        DebtRatio1000= ifelse(MonthlyIncome < 1000, NA, DebtRatio))"
+              "line_start": 6,
+              "line_end": 7,
+              "quote": "TrainingData <- read.csv(\"/kaggle/input/GiveMeSomeCredit/cs-training.csv\")\nTestData <- read.csv(\"/kaggle/input/GiveMeSomeCredit/cs-test.csv\")"
             }
           ],
           "derived_features": [
             {
               "source_id": "gmsc_lightgbm/original.ipynb#cell=3",
-              "line_start": 29,
-              "line_end": 40,
-              "quote": "if (operation == \"subtract\") {\n          new_var <- paste0(var, \"_minus_mean\")"
+              "line_start": 16,
+              "line_end": 18,
+              "quote": "TrainingData <- TrainingData %>% mutate(TotalPastDue = NumberOfTime30.59DaysPastDueNotWorse + \n                                          NumberOfTime60.89DaysPastDueNotWorse + NumberOfTimes90DaysLate,\n                                        DebtRatio1000= ifelse(MonthlyIncome < 1000, NA, DebtRatio))"
+            },
+            {
+              "source_id": "gmsc_lightgbm/original.ipynb#cell=3",
+              "line_start": 13,
+              "line_end": 13,
+              "quote": "TrainingData$age[which(TrainingData$age == 0)] <- round(mean(TrainingData$age[TrainingData$age != 0]))"
+            },
+            {
+              "source_id": "gmsc_lightgbm/original.ipynb#cell=3",
+              "line_start": 97,
+              "line_end": 97,
+              "quote": "TrainingData <- feature_engineering(TrainingData, variables_to_engineer, operation = c(\"subtract\",\"divide\",\"log\",\"square\"))"
+            },
+            {
+              "source_id": "gmsc_lightgbm/original.ipynb#cell=3",
+              "line_start": 106,
+              "line_end": 106,
+              "quote": "TrainingData <- arithmetic_operations(TrainingData, var1, var2, operations = c(\"multiply\", \"subtract\", \"divide\", \"add\"))"
             }
           ],
           "target": [
             {
               "source_id": "gmsc_lightgbm/original.ipynb#cell=5",
-              "line_start": 2,
-              "line_end": 2,
-              "quote": "sparse_matrix <- model.matrix.lm(SeriousDlqin2yrs ~ ., TrainingData, na.action = \"na.pass\")"
+              "line_start": 5,
+              "line_end": 5,
+              "quote": "train <- list(data = sparse_matrix, label = as.numeric(TrainingData$SeriousDlqin2yrs))"
             }
           ],
           "output": [
             {
               "source_id": "gmsc_lightgbm/original.ipynb#cell=7",
-              "line_start": 61,
+              "line_start": 59,
               "line_end": 61,
-              "quote": "write.csv(Result,\"/kaggle/working/LGBM_Summit.csv\", row.names = FALSE)"
+              "quote": "Result <- data.frame(Id = as.integer(TestData$X), Probability = pred)\n\nwrite.csv(Result,\"/kaggle/working/LGBM_Summit.csv\", row.names = FALSE)"
             }
           ],
           "training_stages": [
+            {
+              "source_id": "gmsc_lightgbm/original.ipynb#cell=1",
+              "line_start": 3,
+              "line_end": 3,
+              "quote": "It implements a simple LGBM model that is trained upon, where the top 100 features is selected, and then a new LGBM model is trained using these features only."
+            },
             {
               "source_id": "gmsc_lightgbm/DATA_README.md",
               "line_start": 5,
@@ -1117,6 +1545,14 @@
           ],
           "use_in_decisions": [
             {
+              "source_id": "gmsc_lightgbm/original.ipynb#cell=1",
+              "line_start": 5,
+              "line_end": 5,
+              "quote": "Running this code locally yields 0.8964 (Private) and 0.86401 (Public), which places this model in Top1 for both Private and Public."
+            }
+          ],
+          "doc_status": [
+            {
               "source_id": "gmsc_lightgbm/DATA_README.md",
               "line_start": 5,
               "line_end": 5,
@@ -1125,13 +1561,12 @@
           ]
         },
         "unknowns": [
-          "Business owner",
-          "Operational scope",
-          "Approved model risk tier",
-          "Declared version",
-          "Whether the model is used in real credit decisions",
-          "Actual real-world performance or leaderboard ranking",
-          "Model risk or governance approval"
+          "business owner",
+          "operational scope",
+          "approved model risk tier",
+          "declared model version",
+          "real-world approval status",
+          "performance validation outside competition leaderboard"
         ]
       },
       "risk_tier": "low",
@@ -1191,10 +1626,10 @@
         }
       ],
       "metadata": {
-        "name": "Credit Risk Modelling",
+        "name": "CRM :Credit Risk Modelling and Analysis",
         "business_type": "credit",
         "language": "R",
-        "algorithm": "probit GLM (generalized linear model, binomial family with probit link)",
+        "algorithm": "probit GLM (logistic regression with probit link)",
         "dataset": "Give Me Some Credit",
         "data_references": [
           "cs-training.csv",
@@ -1203,25 +1638,31 @@
           "sampleEntry.csv"
         ],
         "inputs": [
-          "SeriousDlqin2yrs (defaulted)",
-          "RevolvingUtilizationOfUnsecuredLines (unsecured.credit)",
+          "RevolvingUtilizationOfUnsecuredLines",
           "age",
-          "NumberOfTime30-59DaysPastDueNotWorse (<2months Deliquency)",
+          "NumberOfTime30-59DaysPastDueNotWorse",
           "DebtRatio",
           "MonthlyIncome",
-          "NumberOfOpenCreditLinesAndLoans (openCredit)",
-          "NumberOfTimes90DaysLate (3MonthsDefault)",
-          "NumberRealEstateLoansOrLines (RealEstateLoans)",
-          "NumberOfTime60-89DaysPastDueNotWorse (<3months Deliquency)",
-          "NumberOfDependents (Dependents)"
+          "NumberOfOpenCreditLinesAndLoans",
+          "NumberOfTimes90DaysLate",
+          "NumberRealEstateLoansOrLines",
+          "NumberOfTime60-89DaysPastDueNotWorse",
+          "NumberOfDependents"
         ],
-        "derived_features": [],
-        "target": "SeriousDlqin2yrs (defaulted)",
-        "output": "Probability of default and default status label",
+        "derived_features": [
+          "unsecured.credit",
+          "<2months Deliquency",
+          "<3months Deliquency",
+          "3MonthsDefault",
+          "ProbOfDefault",
+          "pred_cut_0.04",
+          "pred_cut_0.1025",
+          "pred_cut_0.2"
+        ],
+        "target": "SeriousDlqin2yrs (defaulted): 1 = default of more than 90 days in last 2 years, 0 = no such default",
+        "output": "Probability of default and default status label for test applicants",
         "training_stages": [
-          "Probit GLM on five variables (unsecured.credit, <2months Deliquency, <3months Deliquency, 3MonthsDefault, age)",
-          "Threshold cut-off classification at 4%, 10.25% and 20%",
-          "Evaluation via ROC/AUC and confusion matrices"
+          "probit GLM fit on five variables (unsecured.credit, <2months Deliquency, <3months Deliquency, 3MonthsDefault, age)"
         ],
         "packages": [
           "readxl",
@@ -1232,22 +1673,15 @@
           "corrplot",
           "knitr",
           "caret",
-          "pROC",
-          "rmarkdown"
+          "pROC"
         ],
         "business_owner": null,
         "declared_version": null,
         "use_in_decisions": "research",
         "doc_status": "needs_review",
-        "doc_reason": "Documentation describes a notebook research exercise with no confirmed business owner, operational scope, or approved model risk tier; real-world approval and performance cannot be inferred.",
+        "doc_reason": "Documentation describes a Kaggle notebook example; business owner, operational scope and approved model risk tier are unconfirmed, and no trained model file or reference predictions are supplied. File dates: newest code gmsc_probit/original.Rmd (2026-11-13), newest documentation gmsc_probit/DATA_README.md (2026-11-13); documentation is as new as or newer than the code. File-system dates reset on copy or git checkout, so this is a hint for the reviewer, not evidence.",
         "evidence": {
           "name": [
-            {
-              "source_id": "gmsc_probit/original.Rmd",
-              "line_start": 2,
-              "line_end": 2,
-              "quote": "title: \"Credit Risk Modelling\""
-            },
             {
               "source_id": "gmsc_probit/source.json",
               "line_start": 2,
@@ -1258,17 +1692,17 @@
           "business_type": [
             {
               "source_id": "gmsc_probit/original.Rmd",
-              "line_start": 13,
-              "line_end": 13,
-              "quote": "tags: [\"Credit Risk\", \"Banking\", \"Lending\", \"Probability of Default\", \"Logistic Regression\", \"R\"]"
+              "line_start": 76,
+              "line_end": 76,
+              "quote": "The Probability of default is a serious concept in credit risk assessment and it determines whether or not an applicant will be approved for credit."
             }
           ],
           "language": [
             {
-              "source_id": "gmsc_probit/original.Rmd",
-              "line_start": 47,
-              "line_end": 47,
-              "quote": "library(readxl) #4 importing .xls files"
+              "source_id": "gmsc_probit/DATA_README.md",
+              "line_start": 3,
+              "line_end": 3,
+              "quote": "This example contains the original R Markdown script and its provenance."
             }
           ],
           "algorithm": [
@@ -1293,12 +1727,6 @@
               "line_start": 60,
               "line_end": 63,
               "quote": "dictionary<-read_excel(\"/kaggle/input/GiveMeSomeCredit/Data Dictionary.xls\")"
-            },
-            {
-              "source_id": "gmsc_probit/DATA_README.md",
-              "line_start": 3,
-              "line_end": 3,
-              "quote": "download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page under its applicable terms."
             }
           ],
           "inputs": [
@@ -1307,6 +1735,14 @@
               "line_start": 85,
               "line_end": 85,
               "quote": "df_train<-rename(df_train,c(Applicant=\"...1\",defaulted=\"SeriousDlqin2yrs\",'unsecured.credit'=RevolvingUtilizationOfUnsecuredLines,age=age,'<2months Deliquency'=`NumberOfTime30-59DaysPastDueNotWorse`,DebtRatio=DebtRatio,MonthlyIncome=MonthlyIncome,openCredit=NumberOfOpenCreditLinesAndLoans,'3MonthsDefault'=NumberOfTimes90DaysLate,RealEstateLoans=NumberRealEstateLoansOrLines,'<3months Deliquency'=`NumberOfTime60-89DaysPastDueNotWorse`,Dependents=NumberOfDependents))"
+            }
+          ],
+          "derived_features": [
+            {
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 435,
+              "line_end": 435,
+              "quote": "df_test$defaulted<-factor(ifelse(df_test$ProbOfDefault>0.20,1,0))"
             }
           ],
           "target": [
@@ -1322,7 +1758,7 @@
               "source_id": "gmsc_probit/original.Rmd",
               "line_start": 80,
               "line_end": 80,
-              "quote": "The approach entails building a machine learning model that returns the loan id, the probability of default, and default status label"
+              "quote": "The approach entails building a machine learning model that returns the loan id, the probability of default, and default status label that indicates whether the loan will (likely) be paid or defaulted based on the estimated probability of default and an acceptable probability cut-off."
             }
           ],
           "training_stages": [
@@ -1331,43 +1767,32 @@
               "line_start": 303,
               "line_end": 303,
               "quote": "logmod<-glm(defaulted~unsecured.credit+`<2months Deliquency`+`<3months Deliquency`+`3MonthsDefault`+age ,data=TrainData, family=binomial (link=probit))"
-            },
-            {
-              "source_id": "gmsc_probit/original.Rmd",
-              "line_start": 315,
-              "line_end": 317,
-              "quote": "pred_cut_0.04<-ifelse(TestData$ProbOfDefault>0.04,1,0)"
-            },
-            {
-              "source_id": "gmsc_probit/original.Rmd",
-              "line_start": 344,
-              "line_end": 346,
-              "quote": "ROC0.04<-roc(TestData$defaulted,pred_cut_0.04)"
             }
           ],
           "packages": [
             {
               "source_id": "gmsc_probit/original.Rmd",
               "line_start": 47,
-              "line_end": 56,
-              "quote": "library(pROC) #4 performance analytics i.e roc curve"
+              "line_end": 55,
+              "quote": "library(readxl) #4 importing .xls files"
             }
           ],
           "use_in_decisions": [
             {
-              "source_id": "gmsc_probit/DATA_README.md",
-              "line_start": 5,
-              "line_end": 5,
-              "quote": "No trained model file or reference predictions have been supplied. Business owner, operational scope and approved model risk tier remain unconfirmed."
+              "source_id": "gmsc_probit/original.Rmd",
+              "line_start": 463,
+              "line_end": 463,
+              "quote": "The logistic models makes great prediction with good performance metrics, but other methods like random forests can be considered for comparison."
             }
           ]
         },
         "unknowns": [
-          "Business owner",
-          "Operational scope",
-          "Approved model risk tier",
-          "Real-world performance",
-          "Real-world approval status"
+          "business owner",
+          "operational scope",
+          "approved model risk tier",
+          "trained model file",
+          "reference predictions",
+          "declared version"
         ]
       },
       "risk_tier": "low",
