@@ -24,6 +24,9 @@ def _check_handoff_files(state: dict) -> None:
     for key, expected in state["handoff_sha256"].items():
         if file_sha256(Path(state[key])) != expected:
             raise ValueError(f"{key} changed after the Redevelop run")
+    for path, expected in state.get("runtime_assets_sha256", {}).items():
+        if file_sha256(Path(path)) != expected:
+            raise ValueError("Runtime model asset changed after the Redevelop run")
 
 
 def load_redevelop_state(state_path: Path) -> dict:
@@ -102,6 +105,8 @@ def load_validate_input(path: Path) -> dict:
     if snapshot["approvals"][:-1] != upstream["approvals"] or snapshot["model_id"] != upstream["model_id"]:
         raise ValueError("Approved Redevelop lineage differs from the approved document")
     return {**upstream, "ir_path": snapshot["ir_path"], "generated_code_path": snapshot["generated_code_path"],
+            "runtime_assets_sha256": snapshot.get("runtime_assets_sha256", {}),
+            "migration_scope": snapshot.get("migration_scope", "reestimation"),
             "tests_path": snapshot["tests_path"], "parity_result": snapshot["parity_result"],
             **{key: snapshot.get(key) for key in HANDOFF}, "handoff_sha256": snapshot["handoff_sha256"],
             "retry_count": snapshot["retry_count"], "registry_stage": snapshot["registry_stage"],
