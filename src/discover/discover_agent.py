@@ -199,6 +199,9 @@ def offline_metadata(sources: list[Source]) -> Metadata:
                     assign("training_stages", f"Training call at {source.source_id}:L{index}", evidence)
                 if re.search(r"\b(?:xgboost|xgb.train)\s*\(|set_engine\s*\(\s*['\"]xgboost", line):
                     assign("algorithm", "XGBoost", evidence)
+                # caret: algorithm only; the same call may sit in a disabled Markdown cell, so no training stage.
+                if re.search(r"\bmethod\s*=\s*['\"]gbm['\"]", line):
+                    assign("algorithm", "GBM", evidence)
                 if re.search(r"\bglm\s*\(.*link\s*=\s*['\"]?probit", line):
                     assign("algorithm", "Probit GLM", evidence)
                     assign("training_stages", f"Training call at {source.source_id}:L{index}", evidence)

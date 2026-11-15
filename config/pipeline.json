@@ -11,6 +11,7 @@
       }
     },
     "gmsc_lightgbm": {"redevelop": null},
-    "german_xgboost": {"redevelop": null}
+    "german_xgboost": {"redevelop": null},
+    "gmsc_gbm": {"redevelop": null}
   }
 }

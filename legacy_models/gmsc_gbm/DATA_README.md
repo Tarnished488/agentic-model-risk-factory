@@ -1,0 +1,5 @@
+# Give Me Some Credit input (caret GBM)
+
+This example contains the original R Notebook and its provenance. It uses the same competition data as gmsc_probit and gmsc_lightgbm: download cs-training.csv, cs-test.csv and Data Dictionary.xls from the competition page under its applicable terms. Keep borrower-level data local. Discover reads CSV headers only and does not run R or train models. The Notebook reads ../input/ paths, which must be adapted when later running it locally.
+
+The notebook recodes SeriousDlqin2yrs to good/bad, samples 30,000 training rows with set.seed(7), and preprocesses with a recipes pipeline (mean imputation, centring, scaling, zero-variance removal) prepared on that sample. It builds five folds with caret::createFolds and passes them to trainControl(index = ...), then fits one caret GBM (tuneLength 3, metric Kappa). The random forest cells are kept as Markdown and do not run. The submission writes column 2 of predict(type = "prob"). No trained model file or reference predictions have been supplied. Business owner, operational scope and approved model risk tier remain unconfirmed.
