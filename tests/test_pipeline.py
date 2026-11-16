@@ -126,6 +126,25 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('await', 'gate3'))
         self.assertNotEqual(pipeline.load_state('gmsc_probit')['steps']['redevelop']['state_path'], first)
 
+    def test_latest_approval_can_be_revoked(self):
+        quiet = dict(progress=lambda message: None)
+        for _ in range(2):
+            pipeline.run('gmsc_probit', False, **quiet)
+            self.approve('gmsc_probit', 'Offline draft checked by hand')
+        pipeline.run('gmsc_probit', False, **quiet)
+        self.approve('gmsc_probit')
+        with self.assertRaisesRegex(ValueError, 'needs a reviewer and a reason'):
+            pipeline.revoke('gmsc_probit', 'Redevelop reviewer', ' ')
+        self.assertEqual(pipeline.revoke('gmsc_probit', 'Redevelop reviewer', 'IR row id is the target'), 'gate3')
+        state = pipeline.load_state('gmsc_probit')
+        self.assertEqual(pipeline.next_action(state), ('await', 'gate3'))
+        self.assertEqual(state['history'][-1]['event'], 'approval_revoked')
+        self.assertEqual(pipeline.load_registry()['models'][state['model_id']]['stage'], 'Revoked')
+        pipeline.review('gmsc_probit', 'Redevelop reviewer', 'reject', 'Rebuild with a correct IR')
+        self.assertEqual(pipeline.next_action(pipeline.load_state('gmsc_probit')), ('run', 'redevelop'))
+        with self.assertRaisesRegex(ValueError, 'must be an approval'):
+            pipeline.revoke('gmsc_probit', 'Redevelop reviewer', 'again')
+
     def test_stage_failure_is_reported_not_skipped(self):
         quiet = dict(progress=lambda message: None)
         with patch.object(pipeline, 'run_discovery', side_effect=ValueError('scan broke')):

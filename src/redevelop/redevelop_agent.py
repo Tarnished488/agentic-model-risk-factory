@@ -323,6 +323,14 @@ def check_ir_columns(ir: IR, columns: list[str]) -> None:
                          + (f" (renames: {hints})" if hints else ""))
 
 
+def check_row_id(ir: IR, columns: list[str]) -> IR:
+    """The row id is the file's first column (the interface reads it by position); Validate joins on it."""
+    first = columns[0] if columns else ""
+    if ir.data.row_id in columns and ir.data.row_id != first:
+        raise CheckError(f"data.row_id must be the first column (the row id), not the data column {ir.data.row_id!r}")
+    return ir.model_copy(update={"data": ir.data.model_copy(update={"row_id": first})})
+
+
 # Knowledge base of how legacy runtimes compute, given to code generation when the IR matches.
 # The LLM reliably writes the right statistical model but not the legacy numerical algorithm.
 RUNTIME_NOTES = {
@@ -362,7 +370,7 @@ def generate_ir(record: Record, document_text: str, headers: dict[str, list[str]
             raise CheckError(f"data.file must be one of {sorted(headers)}")
         ir = resolve_aliases(ir, headers[ir.data.file])
         check_ir_columns(ir, headers[ir.data.file])
-        return ir
+        return check_row_id(ir, headers[ir.data.file])
     payload = {"model_id": record.model_id, "approved_document": document_text, "data_files": headers,
                "reference_documents": [{"source_id": s.source_id, "text": s.text}
                                        for s in record.sources if s.kind == "document"],

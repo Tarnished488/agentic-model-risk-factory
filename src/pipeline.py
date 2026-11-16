@@ -202,6 +202,28 @@ def review(group: str, reviewer: str, decision: str, notes: str, resolution_note
     return path
 
 
+def revoke(group: str, reviewer: str, reason: str) -> str:
+    """Withdraw the latest approval when a later stage shows it was wrong; the gate then waits for a new decision.
+
+    The original review file stays on disk and the event is recorded, so the audit trail keeps both decisions.
+    """
+    if not reviewer.strip() or not reason.strip():
+        raise ValueError("Revoking an approval needs a reviewer and a reason")
+    state = load_state(group)
+    done = [step for step in ORDER if step in state["steps"]]
+    gate = done[-1] if done else None
+    if not gate or not gate.startswith("gate") or state["steps"][gate]["decision"] != "approve":
+        raise ValueError(f"Only the latest step can be revoked, and it must be an approval (latest: {gate})")
+    withdrawn = state["steps"].pop(gate)
+    if gate == "gate3":
+        register(state, "Revoked", gate, Path(withdrawn["review_path"]))
+    state["last_error"] = None
+    _event(state, event="approval_revoked", gate=gate, reviewer=reviewer, reason=reason,
+           review_path=withdrawn["review_path"])
+    save_state(state)
+    return gate
+
+
 def describe(group: str) -> str:
     state = load_state(group)
     kind, item = next_action(state)
@@ -235,6 +257,10 @@ def main() -> int:
     gate.add_argument("--return-to-review1", action="store_true",
                       help="Gate 3/4 rejection only: the approved document is wrong; reopen gate 2")
     gate.add_argument("--issue", default="", help="With --return-to-review1: the point Review 1 must check")
+    withdraw = sub.add_parser("revoke", help="Withdraw the latest approval after a later stage exposed a problem")
+    withdraw.add_argument("--model", required=True)
+    withdraw.add_argument("--reviewer", required=True)
+    withdraw.add_argument("--reason", required=True)
     sub.add_parser("registry")
     args = parser.parse_args()
     try:
@@ -245,6 +271,9 @@ def main() -> int:
             kind, item = run(args.model, args.llm, progress=lambda m: print(m, file=sys.stderr, flush=True))
             print(describe(args.model))
             return 1 if kind == "error" else 0
+        elif args.command == "revoke":
+            print(f"Revoked {revoke(args.model, args.reviewer, args.reason)}")
+            print(describe(args.model))
         elif args.command == "registry":
             for model_id, entry in load_registry()["models"].items():
                 print(f"{model_id} ({entry['group']}): {entry['stage']}  version {entry['version'][:12]}  "

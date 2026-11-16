@@ -304,5 +304,16 @@ class RedevelopTests(unittest.TestCase):
         self.assertIn('mlflow_failed', (Path(final['run_dir']) / 'audit_log.jsonl').read_text(encoding='utf-8'))
 
 
+class RowIdCheckTests(unittest.TestCase):
+    def test_ir_row_id_must_be_the_first_column(self):
+        from src.redevelop.redevelop_agent import BASELINES, IR, CheckError, check_row_id
+        ir = IR.model_validate_json((BASELINES / 'gmsc_probit_ir.json').read_text(encoding='utf-8'))
+        columns = ['', 'SeriousDlqin2yrs', 'age']
+        self.assertEqual(check_row_id(ir, columns).data.row_id, '')  # descriptive name -> first column
+        wrong = ir.model_copy(update={'data': ir.data.model_copy(update={'row_id': 'SeriousDlqin2yrs'})})
+        with self.assertRaisesRegex(CheckError, 'first column'):
+            check_row_id(wrong, columns)
+
+
 if __name__ == '__main__':
     unittest.main()
