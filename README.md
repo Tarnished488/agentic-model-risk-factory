@@ -110,7 +110,7 @@ See [docs/responsible_ai.md](docs/responsible_ai.md). In short: data rows never 
 ## AI tools used
 
 - DeepSeek is the LLM inside the Discover, Document, Redevelop and Validate agents.
-- AI coding assistants assited us in coding and debugging, AI tools include Codex and Claude Code
+- AI coding assistants (Codex and Claude Code) helped with coding and debugging.
 
 ## Licences
 
