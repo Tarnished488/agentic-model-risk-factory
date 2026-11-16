@@ -325,6 +325,10 @@ class LLMResponse(str):
         return instance
 
 
+NETWORK_RETRY_DELAYS = (2, 5, 10)  # seconds between retries after a network drop or a transient HTTP status
+TRANSIENT_HTTP = {429, 500, 502, 503, 504}
+
+
 def call_llm(messages: list[dict[str, str]], schema: dict) -> str:
     """Use a configured Chat Completions compatible provider, with TLS verification."""
     required = ["LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY"]
@@ -337,11 +341,18 @@ def call_llm(messages: list[dict[str, str]], schema: dict) -> str:
         data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json", "Authorization": "Bearer " + os.environ["LLM_API_KEY"]},
     )
-    try:
-        with urllib.request.urlopen(request, timeout=90) as response:
-            body = json.load(response)
-    except urllib.error.HTTPError as error:
-        raise ValueError(f"LLM HTTP {error.code}") from None
+    for wait in (*NETWORK_RETRY_DELAYS, None):
+        try:
+            with urllib.request.urlopen(request, timeout=90) as response:
+                body = json.load(response)
+            break
+        except urllib.error.HTTPError as error:  # before OSError: HTTPError is a URLError
+            if error.code not in TRANSIENT_HTTP or wait is None:
+                raise ValueError(f"LLM HTTP {error.code}") from None  # 401/402 etc. fail at once
+        except OSError:  # URLError, timeouts, SSL EOF and connection resets
+            if wait is None:
+                raise
+        time.sleep(wait)
     return LLMResponse(body["choices"][0]["message"]["content"], body.get("usage"))
 
 

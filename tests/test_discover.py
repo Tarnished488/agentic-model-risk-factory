@@ -203,5 +203,28 @@ class DiscoverTests(unittest.TestCase):
         self.assertNotIn('PRIVATE_VALUE', llm_error_summary(ValueError('PRIVATE_VALUE')))
 
 
+class CallLLMRetryTests(unittest.TestCase):
+    env = {'LLM_BASE_URL': 'https://llm.test', 'LLM_MODEL': 'm', 'LLM_API_KEY': 'k'}
+
+    def test_network_drops_are_retried_but_billing_errors_are_not(self):
+        import io
+        import urllib.error
+        from src.discover import discover_agent as agent
+        ok = io.BytesIO(json.dumps({'choices': [{'message': {'content': '{}'}}]}).encode())
+        flaky = [urllib.error.URLError('EOF occurred in violation of protocol'), TimeoutError(), ok]
+        with patch.dict('os.environ', self.env), patch.object(agent, 'NETWORK_RETRY_DELAYS', (0, 0, 0)),                 patch('urllib.request.urlopen', side_effect=flaky) as opened:
+            self.assertEqual(str(agent.call_llm([], {})), '{}')
+            self.assertEqual(opened.call_count, 3)
+        payment = urllib.error.HTTPError('https://llm.test', 402, 'Payment Required', {}, None)
+        with patch.dict('os.environ', self.env), patch.object(agent, 'NETWORK_RETRY_DELAYS', (0, 0, 0)),                 patch('urllib.request.urlopen', side_effect=payment) as opened:
+            with self.assertRaisesRegex(ValueError, 'LLM HTTP 402'):
+                agent.call_llm([], {})
+            self.assertEqual(opened.call_count, 1)
+        with patch.dict('os.environ', self.env), patch.object(agent, 'NETWORK_RETRY_DELAYS', (0, 0, 0)),                 patch('urllib.request.urlopen', side_effect=urllib.error.URLError('down')) as opened:
+            with self.assertRaises(urllib.error.URLError):
+                agent.call_llm([], {})
+            self.assertEqual(opened.call_count, 4)
+
+
 if __name__ == '__main__':
     unittest.main()
