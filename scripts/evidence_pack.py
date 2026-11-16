@@ -45,15 +45,15 @@ def collect(state_path: Path, output: Path) -> Path:
     atomic_json(output / 'summary.json', summary)
     cards = ''.join(f"<article><b>{html.escape(s['name'])}</b><p>{html.escape(s['mode'])}</p><span>{html.escape(s['status'])}</span></article>" for s in stages)
     m = report['metrics']
-    dashboard = f'''<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>模型风险工厂 · 运行证据</title>
+    dashboard = f'''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Model risk factory · run evidence</title>
 <style>body{{font:16px system-ui;background:#f3f6fb;color:#173046;margin:40px auto;max-width:1100px;padding:0 28px}}h1{{font-size:36px}}.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:15px}}article,section{{background:white;border:1px solid #dce4ed;padding:24px;border-radius:14px;margin-bottom:18px}}article b{{font-size:22px}}.note{{background:#fff0c4;padding:18px;border-radius:12px}}a{{color:#1457bb}}pre{{white-space:pre-wrap;word-break:break-word}}button{{padding:12px;cursor:pointer}}.metric{{font-size:30px;font-weight:700}}</style>
-<h1>模型风险工厂 · 本地真实运行</h1><p>{html.escape(state['model_id'])} · Give Me Some Credit / Probit</p>
-<p class="note">无 API：使用手写 Python 基准，对照真实 R 输出。文档是离线草稿，未运行大模型自动生成。第三方数据镜像，非官方字节认证。关卡 1–3 为 Codex 技术核对，非成员本人签名；团队人工复核及关卡 4 尚待完成。</p>
-<div class="grid">{cards}</div><div class="grid"><article>留出样本<p class="metric">{m['rows']:,}</p></article><article>AUC<p class="metric">{m['auc']:.4f}</p></article><article>KS<p class="metric">{m['ks']:.4f}</p></article><article>校准 ECE<p class="metric">{m['ece']:.4f}</p></article></div>
-<section><h2>这次证明了什么</h2><p>真实 R 参考与手写 Python 重建经过 Parity 比较，独立验证重新计算模型指标。每个文件有摘要，审批链可回溯。</p><p>没有证明通用 Agent 自动转换、多模型全部通过或模型已获银行投产批准。</p><a href="validation.html">查看完整验证报告 →</a> · <a href="summary.json">查看汇总证据 JSON</a></section>
-<section><h2>R / Python 一致性</h2><pre>{html.escape(json.dumps(summary['parity'],ensure_ascii=False,indent=2))}</pre></section>
-<section><h2>待处理事项</h2><ul>{''.join('<li>'+html.escape(x)+'</li>' for x in report['unknowns'])}</ul></section>
-<details><summary>查看各阶段来源摘要</summary><pre>{html.escape(json.dumps(stages,ensure_ascii=False,indent=2))}</pre></details></html>'''
+<h1>Model risk factory · local real-data run</h1><p>{html.escape(state['model_id'])} · Give Me Some Credit / Probit</p>
+<p class="note">No API: the hand-written Python baseline is compared with real R output. The document is an offline draft; no LLM generation ran. The data is a third-party mirror, not byte-verified against the official source. Gates 1–3 are technical checks by an AI assistant, not team sign-offs; team review and gate 4 are still pending.</p>
+<div class="grid">{cards}</div><div class="grid"><article>Holdout rows<p class="metric">{m['rows']:,}</p></article><article>AUC<p class="metric">{m['auc']:.4f}</p></article><article>KS<p class="metric">{m['ks']:.4f}</p></article><article>Calibration ECE<p class="metric">{m['ece']:.4f}</p></article></div>
+<section><h2>What this run shows</h2><p>The hand-written Python rebuild was compared with the real R reference by parity, and independent validation recomputed the model metrics. Every file has a hash and the approval chain can be traced.</p><p>It does not show general automatic conversion by agents, that every model passes, or bank approval for production.</p><a href="validation.html">Full validation report →</a> · <a href="summary.json">Aggregate evidence JSON</a></section>
+<section><h2>R / Python parity</h2><pre>{html.escape(json.dumps(summary['parity'],ensure_ascii=False,indent=2))}</pre></section>
+<section><h2>Open items</h2><ul>{''.join('<li>'+html.escape(x)+'</li>' for x in report['unknowns'])}</ul></section>
+<details><summary>Stage source hashes</summary><pre>{html.escape(json.dumps(stages,ensure_ascii=False,indent=2))}</pre></details></html>'''
     (output / 'index.html').write_text(dashboard, encoding='utf-8')
     (output / 'validation.html').write_text(Path(state['html_path']).read_text(encoding='utf-8'), encoding='utf-8')
     return output / 'index.html'
