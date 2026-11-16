@@ -69,6 +69,8 @@ Or use the review console and dashboard:
 streamlit run src/ui/app.py
 ```
 
+For a public deployment (e.g. Streamlit Community Cloud, entry file `src/ui/app.py`), set the secret `SANDBOX = "1"`. The app then generates synthetic rows in the Give Me Some Credit layout, uses the Python baseline as the parity reference, runs offline and keeps its own artifact folder, so every stage runs without real data, R or an API key. Results describe random data, not the real model.
+
 LLM mode needs an OpenAI-compatible endpoint in a local `.env` (never commit it):
 
 ```text
