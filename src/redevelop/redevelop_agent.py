@@ -27,7 +27,7 @@ from src.discover.discover_agent import (
 )
 from src.redevelop.parity import compare, load_coefficients, load_predictions, record_round
 
-PROMPT_VERSION = "redevelop-v6"
+PROMPT_VERSION = "redevelop-v7"
 BASELINES = Path(__file__).parent / "baselines"
 MODEL_METHODS = {"fit", "predict_proba", "get_coefficients"}
 
@@ -329,11 +329,12 @@ RUNTIME_NOTES = {
     "r_glm": (
         "R stats::glm.fit IRLS, to be reproduced exactly: binomial initialize mustart = (y + 0.5) / 2 (unit weights); "
         "eta = linkfun(mustart); mu = linkinv(eta); devold = binomial deviance(y, mu). Each iteration: "
-        "mu_eta = linkinv derivative at eta (probit: max(dnorm(eta), machine eps)); z = eta + (y - mu) / mu_eta; "
+        "mu_eta = linkinv derivative at eta (probit: np.maximum(norm.pdf(eta), eps), keep this floor); z = eta + (y - mu) / mu_eta; "
         "w = sqrt(mu_eta^2 / (mu * (1 - mu))); coef = least squares of (X * w) on (z * w) (numpy.linalg.lstsq); "
         "eta = X @ coef; mu = linkinv(eta); dev = binomial deviance; stop when |dev - devold| / (|dev| + 0.1) < 1e-8 "
-        "(control epsilon) and keep that coef, else devold = dev; at most 25 iterations. Probit linkinv clamps eta to "
-        "+/- (-qnorm(machine eps)) before pnorm. Use scipy.stats.norm cdf/pdf/ppf; never hand-write normal "
+        "(control epsilon) and keep that coef, else devold = dev; at most 25 iterations. Probit linkinv: eps = "
+        "np.finfo(float).eps; thresh = -norm.ppf(eps), a POSITIVE number near 8.13 (norm.ppf(eps) itself is negative, "
+        "so do not drop the minus); eta = np.clip(eta, -thresh, thresh); mu = norm.cdf(eta). Use scipy.stats.norm cdf/pdf/ppf; never hand-write normal "
         "approximations or clip probabilities, both change results beyond 1e-6."),
 }
 
