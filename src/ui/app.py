@@ -230,8 +230,29 @@ def main() -> None:
         if "validate" in state["steps"]:
             st.caption("These are the figures the gate 4 reviewer approved.")
             show_gate4(state)
+    revoke_form(group, state)
     with st.expander("Audit trail for this model"):
         st.dataframe(pd.DataFrame(state["history"]), hide_index=True, width="stretch")
+
+
+def revoke_form(group: str, state: dict) -> None:
+    """Withdraw the latest approval when a later stage shows it was wrong (same rules as `pipeline revoke`)."""
+    done = [step for step in pipeline.ORDER if step in state["steps"]]
+    gate = done[-1] if done else None
+    if not gate or not gate.startswith("gate") or state["steps"][gate].get("decision") != "approve":
+        return
+    with st.expander(f"Withdraw the {STEP_LABELS[gate]} approval"):
+        style.note("Use this when a later stage shows the approval was wrong. The gate reopens for a new decision; "
+                   "the original review stays on record and the withdrawal is logged.")
+        with st.form(f"revoke-{group}"):
+            reviewer = st.text_input("Reviewer", value=st.session_state.get("reviewer", ""))
+            reason = st.text_area("Reason", placeholder="What the later stage found")
+            if st.form_submit_button(f"Withdraw {STEP_LABELS[gate]} approval"):
+                try:
+                    pipeline.revoke(group, reviewer, reason)
+                    st.rerun()
+                except (ValueError, OSError, KeyError) as error:
+                    st.error(f"Not withdrawn: {error}. Address this and submit again.")
 
 
 main()

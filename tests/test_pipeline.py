@@ -76,6 +76,12 @@ class PipelineTests(unittest.TestCase):
         self.assertIn('Gate console', [t.value for t in console.title])
         gates = [e['gate'] for e in pipeline.load_state('gmsc_probit')['history'] if e['event'] == 'gate_decision']
         self.assertEqual(gates, ['gate1', 'gate2', 'gate3', 'gate4'])
+        self.assertIn('Withdraw the Gate 4 approval', [e.label for e in console.expander])
+        console.text_input[0].set_value('Validate reviewer')
+        console.text_area[0].set_value('Later evidence contradicts the report')
+        next(b for b in console.button if b.label == 'Withdraw Gate 4 approval').click().run()
+        self.assertFalse(console.exception, console.exception)
+        self.assertEqual(pipeline.next_action(pipeline.load_state('gmsc_probit')), ('await', 'gate4'))
 
     def test_rejection_reruns_the_stage_and_clears_later_steps(self):
         quiet = dict(progress=lambda message: None)
