@@ -1,16 +1,14 @@
-# 2026-11-13 无 API 真实运行证据
+# Offline run evidence (2026-11-13)
 
-模式：真实第三方镜像 GMSC 数据；独立执行原 R 导出脚本；手写 Python Probit 基准重建。未调用 LLM，不宣称自动转换成功。
+Real Give Me Some Credit data (third-party mirror), the original R script run independently, and the hand-written Python Probit baseline. No LLM was called, so this run does not show automatic conversion; the DeepSeek rebuild is a separate run.
 
-- 原始样本：150,000；过滤后：112,021；训练：78,414；留出：33,607。
-- R / Python 预测最大绝对差：3.45279360658e-14。
-- 系数最大绝对差：4.50750547998e-14。
-- AUC：0.82307558；KS：0.49192764；Brier：0.04641890；ECE：0.00537737。
-- Parity：通过；Validate 演示规则：全部通过，但状态保持 pending_validation_review。
-- 关卡 1–3 是 Codex 技术核对；团队成员本人复核及关卡 4 尚待完成。
+- Rows: 150,000 raw, 112,021 after filters, 78,414 train, 33,607 holdout.
+- Maximum R / Python difference: predictions 3.45e-14, coefficients 4.51e-14.
+- AUC 0.8231, KS 0.4919, Brier 0.0464, ECE 0.0054.
+- Parity passed. Gates 1–3 in this run were technical checks by an AI assistant, not team sign-offs; gate 4 was left pending.
 
-本次使用 R 4.6.1；Python 3.12。下载摘要见 data_provenance.json，聚合指标、源码及产物摘要见 summary.json。R 的完整 sessionInfo、原始数据、预测、测试日志和本机审批路径保存在被忽略的 data/ 与 artifacts/ 中，不上传借款人级数据或本机身份。
+R 4.6.1 and Python 3.12. `data_provenance.json` holds the download hashes; `summary.json` holds the aggregate metrics and artifact hashes. Borrower-level data, predictions and logs stay in the ignored `data/` and `artifacts/` folders.
 
-这证明当前数据下手写重建忠实复现了 R，并且独立指标计算可运行；不证明自动转换、跨模型泛化、未来样本表现、全面公平或银行监管合规。规则为项目示例，需要团队确认。
+This shows the hand-written rebuild reproduces R on this data and that the metrics run end to end. It does not show cross-model generalisation, out-of-time performance, full fairness or regulatory compliance.
 
-重新运行步骤见 ../offline_demo.md；单独运行关卡 4 不会创建投产许可。
+Reproduce with `python -m scripts.download_gmsc`, `Rscript scripts/gmsc_probit_export.R` and `python -m scripts.run_offline_demo`.

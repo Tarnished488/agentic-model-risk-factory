@@ -1,385 +1,115 @@
 # Agentic Model Risk Factory
 
-当前已实现 Discover → 审核 1 → Document → 审核 2 → Redevelop / Parity → 审核 3 → Validate → 审核 4。`src/pipeline.py` 按模型串联全部节点，到每个人工关卡自动暂停；`src/ui/app.py` 是 Streamlit 审批界面。配置 LLM 时各节点用 LLM 生成（已用 DeepSeek 跑通 Probit 全流程），否则使用手写基准离线运行。尚无生产模型注册表和 Monitor。
+EXL × Trinity Data & AI Hackathon 2026, Challenge 04.
 
-## 先运行离线示例
+## Problem
 
-需要 Python 3.10 或以上。在项目目录运行。
+Banks still run credit risk models written years ago in R or SAS. Moving them to Python is slow and risky: the documentation is thin or wrong, a translation can run cleanly yet change what the model predicts, and every step needs evidence a model validator can check.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m src.discover.discover_agent scan
-python -m unittest -v
-```
+We ask whether AI agents can document, rebuild and validate a legacy model faster, while every claim stays traceable to the source and every decision stays with a human.
 
-Windows 激活命令为 `.venv\Scripts\activate`。离线模式无需 API 密钥，不执行 R、不训练模型。示例已包含下载的完整 Notebook 代码和来源记录，移除了历史输出和执行计数。它是 Apache 2.0 授权的第三方示例，归原作者 brynning 所有，详见 `THIRD_PARTY_NOTICES.md`。
+## What it does
 
-预期识别一个业务模型工作流、R、LightGBM、`SeriousDlqin2yrs` 和两次训练调用。原始数据尚未加入，离线扫描的 `inputs` 保持空列表并列为待确认事项。算法识别等静态规则主要针对本次 R 样例，语义更复杂的源码使用 LLM 模式并人工核对。
-
-## 代码结构
-
-所有命令都在仓库根目录用 `python -m src.<agent>.<module>` 运行。
+Four agents run in sequence. Each one stops at a human gate.
 
 ```text
-src/
-  pipeline.py                  # 端到端调度：运行到下一关卡暂停，记录审批后继续（run / review / status CLI）
-  ui/app.py                    # Streamlit 审批界面（streamlit run src/ui/app.py）
-  workflow_state.py            # 各节点共享状态键
-  discover/
-    discover_agent.py          # 扫描与证据抽取（scan / review / handoff / schema CLI）
-    discover_review.py         # 人工关卡 1
-  document/
-    document_agent.py          # 逆向文档生成与自检（generate / review / handoff CLI）
-    document_review.py         # 人工关卡 2
-    document_sources.py        # 源码分块
-  redevelop/
-    redevelop_agent.py         # IR → 测试生成 → 代码生成 → 静态检查 + pytest + 运行 → parity → 反馈重试
-    redevelop_review.py        # 人工关卡 3（review / handoff CLI）
-    parity.py                  # Parity 检查（纯代码，无 LLM）与重试路由
-    baselines/
-      gmsc_probit_ir.json      # 手写 IR（带源码证据），LLM 生成的 IR 需与之对齐
-      gmsc_probit.py           # 手写 Python 重建，代码生成的对照与演示兜底
-      gmsc_probit_test.py      # 手写 pytest，生成测试先在此实现上验证（test the tests）
-  validate/
-    validate_agent.py          # 指标、稳定性、公平性、系数符号；Explainer；Markdown/HTML/Word 报告
-    explainer.py               # LLM 解读 + 数字校验（只能引用 metrics 中的数字）+ 离线模板
-    report_docx.py             # Word 验证报告
-    validate_review.py         # 人工关卡 4
-config/
-  pipeline.json                # 每个模型的流水线设置（是否重构、数据与参考路径）
-  validation_policy.json       # 验证阈值与系数预期符号
-scripts/
-  gmsc_probit_export.R         # 本地运行 R 原模型，导出 parity 参考
-  gmsc_lightgbm_export.R
-tests/                         # python -m unittest
+legacy code ─► Discover ─► Gate 1 ─► Document ─► Gate 2 ─► Redevelop ─► Gate 3 ─► Validate ─► Gate 4
+               inventory            6-chapter doc          IR, Python,             metrics,
+               + evidence           + self-check           tests, parity           Word report
 ```
 
-## 端到端流水线与审批界面
+| Agent | Output | Human gate |
+|---|---|---|
+| Discover | Model inventory with source evidence and unknowns | Gate 1: check each field, correct mistakes |
+| Document | Six-chapter model document; every claim cites source lines and is self-checked | Gate 2: approve, edit or reject the document |
+| Redevelop | Intermediate specification (IR), Python code and tests; parity against the R reference, up to 3 retries | Gate 3: review IR, code and parity; registers the rebuild as Staging |
+| Validate | Discrimination, calibration, stability, fairness and coefficient-sign checks, red/amber/green ratings, LLM explanation with number checking, Word report | Gate 4: approve for research use only |
 
-每个模型一份状态文件（`artifacts/pipeline/<模型组>.json`）。`run` 依次执行各节点，遇到人工关卡就停；`review` 记录该关卡的决定；再次 `run` 继续。驳回会重跑该关卡之前的节点，并清除其后所有步骤，旧批准不能被复用。关卡 3、4 驳回时若根源是已批准文档对原模型的理解有误，可选择退回审核 1（UI 勾选，或 CLI `--return-to-review1 --issue "问题点"`）：重新打开关卡 2 并置顶显示问题点，批准后 Redevelop 按修正后的文档重跑，退回事件记入 history。任何节点出错都会停下并记录原因，不会跳过。`config/pipeline.json` 中 `redevelop` 为 `null` 的模型在关卡 2 后结束（只出文档，不重构）。
+- Gates 1–2 form **Review 1** (do we understand the model?); gates 3–4 form **Review 2** (is the rebuild right and fit for use?).
+- A rejection reruns the stage. At gate 3 or 4 the reviewer can instead **return the model to Review 1** when the approved document is wrong.
+- Stage-by-stage design: [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md).
+- Every approval is a SHA-256 snapshot. Downstream stages refuse input that changed after approval.
+- Hard rules the reviewer cannot override: no approval without passed parity (gate 3) or with a red finding (gate 4).
+
+## Models
+
+| Model | Source (Kaggle, Apache 2.0) | Documented | AI rebuild + validation |
+|---|---|---|---|
+| `gmsc_probit` Probit GLM | sunnyboyngobeni | Yes | Yes: validated for research, overall amber |
+| `gmsc_lightgbm` LightGBM | brynning | Yes | No |
+| `german_xgboost` XGBoost + SHAP | hafsarouchdi | Yes | No |
+| `gmsc_gbm` caret GBM | fastwalker | Yes | No |
+
+Probit result: DeepSeek generated the IR, code and tests, and parity passed after one retry. On the 33,607-row holdout, AUC is 0.8231 and KS is 0.4919. Age-group fairness metrics fall in the warning band, and sex is unavailable in the data, so the overall rating is amber.
+
+A real finding: the German XGBoost notebook reports AUC 0.2729 because its evaluator treats "good" as the event. With the event direction corrected it is 0.7271. Review 1 missed this at first; the document was corrected, and Validate now flags any AUC below 0.5 as a possible direction error.
+
+## Quick start
+
+Python 3.10+.
+
+```bash
+python -m pip install -r requirements.txt
+python -m pytest -q                                   # 93 tests, no API key needed
+```
+
+Run the pipeline. Without `--llm` the agents use hand-written baselines offline.
 
 ```bash
 python -m src.pipeline status
-python -m src.pipeline run --model gmsc_probit --llm      # 自动读取 .env；不加 --llm 则离线
+python -m src.pipeline run --model gmsc_probit [--llm]           # runs until the next gate
 python -m src.pipeline review --model gmsc_probit --reviewer "Discover reviewer" \
-  --decision approve --notes "逐项核对源码" --correct "output=Probability of default per applicant"
-python -m src.pipeline run --model gmsc_probit --llm      # 继续到下一关卡
-python -m src.pipeline registry                           # 本地模型注册表
+  --decision approve --notes "Checked against the source"
+python -m src.pipeline review ... --decision reject --return-to-review1 --issue "..."   # gates 3-4
 ```
 
-- **关卡 1 字段更正**：`--correct 字段=值`（可重复）或界面中的 Correction 列。清单记录本身受哈希锁定不被修改；更正随批准保存，并作为人工输入传给 Document。
-- **文档新旧提示**：Discover 比较最新代码文件与最新文档文件的日期，写入 `doc_reason`。这只是提示：复制或 git checkout 会重置文件日期，因此不作为警告、不阻塞关卡 1。
-- **模型注册表**：`artifacts/registry/models.json`。关卡 3 批准 → `Staging`；关卡 4 批准 → `Validated (research)`，驳回 → `Rejected`，带代码版本（哈希）和历史。它是 MLflow Model Registry 的本地替代。
-
-界面有两个视图：
-
-- **Dashboard**：全部模型的进度看板与关键数字；所选模型的红黄绿评级、ROC / 校准 / 分数分布 / PSI / 分组比率交互图表、带建议的发现项表和 Word 报告下载；parity 各轮记录；关卡决定时间线与模型注册表。只使用汇总数据，不显示借款人级数据。
-- **Gate console**：运行下一节点（LLM 或离线），展示当前关卡需要审阅的内容（清单记录与可编辑更正列、文档与自检、IR/代码/测试/parity、指标/解读/Word 报告），并提交决定。所有校验仍在各 agent 内执行，界面无法批准命令行会拒绝的内容。
+Or use the review console and dashboard:
 
 ```bash
-streamlit run src/ui/app.py --server.address localhost
+streamlit run src/ui/app.py
 ```
 
-只绑定本机：界面可批准关卡并显示模型细节，不应暴露到网络。排练或演示时可设置 `PIPELINE_ARTIFACTS=<目录>`，让流水线写入独立目录，不改动共享的 `artifacts/discover/inventory.json`。
-
-### R 参考导出与 Probit 重建
-
-Kaggle 已不能复制 R notebook，参考结果在本地用 R（4.4 以上）生成。先把比赛数据放到 `data/GiveMeSomeCredit/`（`data/` 不进 git，借款人级数据只留本地）。
-
-```bash
-Rscript scripts/gmsc_probit_export.R       # -> data/reference/gmsc_probit/
-Rscript scripts/gmsc_lightgbm_export.R     # -> data/reference/gmsc_lightgbm/
-python -m src.redevelop.baselines.gmsc_probit
-python -m src.redevelop.parity data/reference/gmsc_probit/holdout_predictions.csv \
-  artifacts/redevelop/MODEL-9239165C4AE5/candidate/holdout_predictions.csv \
-  --model-id MODEL-9239165C4AE5 --tier reestimation \
-  --coefficients data/reference/gmsc_probit/coefficients.csv \
-  artifacts/redevelop/MODEL-9239165C4AE5/candidate/coefficients.csv
-```
-
-当前结果（R 4.6.2）：过滤后 112,021 行、留出 33,607 行与 R 一致；预测最大差 3.45e-14，系数最大差 3.69e-14。通用优化器（statsmodels）收敛得比 R 更深，系数差约 1e-5，因此重建按 R `glm.fit` 的 IRLS 起点与停止规则实现。
-
-### Redevelop Agent
-
-输入为关卡 2 批准的文档快照。按流程文档的 3.1–3.6 步：
-
-1. **IR**：LLM 读源码、批准文档、数据文件列名（仅表头）和数据说明，生成带证据的 IR，逐条校验引用行。
-2. **测试生成**：LLM 只看 IR 写 pytest（合成数据、`tmp_path`）。给出 `--baseline` 时先在手写实现上运行，失败说明测试本身错误，打回重写。
-3. **代码生成**：按 IR 写模块，必须实现 `class Model`（`fit / predict_proba / get_coefficients`）和 `run(data_dir, reference_dir, output)`。
-4. **沙箱**：AST 白名单（仅 numpy/pandas/scipy 等，禁止 os/subprocess/eval/open/双下划线属性）→ 在去掉 `LLM_*` 环境变量的独立子进程中跑 pytest → 再在真实数据上运行。
-5. **Parity** 与 **路由**：测试失败、运行报错或 parity 失败都把原因反馈给代码生成，最多重试 3 次；仍失败转人工并生成 `difference_report.md`。
-
-数据行不会发给 LLM。若给出 `--baseline`，生成的 IR 会与手写 IR 比对，差异写入状态，关卡 3 批准时必须写处置说明。LLM 调用的模型名、提示版本、输入哈希和 token 写入审计日志；`--mlflow` 时每次运行一个父 run、每轮一个嵌套 run（MLflow 3 的本地文件存储需设 `MLFLOW_ALLOW_FILE_STORE=true` 或改用数据库后端），记录失败不影响本地结果。
-
-```bash
-python -m src.redevelop.redevelop_agent DOCUMENT_REVIEW.json --data data/GiveMeSomeCredit \
-  --reference data/reference/gmsc_probit --tier reestimation --baseline gmsc_probit
-# 无 LLM 密钥时的兜底：用手写 IR 和代码跑同一条流水线
-python -m src.redevelop.redevelop_agent DOCUMENT_REVIEW.json --data data/GiveMeSomeCredit \
-  --reference data/reference/gmsc_probit --baseline gmsc_probit --offline
-```
-
-每次运行写入 `artifacts/redevelop/runs/<run_id>/`：`ir.json`、`tests/test_new_model.py`、`round_N/new_model.py`、`<model_id>/parity_result.json`、`state.json`、`audit_log.jsonl`，转人工时另有 `difference_report.md`。通过时状态为 `pending_redevelop_review`。
-
-**人工关卡 3**：审阅 IR、代码、测试和 parity。只有 parity 通过的运行可批准；IR 与手写基线不同时必须填 `--resolution-notes`。批准后锁定三份文件的快照，状态 `approved_for_validate`，`registry_stage` 记为 `Staging`（模型注册表的占位）。
-
-```bash
-python -m src.redevelop.redevelop_review review artifacts/redevelop/runs/RUN_ID/state.json \
-  --reviewer "Name" --decision approve --notes "Compared IR, code and parity table"
-python -m src.redevelop.redevelop_review handoff artifacts/redevelop/runs/RUN_ID/reviews/REVIEW_ID/review.json
-```
-
-`handoff` 重新校验快照、三份文件哈希和关卡 2 的上游批准链，输出 Validate 的输入（`ready_for_validate`）。其中供 Validate 重算指标的路径：`data_path`（原始数据）、`train_ids_path`（训练/留出切分）、`holdout_predictions_path`（重建模型留出集预测，`row_id,probability,label`）、`coefficients_path`；这些文件的 SHA-256 记录在 `handoff_sha256`，任一被替换都会拒绝交接。
-
-### Parity 检查
-
-两份 CSV 列为 `row_id,probability[,label]`，参考文件来自 R 导出，行号必须完全一致。
-
-```bash
-python -m src.redevelop.parity REF.csv NEW.csv --model-id MODEL_ID --tier inference
-python -m src.redevelop.parity REF.csv NEW.csv --model-id MODEL_ID --tier reestimation
-```
-
-- `inference`（L1）：用 Python 加载 R 模型文件打分，最大绝对差 ≤ 1e-6。
-- `reestimation`（L2）：Python 在同一切分重训，AUC 差 ≤ 0.005、KS 差 ≤ 0.01、Spearman ≥ 0.99，需要 label 列。
-- `--coefficients REF NEW`（可选，GLM 用）：两份 `term,Estimate` CSV，任一档位上追加系数最大差 ≤ 1e-6。
-
-每轮追加到 `artifacts/redevelop/<model_id>/parity_result.json`。通过为 `pending_redevelop_review`（进入关卡 3），失败且重试少于 3 次为 `retry`（`worst_rows` 作为代码生成的反馈），否则为 `needs_attention`。阈值在 `parity.py` 的 `THRESHOLDS` 中，需团队事先确认。
-
-## 输入和分组约定
+LLM mode needs an OpenAI-compatible endpoint in a local `.env` (never commit it):
 
 ```text
-legacy_models/
-  gmsc_lightgbm/
-    original.ipynb
-    source.json
-    DATA_README.md
-artifacts/discover/           # 运行生成，仅 inventory.json 提交共享，其余已忽略
-  inventory.json             # 最新结果
-  runs/<run_id>/inventory.json
-  audit_log.jsonl
-  reviews/<run_id>/<model_id>/<review_id>.json
+LLM_BASE_URL=<provider base URL>
+LLM_MODEL=<model name>
+LLM_API_KEY=<your key>
 ```
 
-输入根目录的每个直接子目录代表一个业务模型，内部代码和材料递归归组。根目录的散落文件作为一个 `_root` 组，因此共用说明请放在输入目录以外。单个子目录里有多个业务模型时，先拆分目录，避免仅凭相似文件名自动合并。模型编号由相对分组路径生成，重跑保持稳定，改目录名会改变编号。
-
-支持 `.R`、`.Rmd`、`.py`、`.sas`、`.ipynb`、`.md`、`.txt`、`.json`、`.csv`、`.docx`、`.pdf`。Notebook 仅读代码和 Markdown 单元，引用采用原单元序号和单元内行号。PDF 按页提取文本，扫描件须先 OCR。DOCX 的表格转为文本行。CSV 仅读表头，文件哈希仍会流式计算全文件。官方 Excel 数据字典应先另存为 CSV 后加入。其他扩展名跳过。
-
-文本文件和文档上限 10 MB，CSV 不受该限制。LLM 输入上限 120,000 个字符，超限会显式转人工，不静默截断。源码符号链接不可指向输入目录之外。
-
-## LLM 元数据提取
-
-支持提供 `/chat/completions` 和 JSON 输出的兼容服务。根据实际服务填写以下环境变量，密钥保存在本地环境中。
+Parity needs the R reference outputs. Install R 4.4+, then:
 
 ```bash
-export LLM_BASE_URL="https://your-provider.example/v1"
-export LLM_MODEL="your-model-name"
-export LLM_API_KEY="your-api-key"
-python -m src.discover.discover_agent scan --llm
+python -m scripts.download_gmsc           # Give Me Some Credit into data/GiveMeSomeCredit/ (local only)
+Rscript scripts/gmsc_probit_export.R      # writes data/reference/gmsc_probit/
 ```
 
-显式使用 `--llm` 后，提取的源码、文档文字和 CSV 表头会发送至配置的服务。Notebook 历史输出和 CSV 数据行不会发出。依赖用 urllib，校验 TLS 证书，HTTP 错误不输出响应正文或密钥。
+## Repository layout
 
-LLM 负责名称、用途、语言、算法、原始输入与派生特征、目标、输出、训练阶段、包、管理人、声明版本、文档状态及未知项。模型源码和资料被当作待分析内容，提示词约束其忽略材料内的指令。
-
-Pydantic 检查字段和取值，代码核对证据来源、行号和逐字引用。引用能证明出处存在，语义是否支持结论仍需人工检查。初次提取失败最多重试两次，总共三次。失败后保留离线结果，明确标为 `needs_attention`，命令返回非零；不会将回退结果伪装为 LLM 提取成功。
-
-每个字段的证据集中在 `metadata.evidence`，例子为 `original.ipynb#cell=3` 及该单元内的行号。模型记录还保存完整提取文本和原文件 SHA-256，方便下一节点读取与重验。
-
-## 文档和风险规则
-
-有可读说明时默认为 `needs_review`，没有说明则为 `missing`。LLM 可以提出 `current` 或 `outdated`，必须引用内容证据，仍属于待审核结果。文件系统修改时间作为文件信息保留，不用于宣称文档已经过时。
-
-业务管理人与 Notebook 作者分别处理。源码没有的管理人、业务范围和模型声明版本保留为空，并在未知项中说明。
-
-只有资料明确说明用途时才应用项目初步分级规则：直接信贷决策为 high，报表为 medium，研究为 low。用途未知则不定级。所有等级都标为 provisional，供人工确认；这套简化规则不构成完整的银行风险分类政策或监管认证。
-
-## 人工审核和下一节点交接
-
-负责 Document 的同学请先阅读 [Discover 到 Document 的交接约定](docs/discover_to_document.md)，其中包含字段类型、证据引用、跨机器路径限制及建议输出。
-
-运行 `scan` 后，打开 `artifacts/discover/inventory.json`，检查来源、目标、原始字段与派生变量、文档状态和待确认事项。下面的编号对应当前样例，新增模型后使用命令输出的实际编号。
-
-```bash
-python -m src.discover.discover_agent review \
-  --model-id MODEL-D05BB473A58E \
-  --reviewer "Your name" \
-  --decision approve \
-  --notes "核对过代码证据；业务用途和输入字段仍待后续补充，允许进入文档编制"
+```text
+src/
+  pipeline.py        end-to-end runner: run / review / status / registry
+  discover/          inventory extraction and gate 1
+  document/          reverse-engineered documentation, self-check and gate 2
+  redevelop/         IR, code and test generation, sandbox, parity and gate 3
+  validate/          metrics, fairness, ratings, explainer, Word report and gate 4
+  ui/                Streamlit console and dashboard
+config/              pipeline settings and validation policy (thresholds)
+legacy_models/       the four source notebooks with provenance
+scripts/             R reference exports, data download, offline demo
+docs/                Responsible AI statement and run evidence
+tests/
 ```
 
-也可以用 `--decision reject` 并填写原因。这里的批准仅表示允许继续编制文档，不表示模型通过独立验证。CLI 审核记录由操作者填写姓名，身份认证和界面签署由后续平台实现。
+## Responsible AI
 
-每次审核生成独立的 review 文件，保存审核人、意见、时间、记录摘要和完整模型记录。复制该命令返回的文件路径完成交接。
+See [docs/responsible_ai.md](docs/responsible_ai.md). In short: data rows never go to the LLM, numbers are computed by code and an LLM explanation cannot decide pass or fail, every claim cites its source, and approval means research use only, never production. Reviewer identity is self-declared and post-deployment monitoring is not built.
 
-```bash
-python -m src.discover.discover_agent handoff artifacts/discover/reviews/RUN_ID/MODEL_ID/REVIEW_ID.json
-```
+## AI tools used
 
-Document Agent 可以直接调用。
+- DeepSeek is the LLM inside the Discover, Document, Redevelop and Validate agents.
+- AI coding assistants helped write and review the code and documentation. All results were checked by tests and by the team.
 
-```python
-from pathlib import Path
-from src.discover.discover_review import load_document_input
+## Licences
 
-state = load_document_input(Path("实际审核文件路径.json"))
-# state 包含 model_id、inventory_record、input_root、approvals 和 status
-```
-
-交接时重新检查批准状态、记录摘要、原文件哈希、提取文本与证据；源文件或批准后的记录改动会被阻止。每次新扫描有独立 run_id，旧批准不会自动应用到新结果。
-
-如需纠正识别结果，推荐修改或补充输入材料后重扫。也可在审核前编辑最新清单的 metadata，保留有效来源证据，并在审核意见中写清修改内容。每次扫描的原始记录保存在 runs 下，审核另存快照。`needs_attention` 的扫描必须先解决问题并重跑才能批准。
-
-## 审计与 MLflow
-
-默认记录本地 JSONL，包括运行号、模型编号、提取模式、调用重试和结果、输入摘要、审核动作。并发写入同一输出目录会被锁阻止。程序意外退出留锁时，确认该目录没有运行中的任务后删除 `.discover.lock` 再重试。不同任务应使用不同输出目录。
-
-可选接入 MLflow，每次扫描一个 run，保存模型数量、异常数量和清单。跟踪服务失败时本地清单仍保留，命令返回非零。
-
-```bash
-python -m pip install mlflow-skinny
-export MLFLOW_TRACKING_URI="file:./mlruns"
-python -m src.discover.discover_agent scan --mlflow
-```
-
-## 当前完成范围
-
-已实现 Discover 扫描、离线提取、可配置 LLM 提取、Pydantic 与证据校验、初步文档和风险状态、CLI 人工审核、版本校验及 Document 交接接口。本次无 API 演示未调用真实 LLM；模拟响应测试不作为真实服务联调证据。MLflow 为可选跟踪，不是演示必需项。
-
-Document、Redevelop、Validate 和 CLI 审核均已实现。LangGraph / Streamlit 尚未接入。下方无 API 指南提供数据下载、R 参考导出和真实 Probit 重建路径。
-
-## 测试
-
-```bash
-python -m unittest -v
-python -m src.discover.discover_agent schema
-```
-
-测试覆盖真实 Notebook、稳定编号、目录分组、Notebook 单元引用、CSV 表头、伪造证据、LLM 重试与失败回退、审批与源文件变动、记录篡改、坏文件、外部符号链接以及输出目录约束。
-
-## Document Agent：源码逆向文档
-
-`src/document/document_agent.py` 接收 Discover `review` 命令返回的批准快照路径。
-
-```bash
-source .venv/bin/activate
-# 离线草稿，转录已有清单，不执行语义自检
-python -m src.document.document_agent generate DISCOVER_REVIEW.json
-# 在线生成，使用 LLM_BASE_URL / LLM_MODEL / LLM_API_KEY
-python -m src.document.document_agent generate DISCOVER_REVIEW.json --llm
-# 可选：每个 Document 节点一次 MLflow run（先安装 mlflow-skinny）
-python -m src.document.document_agent generate DISCOVER_REVIEW.json --llm --mlflow
-```
-
-旧形式 `python -m src.document.document_agent DISCOVER_REVIEW.json --llm` 保持兼容。
-
-源码按数据、变量变换、拟合、评分阶段启发式切块，并受字符预算约束；说明、字典及未分类代码也完整保留。切块是上下文窗口，不是完整的 SAS/R 语法解析器，跨块依赖必须保留为未知项。引用始终使用原 source_id 和原局部行号。单行过长或完整请求超限会显式失败，不截断。
-
-相邻源窗口完整打包到约 40000 字符的材料组；当前示例的全部材料仅一组，因此每章只调用一次 LLM，而不逐小窗口重复生成。每章每组最多提炼 12 条重要事实，未知项和建议单列；相同陈述合并引用。自检把陈述分批，与所有材料组交叉核对；有一处矛盾时优先保留 inconsistent，所有组均无支持时为 unverifiable。LLM 自检不保证语义正确，仍需人工审核。事实必须附原文引用，建议单独呈现。
-
-每次调用初次尝试加最多两次重试，携带结构或引用错误反馈，间隔指数退避。默认单次运行最多 30 次实际 API 尝试（含重试，缓存命中不计）；`--max-calls` 可显式调整。达到预算会保留草稿并标记 needs_attention。CLI 在请求前后打印阶段、调用计数和结果，运行目录的 progress.json 同步记录进度。Ctrl+C 中断会保存部分结果并释放锁。默认启用经校验的本地响应缓存，键包含完整提示词、材料、JSON Schema、服务地址和模型；`--no-cache` 强制重新调用。`--chunk-characters` 可调整默认 12000 字符的源窗口预算。显式 `--llm` 会向配置服务发送提取材料。
-
-输出位于 `artifacts/document/runs/<run_id>/`：
-
-| 文件 | 内容 |
-| --- | --- |
-| docs/<model_id>.md | 六章文档、引用及自检结论 |
-| chunks.json | 原始行号、阶段提示和完整源窗口 |
-| sections.json | 结构化章节，逐步保存以保留已完成内容 |
-| check_windows.json | 各材料组的核对结论，逐批保存 |
-| progress.json | 当前阶段、API 尝试数、预算和完成状态 |
-| consistency_report.json | 陈述、结论、理由、证据及版本关联 |
-| state.json | 共享状态、审批历史、路径、摘要、重试计数及失败原因 |
-
-生成前后均重验 Discover 批准快照和源码。成功为 `pending_document_review`；发现矛盾或生成/自检失败为 `needs_attention`。失败保留已完成章节，模式标记 `partial_llm`，命令返回非零。离线模式为 `offline`，自检项均为 `unverifiable`。
-
-### 人工关卡 2 和 Redevelop 交接
-
-打开 `state.json` 中的 doc_path 和 consistency_report_path 进行审核。可直接编辑草稿 Markdown；编辑稿、自检未确认项或离线稿的批准必须填写 resolution-notes，记录人工核对及处理结果。技术失败的运行必须重跑，不能直接批准。
-
-```bash
-python -m src.document.document_agent review DOCUMENT_STATE.json \
-  --reviewer "Your name" --decision approve --notes "已核对文档与源码"
-# 修改稿或存在待确认项时
-python -m src.document.document_agent review DOCUMENT_STATE.json \
-  --reviewer "Your name" --decision approve --notes "完成审核" \
-  --resolution-notes "说明具体修改，以及矛盾和未知项的人工处置"
-# 驳回，随后将意见传入新一轮生成
-python -m src.document.document_agent review DOCUMENT_STATE.json \
-  --reviewer "Your name" --decision reject --notes "请修正缺失值处理描述"
-python -m src.document.document_agent generate DISCOVER_REVIEW.json --llm --feedback-review REJECTED_REVIEW.json
-# 使用 review 命令输出的快照路径交接
-python -m src.document.document_agent handoff DOCUMENT_REVIEW.json
-```
-
-审核生成独立快照，保存当时的文档全文、报告、审批、原始摘要和编辑后摘要。后续修改草稿不影响已批准版本；修改批准副本或原始源码会阻止交接。摘要锁定属于本地完整性检查，不是数字签名或操作系统不可变存储。CLI 审核人由操作者填写，尚无身份认证。
-
-```python
-from pathlib import Path
-from src.document.document_review import load_redevelop_input
-state = load_redevelop_input(Path("DOCUMENT_REVIEW.json"))
-# status == ready_for_redevelop；含源码记录、批准文档和两个人工关卡的审批
-```
-
-调用审计记录阶段、提示词版本、模型、输入摘要、结果路径、尝试次数及服务返回的 token 用量；未返回用量或缓存命中时记录 null，不估算。MLflow 失败保留本地输出，并返回非零。
-
-共享键在 `src/workflow_state.py` 定义，各节点逐步填充代码、Parity、指标与报告路径。Document 本身不训练模型，也不宣称下游已经通过。
-
-### 流程对照和验证
-
-完整差异与实现边界见 [流程对照记录](docs/flow_alignment.md)。当前审核通过 CLI 执行，Redevelop / Validate 已实现；LangGraph interrupt、Streamlit 表格审核和 Monitor 尚未实现。本次演示没有真实 LLM 联调。
-
-```bash
-python -m unittest -v
-```
-
-测试覆盖静态扫描、源窗口完整性与行号、模拟 LLM 生成和跨窗口自检、重试反馈与退避、缓存、编辑审批、驳回反馈、快照及源码变更阻断、MLflow 失败保留本地结果。
-
-### Document 耗时与调用预算
-
-早期 document-v2 将每章与每个小窗口分别生成，再让所有陈述批次与所有窗口逐一核对；29 个窗口可能产生上百次生成和数百次自检。document-v3 保留源码切块用于定位，但按材料组调用，避免这类乘法膨胀。短模型约为六次章节生成加若干次批量自检，实际次数受输出长度、重试、缓存影响；默认总预算 30 次。
-
-如仍有旧进程运行，先在其终端 Ctrl+C，再使用新版本运行同一 generate 命令。修改源文件不会改变已启动进程的逻辑。旧运行的 sections.json 和 cache 保留，但新提示词/分组与旧缓存不同，不能假定新版本无成本续跑。
-
-
-## 无 API 的真实 Probit 演示与独立验证
-
-完整步骤、证据与边界见 [无 API 演示指南](docs/offline_demo.md)。本地界面是可导出的 HTML，不需要 Streamlit、API 或公网部署。
-
-```bash
-python -m scripts.download_gmsc
-# 安装 R 4.4+，从项目根目录执行；脚本缺包时从 CRAN 安装
-Rscript scripts/gmsc_probit_export.R
-python -m scripts.run_offline_demo
-python -m http.server 8765 --bind 127.0.0.1 --directory outputs/demo
-# 浏览器打开 http://127.0.0.1:8765
-```
-
-演示脚本中的关卡 1–3 记录明确标为 Codex 技术核对，不冒充团队成员本人签名。关卡 4 保持待审；人工团队应复核前三关。离线 Document 仅转录已有元数据；Redevelop 使用手写 IR、代码和测试，不宣称自动生成成功。真实 R 对照与性能结果见 [运行证据](docs/evidence/README.md)。
-
-独立 Validate 接收关卡 3 的批准快照并重新验证审批链与文件摘要。计算 AUC/Gini/KS、Brier、Log-loss、ECE/校准表、训练/留出 PSI 和探索性年龄分组 TPR/FPR；检查唯一 ID、切分隔离、IR 过滤后覆盖、原始标签一致性及有效概率。它不执行新生成的模型代码。
-
-- **决策阈值 0.2**：沿用原 notebook 的截断值。0.5 时只有 1–2% 的申请人被标记，公平性检查几乎测不出差异。
-- **概念合理性（4.4）**：代码按 `expected_signs` 检查每个系数的符号（如逾期次数应为正、年龄为负），通过 IR 的重命名映射对应 R 中的别名；没有系数的模型（树模型）标为无法验证。
-- **Explainer（4.6–4.7）**：加 `--llm` 时由 LLM 撰写解读。代码校验其中每个数字都必须是报告中的值（同等或更粗的精度，可写成百分比），结论必须与规则结果一致（有失败只能是 fail，有未知项只能是 conditional_pass），否则带错误重试。三次不通过或未配置 LLM 时使用确定性模板，并在报告中注明。
-- **红黄绿评级（4.5）**：每个发现项为红（超出限值）、黄（通过但在 `amber` 预警区间内，或无法验证）或绿，并附建议；报告给出总体评级。阈值在 `validation_policy.json`。
-- **公平性（4.3，fairlearn）**：按 `fairness_attributes` 中每个受保护属性（数值切分或类别）计算 TPR 差、人口均等差、差异影响（按批准率计算，四分之五规则 0.8）和均等几率差。数据中不存在的属性（如 GMSC 的 sex）标为无法验证。
-- **图表与输出**：ROC、校准、分数分布、分组比率和 PSI 图（只用汇总数据）嵌入 Word 报告；`findings.json` 单独列出评级与建议；`--mlflow` 记录指标与产物。
-- **Word 报告（4.8）**：`report.docx` 包含总体评级、指标与图表、校准、PSI、公平性、系数、带评级的规则检查、解读和完整审批记录；关卡 4 会校验它未被修改。
-- 数据没有时间变量，因此无法做时间外（OOT）回测和分时间段指标，报告中作为未知项列出。
-
-Probit 真实结果（R 4.6.2 参考）：总体 **黄**。AUC、KS、校准、PSI 和 5 个系数符号均为绿；年龄组 TPR 差 0.106、均等几率差 0.106、人口均等差 0.052 落在预警区间；差异影响 0.946（绿）；sex 无法验证。DeepSeek 解读一次通过数字校验，并指出高分段（第 6–9 箱）预测偏高、样本少需人工复核。
-
-```bash
-python -m src.validate.validate_agent REDEVELOP_REVIEW.json
-python -m src.validate.validate_review VALIDATION_STATE.json \
-  --reviewer "Your name" --decision approve --notes "独立核对指标和报告" \
-  --resolution-notes "逐项说明未知项、适用范围及探索性分组指标的处置"
-python -m scripts.evidence_pack VALIDATION_STATE.json --output outputs/demo
-```
-
-每次 Validate 保存 metrics.json、report.md、report.html、report.docx、state.json。规则失败进入 needs_attention，不能批准，需修复并重跑；规则通过进入 pending_validation_review。关卡 4 批准仅标记 validated_for_research，不等于银行投产批准。策略阈值在 [config/validation_policy.json](config/validation_policy.json)，为演示规则，需要团队事先确认，不能当作 SS1/23 的强制数值。
-
-本地原始数据、逐行预测、R 日志和审核身份均不纳入发布证据包。汇总 JSON / HTML 保留聚合指标与摘要。第三方镜像来源已记录，尚未与 Kaggle 官方下载做逐字节认证。训练/留出 PSI 不是时间漂移监控；年龄分组通过不代表全面公平或合规。
+Our code is original team work. The legacy notebooks are third-party Apache 2.0 works; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Datasets are not included; obtain them under their own terms.
