@@ -36,6 +36,9 @@ section[data-testid="stSidebar"] small, section[data-testid="stSidebar"] [data-t
 section[data-testid="stSidebar"] [data-baseweb="select"] > div {{ background: #13283F; border-color: #2B4560; }}
 section[data-testid="stSidebar"] [data-baseweb="select"] * {{ color: #E6ECF2 !important; }}
 section[data-testid="stSidebar"] hr {{ border-color: #2B4560; }}
+/* Sidebar text is light, so sidebar buttons need a dark face to stay readable. */
+section[data-testid="stSidebar"] .stButton button {{ background: #13283F; border-color: #2B4560; }}
+section[data-testid="stSidebar"] .stButton button:hover {{ border-color: #E6ECF2; }}
 .stTabs [data-baseweb="tab-list"] {{ border-bottom: 1px solid {RULE}; gap: 1.6rem; }}
 .stTabs [data-baseweb="tab"] {{ padding-left: 0; padding-right: 0; font-weight: 500; }}
 .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {{ border-radius: 3px; font-weight: 600; }}

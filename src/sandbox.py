@@ -20,7 +20,7 @@ from src.redevelop.baselines import gmsc_probit
 ROOT = Path(tempfile.gettempdir()) / "model_risk_factory_sandbox"
 
 
-def synthetic_gmsc(path: Path, rows: int = 3000) -> None:
+def synthetic_gmsc(path: Path, rows: int = 3000, intercept: float = -1.2, slope: float = 1.0) -> None:
     """Random rows in the Give Me Some Credit layout; labels depend on utilisation and 90-day lateness."""
     rng = np.random.default_rng(1)
     late = rng.choice([0, 0, 0, 1, 2, 98], rows)
@@ -38,7 +38,7 @@ def synthetic_gmsc(path: Path, rows: int = 3000) -> None:
         'NumberOfTime60-89DaysPastDueNotWorse': rng.integers(0, 3, rows),
         'NumberOfDependents': np.where(rng.uniform(size=rows) < 0.1, np.nan, rng.integers(0, 4, rows)),
     })
-    signal = -1.2 + 1.5 * frame['RevolvingUtilizationOfUnsecuredLines'] + 0.4 * np.minimum(late, 3)
+    signal = intercept + slope * (1.5 * frame['RevolvingUtilizationOfUnsecuredLines'] + 0.4 * np.minimum(late, 3))
     frame['SeriousDlqin2yrs'] = (rng.uniform(size=rows) < 1 / (1 + np.exp(-signal))).astype(int)
     frame.to_csv(path, index=False)
 
@@ -52,7 +52,8 @@ def prepare(root: Path | None = None) -> Path:
     data, reference = root / "data", root / "reference"
     data.mkdir(parents=True, exist_ok=True)
     reference.mkdir(exist_ok=True)
-    synthetic_gmsc(data / "cs-training.csv")
+    # About 10% defaults and AUC near 0.76: closer to real credit data than the test fixture's defaults.
+    synthetic_gmsc(data / "cs-training.csv", rows=20000, intercept=-4.6, slope=2.0)
     kept = gmsc_probit.prepare(gmsc_probit.load(data / "cs-training.csv"))
     pd.DataFrame({"row_id": kept["row_id"].sample(frac=0.7, random_state=0)}).to_csv(
         reference / "train_ids.csv", index=False)

@@ -29,6 +29,8 @@ class SandboxTests(unittest.TestCase):
             self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('await', gate))
             pipeline.review('gmsc_probit', 'Reviewer', 'approve', 'Checked', resolution)
         self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('await', 'gate4'))
+        pipeline.review('gmsc_probit', 'Reviewer', 'approve', 'Checked', 'Amber items accepted')  # refused if red
+        self.assertEqual(pipeline.run('gmsc_probit', False, **quiet), ('done', 'validated_for_research'))
         sandbox.reset()
         self.assertFalse(self.root.exists())
 

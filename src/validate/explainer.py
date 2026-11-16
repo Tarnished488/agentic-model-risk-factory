@@ -131,7 +131,9 @@ def template_explanation(report: dict) -> Explanation:
                                            m["equalized_odds_difference"])),
         conceptual_soundness=("Coefficient signs: " + "; ".join(f"{f['check'].split(':', 1)[1]} {f['result']}"
                                                                 for f in signs)) if signs
-                             else "No coefficients were available for a sign check.",
+                             else "No coefficients were available for a sign check."
+                             if any(f["check"] == "coefficient_signs" for f in report["findings"])
+                             else "The validation policy sets no expected coefficient signs, so no sign check ran.",
         limitations=list(report["unknowns"]) + [f"Unverifiable: {c}" for c in unverifiable],
         recommendations=["Human reviewer to confirm business scope, thresholds and the listed unknowns."],
         conclusion=conclusion,

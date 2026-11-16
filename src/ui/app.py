@@ -62,7 +62,7 @@ def show_gate1(state: dict) -> None:
                "anything wrong: the hash-locked record is not edited, and your corrections travel with the approval "
                "to the Document agent.")
     st.markdown(f"Extraction `{record['extraction_mode']}` · status `{record['status']}` · provisional risk tier "
-                f"`{record['risk_tier']}`")
+                f"`{record['risk_tier'] or 'not assigned'}`")
     rows = [[k, ", ".join(map(str, v)) if isinstance(v, list) else str(v if v is not None else ""), ""]
             for k, v in metadata.items() if k not in ("evidence", "unknowns")]
     edited = st.data_editor(pd.DataFrame(rows, columns=["Field", "Extracted value", "Correction"]),
