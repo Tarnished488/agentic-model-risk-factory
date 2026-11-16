@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 760" width="1280" height="760" font-family="Arial, Helvetica, sans-serif">
+  <title>Agentic Model Risk Factory architecture</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#F05A1A"/>
+    </marker>
+  </defs>
+  <style>
+    .panel { fill: #1C3A55; }
+    .box { fill: #FFFFFF; }
+    .agent { fill: #FDF1EA; }
+    .h { font-size: 17px; font-weight: 700; fill: #12263A; }
+    .s { font-size: 12.5px; fill: #3B4D5E; }
+    .line { stroke: #F05A1A; stroke-width: 2.5; fill: none; }
+    .dash { stroke: #F05A1A; stroke-width: 2.5; fill: none; stroke-dasharray: 7 5; }
+    .gate { fill: #F05A1A; }
+    .gt { font-size: 13px; font-weight: 700; fill: #FFFFFF; }
+    .llm { fill: none; stroke: #F05A1A; stroke-width: 1.5; stroke-dasharray: 4 3; }
+    .lt { font-size: 11px; font-weight: 700; fill: #C2410C; }
+    .code { fill: #1C3A55; }
+    .ct { font-size: 11px; font-weight: 700; fill: #FFFFFF; }
+    .w { font-size: 13px; fill: #E6ECF2; }
+    .title { font-size: 24px; font-weight: 700; fill: #FFFFFF; }
+    .lab { font-size: 12.5px; font-weight: 700; fill: #FDBA8C; }
+  </style>
+
+  <rect class="panel" x="0" y="0" width="1280" height="760" rx="16"/>
+  <text class="title" x="40" y="46">Agentic Model Risk Factory · architecture</text>
+
+  <!-- Row A: people and control -->
+  <rect class="box" x="40" y="70" width="230" height="58" rx="6"/>
+  <text class="h" x="155" y="94" text-anchor="middle">Human reviewers</text>
+  <text class="s" x="155" y="114" text-anchor="middle">one named role per gate</text>
+
+  <rect class="box" x="320" y="70" width="250" height="58" rx="6"/>
+  <text class="h" x="445" y="94" text-anchor="middle">Streamlit console · CLI</text>
+  <text class="s" x="445" y="114" text-anchor="middle">review, approve, reject, withdraw</text>
+
+  <rect class="box" x="620" y="70" width="620" height="58" rx="6"/>
+  <text class="h" x="930" y="94" text-anchor="middle">Pipeline controller (state machine)</text>
+  <text class="s" x="930" y="114" text-anchor="middle">runs the next agent, stops at its gate, records the decision; a rejection reruns the stage</text>
+
+  <path class="line" d="M270,99 H316" marker-end="url(#arrow)"/>
+  <path class="line" d="M570,99 H616" marker-end="url(#arrow)"/>
+
+  <!-- Row B: inputs -->
+  <rect class="box" x="40" y="160" width="420" height="62" rx="6"/>
+  <text class="h" x="250" y="184" text-anchor="middle">Legacy model sources</text>
+  <text class="s" x="250" y="205" text-anchor="middle">R, Rmd and notebooks with READMEs · 4 public Kaggle models</text>
+
+  <rect class="box" x="520" y="160" width="420" height="62" rx="6"/>
+  <text class="h" x="730" y="184" text-anchor="middle">Credit dataset · R reference outputs</text>
+  <text class="s" x="730" y="205" text-anchor="middle">kept local, never committed · R run once to export predictions</text>
+
+  <path class="line" d="M130,222 V266" marker-end="url(#arrow)"/>
+  <path class="line" d="M370,222 V266" marker-end="url(#arrow)"/>
+  <path class="line" d="M610,222 V266" marker-end="url(#arrow)"/>
+  <path class="line" d="M850,222 V266" marker-end="url(#arrow)"/>
+
+  <!-- controller records decisions in the registry -->
+  <path class="line" d="M1120,128 V266" marker-end="url(#arrow)"/>
+  <text class="lab" x="1110" y="200" text-anchor="end">records each</text>
+  <text class="lab" x="1110" y="216" text-anchor="end">gate decision</text>
+
+  <!-- Row C: agent chain with gates -->
+  <g>
+    <rect class="agent" x="40" y="270" width="180" height="96" rx="6"/>
+    <text class="h" x="130" y="296" text-anchor="middle">Discover</text>
+    <text class="s" x="130" y="316" text-anchor="middle">inventory + evidence</text>
+    <rect class="llm" x="52" y="330" width="72" height="22" rx="4"/><text class="lt" x="88" y="345" text-anchor="middle">DeepSeek</text>
+    <rect class="code" x="130" y="330" width="80" height="22" rx="4"/><text class="ct" x="170" y="345" text-anchor="middle">quotes</text>
+  </g>
+  <g>
+    <rect class="agent" x="280" y="270" width="180" height="96" rx="6"/>
+    <text class="h" x="370" y="296" text-anchor="middle">Document</text>
+    <text class="s" x="370" y="316" text-anchor="middle">6 chapters, cited claims</text>
+    <rect class="llm" x="292" y="330" width="72" height="22" rx="4"/><text class="lt" x="328" y="345" text-anchor="middle">DeepSeek</text>
+    <rect class="code" x="370" y="330" width="80" height="22" rx="4"/><text class="ct" x="410" y="345" text-anchor="middle">citations</text>
+  </g>
+  <g>
+    <rect class="agent" x="520" y="270" width="180" height="96" rx="6"/>
+    <text class="h" x="610" y="296" text-anchor="middle">Redevelop</text>
+    <text class="s" x="610" y="316" text-anchor="middle">IR → tests → Python</text>
+    <rect class="llm" x="532" y="330" width="72" height="22" rx="4"/><text class="lt" x="568" y="345" text-anchor="middle">DeepSeek</text>
+    <rect class="code" x="610" y="330" width="80" height="22" rx="4"/><text class="ct" x="650" y="345" text-anchor="middle">parity vs R</text>
+  </g>
+  <g>
+    <rect class="agent" x="760" y="270" width="180" height="96" rx="6"/>
+    <text class="h" x="850" y="296" text-anchor="middle">Validate</text>
+    <text class="s" x="850" y="316" text-anchor="middle">metrics, fairness, report</text>
+    <rect class="llm" x="772" y="330" width="72" height="22" rx="4"/><text class="lt" x="808" y="345" text-anchor="middle">DeepSeek</text>
+    <rect class="code" x="850" y="330" width="80" height="22" rx="4"/><text class="ct" x="890" y="345" text-anchor="middle">numbers</text>
+  </g>
+
+  <path class="line" d="M220,318 H228"/><rect class="gate" x="228" y="305" width="44" height="26" rx="5"/><text class="gt" x="250" y="323" text-anchor="middle">G1</text><path class="line" d="M272,318 H276" marker-end="url(#arrow)"/>
+  <path class="line" d="M460,318 H468"/><rect class="gate" x="468" y="305" width="44" height="26" rx="5"/><text class="gt" x="490" y="323" text-anchor="middle">G2</text><path class="line" d="M512,318 H516" marker-end="url(#arrow)"/>
+  <path class="line" d="M700,318 H708"/><rect class="gate" x="708" y="305" width="44" height="26" rx="5"/><text class="gt" x="730" y="323" text-anchor="middle">G3</text><path class="line" d="M752,318 H756" marker-end="url(#arrow)"/>
+  <path class="line" d="M940,318 H948"/><rect class="gate" x="948" y="305" width="44" height="26" rx="5"/><text class="gt" x="970" y="323" text-anchor="middle">G4</text><path class="line" d="M992,318 H996" marker-end="url(#arrow)"/>
+
+  <rect class="box" x="1000" y="270" width="240" height="96" rx="6"/>
+  <text class="h" x="1120" y="296" text-anchor="middle">Model registry</text>
+  <text class="s" x="1120" y="318" text-anchor="middle">Staging after G3</text>
+  <text class="s" x="1120" y="338" text-anchor="middle">Validated (research) after G4</text>
+
+  <!-- Return to Review 1 -->
+  <path class="dash" d="M850,366 V392 H370 V370" marker-end="url(#arrow)"/>
+  <path class="dash" d="M610,366 V392"/>
+  <text class="lab" x="610" y="414" text-anchor="middle">Return to Review 1 from G3 or G4: reopens G2, then Redevelop reruns on the corrected document</text>
+
+  <!-- registry to store -->
+  <path class="line" d="M1120,366 V586" marker-end="url(#arrow)"/>
+
+  <!-- Row D: LLM and deterministic checks -->
+  <rect class="box" x="40" y="438" width="420" height="120" rx="6"/>
+  <rect class="llm" x="54" y="452" width="72" height="22" rx="4"/><text class="lt" x="90" y="467" text-anchor="middle">DeepSeek</text>
+  <text class="h" x="136" y="469">LLM (optional)</text>
+  <text class="s" x="54" y="496">Called by every agent; offline baselines run without it.</text>
+  <text class="s" x="54" y="516">Receives code, documents and CSV headers, never feature rows.</text>
+  <text class="s" x="54" y="536">Parity retries add the worst rows' IDs and scores.</text>
+
+  <rect class="box" x="520" y="438" width="560" height="120" rx="6"/>
+  <rect class="code" x="534" y="452" width="80" height="22" rx="4"/><text class="ct" x="574" y="467" text-anchor="middle">code</text>
+  <text class="h" x="624" y="469">Deterministic checks (no LLM)</text>
+  <text class="s" x="534" y="496">Evidence quotes matched verbatim · AST allow-list sandbox + pytest</text>
+  <text class="s" x="534" y="516">Parity: AUC diff ≤ 0.005, KS diff ≤ 0.01, coefficients ≤ 1e-6, up to 3 retries</text>
+  <text class="s" x="534" y="536">fairlearn metrics · red findings block approval · explanation numbers checked</text>
+
+  <!-- Row E: storage -->
+  <rect class="box" x="40" y="590" width="1200" height="62" rx="6"/>
+  <text class="h" x="640" y="615" text-anchor="middle">Versioned artifacts and audit trail</text>
+  <text class="s" x="640" y="636" text-anchor="middle">SHA-256 snapshot at every gate, re-verified by the next stage · audit log of every LLM call (model, prompt version, input hash, tokens) · registry history</text>
+
+  <!-- Footer and legend -->
+  <text class="w" x="40" y="684">Public deployment: Streamlit Cloud sandbox with synthetic data, offline agents and no API key. Real data and approvals stay on the team's machines.</text>
+  <rect class="gate" x="40" y="704" width="34" height="22" rx="4"/><text class="gt" x="57" y="720" text-anchor="middle">G</text>
+  <text class="w" x="82" y="720">human gate</text>
+  <rect class="llm" x="180" y="704" width="72" height="22" rx="4"/><text class="lt" x="216" y="719" text-anchor="middle">DeepSeek</text>
+  <text class="w" x="260" y="720">LLM call</text>
+  <rect class="code" x="340" y="704" width="80" height="22" rx="4" stroke="#E6ECF2" stroke-width="1"/><text class="ct" x="380" y="719" text-anchor="middle">check</text>
+  <text class="w" x="428" y="720">code check</text>
+  <path class="dash" d="M530,715 H580"/>
+  <text class="w" x="590" y="720">correction route</text>
+</svg>

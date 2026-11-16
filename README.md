@@ -28,6 +28,7 @@ legacy code ─► Discover ─► Gate 1 ─► Document ─► Gate 2 ─► R
 - Gates 1–2 form **Review 1** (do we understand the model?); gates 3–4 form **Review 2** (is the rebuild right and fit for use?).
 - A rejection reruns the stage. At gate 3 or 4 the reviewer can instead **return the model to Review 1** when the approved document is wrong.
 - Stage-by-stage design: [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md).
+- Architecture diagram: [docs/architecture.svg](docs/architecture.svg) (PNG: [docs/architecture.png](docs/architecture.png)).
 - Every approval is a SHA-256 snapshot. Downstream stages refuse input that changed after approval.
 - Hard rules the reviewer cannot override: no approval without passed parity (gate 3) or with a red finding (gate 4).
 
