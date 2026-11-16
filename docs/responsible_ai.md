@@ -10,7 +10,7 @@ Agentic Model Risk Factory, team Onlyfours, EXL × Trinity Data & AI Hackathon 2
 
 ## Privacy and security
 
-- **Data rows never go to the LLM.** Agents send source code, documents and CSV column headers only; notebook outputs are dropped.
+- **Feature rows never go to the LLM.** Agents send source code, documents and CSV column headers; notebook outputs are dropped. One exception: after a failed parity round, the retry feedback includes the IDs and R/Python scores of the worst-matching rows (no feature values).
 - **Borrower-level data stays local.** `data/` and per-row predictions are never committed. Reports, charts and exported evidence use aggregates only.
 - **Generated code is contained.** It must pass an AST allow-list (no file, network, `os`, `subprocess` or `eval` access) and runs in an isolated subprocess with a timeout and without the API key.
 - **Source is treated as data.** The Discover, Redevelop and Validate prompts tell the model to ignore any instructions found inside the legacy material. The API key lives in a local, git-ignored `.env`, and the console binds to localhost.

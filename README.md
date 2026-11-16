@@ -105,7 +105,7 @@ tests/
 
 ## Responsible AI
 
-See [docs/responsible_ai.md](docs/responsible_ai.md). In short: data rows never go to the LLM, numbers are computed by code and an LLM explanation cannot decide pass or fail, every claim cites its source, and approval means research use only, never production. Reviewer identity is self-declared and post-deployment monitoring is not built.
+See [docs/responsible_ai.md](docs/responsible_ai.md). In short: feature rows never go to the LLM (parity retries share only row IDs and scores of the worst-matching rows), numbers are computed by code and an LLM explanation cannot decide pass or fail, every claim cites its source, and approval means research use only, never production. Reviewer identity is self-declared and post-deployment monitoring is not built.
 
 ## AI tools used
 
