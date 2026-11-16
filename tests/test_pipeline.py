@@ -8,7 +8,7 @@ import pandas as pd
 
 from src import pipeline
 from src.redevelop.baselines import gmsc_probit
-from tests.test_redevelop import synthetic_gmsc
+from src.sandbox import synthetic_gmsc
 
 
 class PipelineTests(unittest.TestCase):

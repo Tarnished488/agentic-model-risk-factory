@@ -17,8 +17,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)  # pipeline paths (config/, artifacts/, data/) are relative to the repository root
 
-from src import pipeline  # noqa: E402
+from src import pipeline, sandbox  # noqa: E402
 from src.ui import dashboard, style  # noqa: E402
+
+# Public deployments set SANDBOX=1: synthetic data, offline agents, a separate artifact folder.
+IN_SANDBOX = os.environ.get("SANDBOX") == "1"
 
 STEP_LABELS = {"discover": "Discover", "gate1": "Gate 1", "document": "Document", "gate2": "Gate 2",
                "redevelop": "Redevelop", "gate3": "Gate 3", "validate": "Validate", "gate4": "Gate 4"}
@@ -184,9 +187,18 @@ def main() -> None:
     pipeline.load_env()
     st.set_page_config(page_title="Model risk control ledger", layout="wide")
     style.inject()
+    if IN_SANDBOX:
+        with st.spinner("Preparing the synthetic sandbox"):
+            sandbox.activate(pipeline)
+        st.warning("Sandbox: synthetic rows in the Give Me Some Credit layout, offline agents, shared by all visitors. "
+                   "Results describe random data, not the real Probit model; the real DeepSeek run is documented in "
+                   "the repository.")
     with st.sidebar:
         st.markdown("### Model risk factory")
         page = st.radio("View", ["Dashboard", "Gate console"], label_visibility="collapsed")
+        if IN_SANDBOX and st.button("Reset sandbox", help="Delete every run and decision and start again"):
+            sandbox.reset()
+            st.rerun()
     if page == "Dashboard":
         dashboard.render()
         return
@@ -194,10 +206,11 @@ def main() -> None:
     with st.sidebar:
         st.divider()
         group = st.selectbox("Model", groups)
-        has_key = all(os.environ.get(k) for k in ("LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY"))
+        has_key = not IN_SANDBOX and all(os.environ.get(k) for k in ("LLM_BASE_URL", "LLM_MODEL", "LLM_API_KEY"))
         use_llm = st.toggle("Use the LLM", value=has_key, disabled=not has_key,
                             help="Needs LLM_BASE_URL, LLM_MODEL and LLM_API_KEY in .env")
         st.caption(f"LLM: {os.environ.get('LLM_MODEL')}" if has_key else
+                   "Sandbox runs offline: agents use the reviewed baselines." if IN_SANDBOX else
                    "No LLM configured: agents use the reviewed offline baselines.")
     state = pipeline.load_state(group)
     st.title("Gate console")

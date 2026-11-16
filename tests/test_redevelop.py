@@ -13,6 +13,7 @@ from src.discover.discover_review import review as review_discover
 from src.document.document_agent import run_document
 from src.document.document_review import load_redevelop_input, review_document
 from src.redevelop.baselines import gmsc_probit
+from src.sandbox import synthetic_gmsc
 from src.redevelop.redevelop_agent import (
     BASELINES, IR, CheckError, check_code, check_ir, difference_report, ir_differences, run_redevelop,
 )
@@ -25,28 +26,6 @@ BASELINE_TESTS = (BASELINES / 'gmsc_probit_test.py').read_text(encoding='utf-8')
 CRASHING = ('import pandas as pd\nclass Model:\n    def fit(self, f): return self\n'
             '    def predict_proba(self, f): return None\n    def get_coefficients(self): return {}\n'
             'def run(data_dir, reference_dir, output):\n    raise RuntimeError("boom")\n')
-
-
-def synthetic_gmsc(path: Path, rows: int = 3000) -> None:
-    rng = np.random.default_rng(1)
-    late = rng.choice([0, 0, 0, 1, 2, 98], rows)
-    frame = pd.DataFrame({
-        '': np.arange(1, rows + 1),
-        'SeriousDlqin2yrs': 0,
-        'RevolvingUtilizationOfUnsecuredLines': rng.uniform(0, 1.2, rows),
-        'age': rng.integers(0, 90, rows),
-        'NumberOfTime30-59DaysPastDueNotWorse': rng.integers(0, 4, rows),
-        'DebtRatio': rng.uniform(0, 1.3, rows),
-        'MonthlyIncome': np.where(rng.uniform(size=rows) < 0.2, np.nan, rng.uniform(1000, 9000, rows)),
-        'NumberOfOpenCreditLinesAndLoans': rng.integers(0, 10, rows),
-        'NumberOfTimes90DaysLate': late,
-        'NumberRealEstateLoansOrLines': rng.integers(0, 3, rows),
-        'NumberOfTime60-89DaysPastDueNotWorse': rng.integers(0, 3, rows),
-        'NumberOfDependents': np.where(rng.uniform(size=rows) < 0.1, np.nan, rng.integers(0, 4, rows)),
-    })
-    signal = -1.2 + 1.5 * frame['RevolvingUtilizationOfUnsecuredLines'] + 0.4 * np.minimum(late, 3)
-    frame['SeriousDlqin2yrs'] = (rng.uniform(size=rows) < 1 / (1 + np.exp(-signal))).astype(int)
-    frame.to_csv(path, index=False)
 
 
 def code(text):
