@@ -41,7 +41,7 @@ legacy code ─► Discover ─► Gate 1 ─► Document ─► Gate 2 ─► R
 | `german_xgboost` XGBoost + SHAP | hafsarouchdi | Yes | No |
 | `gmsc_gbm` caret GBM | fastwalker | Yes | No |
 
-Probit result: DeepSeek generated the IR, code and tests, and parity passed after one retry. On the 33,607-row holdout, AUC is 0.8231 and KS is 0.4919. Age-group fairness metrics fall in the warning band, and sex is unavailable in the data, so the overall rating is amber.
+Probit result: DeepSeek generated the IR, code and tests, and parity passed in the first round (max prediction difference from R 2.5e-14). On the 33,607-row holdout, AUC is 0.8231 and KS is 0.4919. Age-group fairness metrics fall in the warning band, and sex is unavailable in the data, so the overall rating is amber.
 
 A real finding: the German XGBoost notebook reports AUC 0.2729 because its evaluator treats "good" as the event. With the event direction corrected it is 0.7271. Review 1 missed this at first; the document was corrected, and Validate now flags any AUC below 0.5 as a possible direction error.
 
@@ -51,7 +51,7 @@ Python 3.10+.
 
 ```bash
 python -m pip install -r requirements.txt
-python -m pytest -q                                   # 93 tests, no API key needed
+python -m pytest tests -q                             # 98 tests, no API key needed
 ```
 
 Run the pipeline. Without `--llm` the agents use hand-written baselines offline.
